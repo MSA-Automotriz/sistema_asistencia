@@ -1,0 +1,323 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+enum AttendanceType {
+  CHECK_IN
+  CHECK_OUT
+}
+
+enum AttendanceStatus {
+  ON_TIME
+  LATE
+  EARLY_DEPARTURE
+  OUTSIDE_GEOFENCE
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+model Company {
+  id String @id @default(cuid())
+  name String
+  taxId String @unique
+  email String?
+  phone String?
+  address String?
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sites Site[]
+  departments Department[]
+  positions Position[]
+  employees Employee[]
+  holidays Holiday[]
+  settings Setting[]
+}
+
+model Site {
+  id String @id @default(cuid())
+  companyId String
+  name String
+  address String
+  latitude Float
+  longitude Float
+  radiusMeters Int @default(10)
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employees Employee[]
+  qrTokens QrToken[]
+  attendances Attendance[]
+  @@unique([companyId, name])
+}
+
+model Role {
+  id String @id @default(cuid())
+  name String @unique
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users User[]
+  rolePermissions RolePermission[]
+}
+
+model Permission {
+  id String @id @default(cuid())
+  code String @unique
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  roleId String
+  permissionId String
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  @@id([roleId, permissionId])
+}
+
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  passwordHash String
+  firstName String
+  lastName String
+  status UserStatus @default(PENDING)
+  emailVerifiedAt DateTime?
+  roleId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  role Role @relation(fields: [roleId], references: [id])
+  employee Employee?
+  sessions Session[]
+  notifications Notification[]
+  audits AuditLog[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model Department {
+  id String @id @default(cuid())
+  companyId String
+  name String
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employees Employee[]
+  @@unique([companyId, name])
+}
+
+model Position {
+  id String @id @default(cuid())
+  companyId String
+  name String
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employees Employee[]
+  @@unique([companyId, name])
+}
+
+model Schedule {
+  id String @id @default(cuid())
+  name String
+  startTime String
+  endTime String
+  toleranceMinutes Int @default(0)
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  employees Employee[]
+}
+
+model Employee {
+  id String @id @default(cuid())
+  userId String @unique
+  companyId String
+  siteId String?
+  departmentId String?
+  positionId String?
+  scheduleId String?
+  employeeCode String @unique
+  hiredAt DateTime
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id])
+  site Site? @relation(fields: [siteId], references: [id])
+  department Department? @relation(fields: [departmentId], references: [id])
+  position Position? @relation(fields: [positionId], references: [id])
+  schedule Schedule? @relation(fields: [scheduleId], references: [id])
+  attendances Attendance[]
+  vacations Vacation[]
+  workPermissions WorkPermission[]
+  licenses License[]
+}
+
+model QrToken {
+  id String @id @default(cuid())
+  siteId String
+  tokenHash String @unique
+  expiresAt DateTime
+  usedAt DateTime?
+  createdById String
+  createdAt DateTime @default(now())
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  @@index([siteId, expiresAt])
+}
+
+model Attendance {
+  id String @id @default(cuid())
+  employeeId String
+  siteId String
+  qrTokenId String?
+  type AttendanceType
+  status AttendanceStatus
+  recordedAt DateTime @default(now())
+  latitude Float
+  longitude Float
+  distanceMeters Float
+  approximateAddress String?
+  ipAddress String?
+  browser String?
+  operatingSystem String?
+  device String?
+  connectionType String?
+  employee Employee @relation(fields: [employeeId], references: [id])
+  site Site @relation(fields: [siteId], references: [id])
+  @@index([employeeId, recordedAt])
+}
+
+model Vacation {
+  id String @id @default(cuid())
+  employeeId String
+  startDate DateTime
+  endDate DateTime
+  status RequestStatus @default(PENDING)
+  reason String?
+  approvedById String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model WorkPermission {
+  id String @id @default(cuid())
+  employeeId String
+  startDate DateTime
+  endDate DateTime
+  status RequestStatus @default(PENDING)
+  reason String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model License {
+  id String @id @default(cuid())
+  employeeId String
+  startDate DateTime
+  endDate DateTime
+  status RequestStatus @default(PENDING)
+  type String
+  reason String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model Holiday {
+  id String @id @default(cuid())
+  companyId String
+  date DateTime
+  name String
+  createdAt DateTime @default(now())
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@unique([companyId, date])
+}
+
+model Setting {
+  id String @id @default(cuid())
+  companyId String
+  key String
+  value String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  @@unique([companyId, key])
+}
+
+model Notification {
+  id String @id @default(cuid())
+  userId String
+  title String
+  body String
+  channel NotificationChannel @default(IN_APP)
+  readAt DateTime?
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id String @id @default(cuid())
+  userId String
+  refreshTokenHash String @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, expiresAt])
+}
+
+model PasswordResetToken {
+  id String @id @default(cuid())
+  userId String
+  tokenHash String @unique
+  expiresAt DateTime
+  usedAt DateTime?
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+  userId String?
+  action String
+  entity String
+  entityId String?
+  ipAddress String?
+  device String?
+  metadata Json?
+  createdAt DateTime @default(now())
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([entity, entityId])
+  @@index([userId, createdAt])
+}
