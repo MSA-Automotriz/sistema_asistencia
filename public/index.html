@@ -1,0 +1,1064 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e30613" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>MSA Asistencia</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/images/logo_msa.jpeg" type="image/jpeg" />
+    <link rel="apple-touch-icon" href="/images/logo_msa.jpeg" />
+    <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <main id="auth-screen" class="auth-shell">
+      <section class="auth-visual" aria-hidden="true">
+        <div class="auth-visual-grid"></div>
+        <div class="auth-visual-content">
+          <p class="eyebrow eyebrow-light">MSA Automotriz</p>
+          <h1>Asistencia<br />en movimiento.</h1>
+          <div class="signal-stack">
+            <span class="signal signal-teal"></span>
+            <span class="signal signal-amber"></span>
+            <span class="signal signal-coral"></span>
+          </div>
+        </div>
+        <div class="auth-time" id="auth-clock">--:--</div>
+      </section>
+
+      <section class="auth-panel">
+        <div class="brand-lockup">
+          <img id="brand-logo" src="/images/logo_msa.jpeg" alt="Logo de MSA Automotriz" />
+          <span id="brand-fallback" class="brand-mark" hidden>MSA</span>
+          <span>Asistencia</span>
+        </div>
+
+        <div class="auth-card" id="login-card">
+          <div class="auth-heading">
+            <p class="eyebrow">Acceso</p>
+            <h2>Iniciar sesión</h2>
+          </div>
+          <form id="login-form" class="form-stack">
+            <label>
+              Correo electrónico
+              <input id="login-email" name="email" type="email" autocomplete="email" required />
+            </label>
+            <label>
+              Contraseña
+              <input
+                id="login-password"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                minlength="8"
+                required
+              />
+            </label>
+            <div class="form-row">
+              <label class="check-label">
+                <input id="remember-me" type="checkbox" />
+                <span>Recordarme</span>
+              </label>
+              <button id="show-recovery" class="text-button" type="button">Recuperar acceso</button>
+            </div>
+            <button class="primary-button" type="submit">Entrar</button>
+          </form>
+        </div>
+
+        <div class="auth-card" id="recovery-card" hidden>
+          <div class="auth-heading">
+            <p class="eyebrow">Recuperación</p>
+            <h2>Restablecer acceso</h2>
+          </div>
+          <form id="recovery-start-form" class="form-stack">
+            <label>
+              Correo electrónico
+              <input id="recovery-email" type="email" autocomplete="email" required />
+            </label>
+            <button class="primary-button" type="submit">Continuar</button>
+            <button class="text-button align-start" data-back-to-login type="button">
+              Volver al acceso
+            </button>
+          </form>
+          <form id="recovery-reset-form" class="form-stack" hidden>
+            <div id="recovery-questions" class="form-stack compact-stack"></div>
+            <label>
+              Nueva contraseña
+              <input
+                id="recovery-password"
+                type="password"
+                autocomplete="new-password"
+                minlength="12"
+                required
+              />
+            </label>
+            <button class="primary-button" type="submit">Actualizar contraseña</button>
+            <button class="text-button align-start" data-back-to-login type="button">
+              Volver al acceso
+            </button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <main id="app-shell" class="app-shell" hidden>
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-brand">
+          <img id="sidebar-logo" src="/images/logo_msa.jpeg" alt="" />
+          <span id="sidebar-fallback" class="brand-mark" hidden>MSA</span>
+          <span>Asistencia</span>
+        </div>
+        <nav class="nav-list" aria-label="Navegación principal">
+          <button class="nav-item active" data-view-target="dashboard" type="button">
+            Resumen
+          </button>
+          <button class="nav-item" data-view-target="attendance" type="button">
+            Registrar asistencia
+          </button>
+          <button class="nav-item" data-view-target="history" type="button">Historial</button>
+          <button class="nav-item" data-view-target="requests" type="button">Solicitudes</button>
+          <button class="nav-item" data-view-target="organization" type="button">
+            Organización
+          </button>
+          <button class="nav-item" data-view-target="reports" type="button">Reportes</button>
+          <button class="nav-item" data-view-target="statistics" type="button">Estadísticas</button>
+          <button class="nav-item" data-view-target="calendar" type="button">Calendario</button>
+          <button class="nav-item" data-view-target="announcements" type="button">Anuncios</button>
+          <button class="nav-item" data-view-target="devices" type="button">Dispositivos</button>
+          <button class="nav-item" data-view-target="settings" type="button">Configuración</button>
+          <button class="nav-item" data-view-target="audit" type="button">Auditoría y logs</button>
+          <button class="nav-item" data-view-target="profile" type="button">Mi perfil</button>
+          <button class="nav-item" data-view-target="users" type="button">Usuarios</button>
+          <button class="nav-item" data-view-target="roles" type="button">Roles y permisos</button>
+          <button class="nav-item" data-view-target="sessions" type="button">Sesiones</button>
+        </nav>
+        <div class="sidebar-footer">
+          <a href="/api/docs" target="_blank" rel="noreferrer">API</a>
+          <span id="connection-status" class="connection-status">Conectado</span>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <button id="nav-toggle" class="mobile-nav-button" type="button">Menú</button>
+          <div>
+            <p id="page-kicker" class="eyebrow">Operación</p>
+            <h1 id="page-title">Resumen general</h1>
+          </div>
+          <div class="account-menu">
+            <div class="notification-wrap">
+              <button
+                id="notification-button"
+                class="notification-button"
+                type="button"
+                aria-label="Abrir notificaciones"
+                title="Notificaciones"
+              >
+                Avisos <span id="notification-count" class="notification-count" hidden>0</span>
+              </button>
+              <section id="notification-menu" class="notification-menu" hidden>
+                <div class="panel-heading">
+                  <strong>Notificaciones</strong>
+                  <button id="mark-notifications-read" class="text-button" type="button">
+                    Marcar leídas
+                  </button>
+                </div>
+                <div id="notification-list" class="notification-list"></div>
+              </section>
+            </div>
+            <div class="account-identity">
+              <span id="account-initials" class="initials">MS</span>
+              <span>
+                <strong id="account-name">Cargando</strong>
+                <small id="account-role">-</small>
+              </span>
+            </div>
+            <button id="logout-button" class="quiet-button" type="button">Cerrar sesión</button>
+          </div>
+        </header>
+
+        <div id="app-message" class="app-message" hidden role="status"></div>
+
+        <section class="view active" data-view="dashboard">
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Hoy</p>
+              <h2 id="dashboard-date">-</h2>
+            </div>
+            <button id="refresh-dashboard" class="quiet-button" type="button">Actualizar</button>
+          </div>
+
+          <div class="metrics-grid">
+            <button class="metric-card metric-teal" data-roster="present" type="button">
+              <span>Personal presente</span>
+              <strong id="metric-present">-</strong>
+              <small id="metric-attendance">-</small>
+            </button>
+            <button class="metric-card metric-coral" data-roster="absent" type="button">
+              <span>Personal ausente</span>
+              <strong id="metric-absent">-</strong>
+              <small>Sin entrada registrada</small>
+            </button>
+            <button class="metric-card metric-amber" data-roster="late" type="button">
+              <span>Tardanzas</span>
+              <strong id="metric-late">-</strong>
+              <small>Entradas del día</small>
+            </button>
+            <article class="metric-card metric-charcoal">
+              <span>Horas trabajadas</span>
+              <strong id="metric-hours">-</strong>
+              <small id="metric-average-hours">-</small>
+            </article>
+            <article class="metric-card metric-sand">
+              <span>Horas extra</span>
+              <strong id="metric-overtime">-</strong>
+              <small>Autorizadas hoy</small>
+            </article>
+            <article class="metric-card metric-ink">
+              <span>Permisos pendientes</span>
+              <strong id="metric-permissions">-</strong>
+              <small>Por revisar</small>
+            </article>
+          </div>
+
+          <div class="dashboard-layout">
+            <section class="data-panel chart-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Últimos 7 días</p>
+                  <h3>Ritmo de asistencia</h3>
+                </div>
+                <div class="chart-legend">
+                  <span class="legend-entry entry-teal">Entradas</span
+                  ><span class="legend-entry entry-amber">Tardanzas</span>
+                </div>
+              </div>
+              <div
+                id="attendance-chart"
+                class="attendance-chart"
+                aria-label="Gráfico de asistencia"
+              ></div>
+            </section>
+
+            <section class="data-panel activity-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">En vivo</p>
+                  <h3>Actividad reciente</h3>
+                </div>
+              </div>
+              <div id="activity-list" class="activity-list"></div>
+            </section>
+          </div>
+
+          <section id="roster-panel" class="data-panel roster-panel" hidden>
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Detalle</p>
+                <h3 id="roster-title">Personal</h3>
+              </div>
+              <button id="close-roster" class="quiet-button" type="button">Cerrar</button>
+            </div>
+            <div id="roster-list" class="roster-list"></div>
+          </section>
+        </section>
+
+        <section class="view" data-view="requests" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Administración</p>
+              <h2>Solicitudes</h2>
+            </div>
+            <div class="inline-actions">
+              <button id="open-request-dialog" class="primary-button" type="button">
+                Nueva solicitud
+              </button>
+              <button id="refresh-requests" class="quiet-button" type="button">Actualizar</button>
+            </div>
+          </div>
+          <div class="request-columns">
+            <section class="data-panel">
+              <div class="panel-heading">
+                <h3>Permisos laborales</h3>
+                <span id="work-request-count" class="count-badge">0</span>
+              </div>
+              <div id="work-request-list" class="request-list"></div>
+            </section>
+            <section class="data-panel">
+              <div class="panel-heading">
+                <h3>Horas extra</h3>
+                <span id="overtime-request-count" class="count-badge">0</span>
+              </div>
+              <div id="overtime-request-list" class="request-list"></div>
+            </section>
+            <section class="data-panel">
+              <div class="panel-heading">
+                <h3>Vacaciones</h3>
+                <span id="vacation-request-count" class="count-badge">0</span>
+              </div>
+              <div id="vacation-request-list" class="request-list"></div>
+            </section>
+            <section class="data-panel">
+              <div class="panel-heading">
+                <h3>Licencias</h3>
+                <span id="license-request-count" class="count-badge">0</span>
+              </div>
+              <div id="license-request-list" class="request-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" data-view="users" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Accesos</p>
+              <h2>Usuarios</h2>
+            </div>
+            <button id="open-user-dialog" class="primary-button" type="button">
+              Crear usuario
+            </button>
+          </div>
+          <section class="data-panel table-panel">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th>Recuperación</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="users-table"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" data-view="roles" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Control de acceso</p>
+              <h2>Roles y permisos</h2>
+            </div>
+            <button id="save-role-permissions" class="primary-button" type="button" disabled>
+              Guardar permisos
+            </button>
+          </div>
+          <div class="roles-layout">
+            <section class="data-panel role-list-panel">
+              <div id="roles-list" class="role-list"></div>
+            </section>
+            <section class="data-panel permissions-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Rol seleccionado</p>
+                  <h3 id="selected-role-name">Elige un rol</h3>
+                </div>
+              </div>
+              <div id="permissions-list" class="permissions-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" data-view="sessions" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Seguridad</p>
+              <h2>Sesiones activas</h2>
+            </div>
+            <button id="refresh-sessions" class="quiet-button" type="button">Actualizar</button>
+          </div>
+          <section class="data-panel">
+            <div id="sessions-list" class="sessions-list"></div>
+          </section>
+        </section>
+
+        <section class="view" data-view="attendance" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Registro seguro</p>
+              <h2>Asistencia</h2>
+            </div>
+            <button id="refresh-offline-permit" class="quiet-button" type="button">
+              Preparar modo offline
+            </button>
+          </div>
+          <div class="operational-grid">
+            <section class="data-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">QR y geocerca</p>
+                  <h3>Registrar movimiento</h3>
+                </div>
+                <span id="attendance-location-state" class="status-pill status-pending"
+                  >Ubicación pendiente</span
+                >
+              </div>
+              <form id="attendance-form" class="form-stack compact-form">
+                <div class="segmented-control" role="radiogroup" aria-label="Tipo de asistencia">
+                  <label
+                    ><input name="type" type="radio" value="CHECK_IN" checked /><span
+                      >Entrada</span
+                    ></label
+                  >
+                  <label
+                    ><input name="type" type="radio" value="CHECK_OUT" /><span>Salida</span></label
+                  >
+                </div>
+                <label>
+                  Código QR
+                  <input
+                    id="attendance-qr-token"
+                    name="qrToken"
+                    autocomplete="off"
+                    minlength="20"
+                    required
+                  />
+                </label>
+                <div class="location-readout">
+                  <span id="attendance-coordinates">Aún no se obtuvo la ubicación.</span>
+                  <button id="capture-location" class="small-button" type="button">
+                    Actualizar GPS
+                  </button>
+                </div>
+                <button id="submit-attendance" class="primary-button" type="submit">
+                  Registrar asistencia
+                </button>
+              </form>
+            </section>
+            <section class="data-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Sin conexión</p>
+                  <h3>Cola de sincronización</h3>
+                </div>
+                <span id="offline-queue-count" class="count-badge">0</span>
+              </div>
+              <p id="offline-permit-state" class="support-copy">
+                Prepare un permiso mientras tenga conexión para registrar una asistencia pendiente.
+              </p>
+              <div id="offline-queue-list" class="request-list"></div>
+            </section>
+          </div>
+          <section class="data-panel map-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Ubicación autorizada</p>
+                <h3>Geocerca de la sede</h3>
+              </div>
+              <span id="geofence-map-state" class="status-pill status-pending">Preparando</span>
+            </div>
+            <div id="geofence-map" class="geofence-map" aria-label="Mapa de geocerca"></div>
+          </section>
+        </section>
+
+        <section class="view" data-view="history" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Trazabilidad</p>
+              <h2>Historial de asistencias</h2>
+            </div>
+            <button id="refresh-history" class="quiet-button" type="button">Actualizar</button>
+          </div>
+          <form id="history-filter-form" class="filter-bar data-panel">
+            <label>Desde<input id="history-start-date" name="startDate" type="date" /></label>
+            <label>Hasta<input id="history-end-date" name="endDate" type="date" /></label>
+            <label
+              >Estado<select id="history-status" name="status">
+                <option value="">Todos</option>
+                <option value="ON_TIME">Puntual</option>
+                <option value="LATE">Tardanza</option>
+                <option value="EARLY_DEPARTURE">Salida anticipada</option>
+              </select></label
+            >
+            <label
+              >Buscar<input
+                id="history-search"
+                name="search"
+                type="search"
+                placeholder="Empleado o código"
+            /></label>
+            <button class="primary-button" type="submit">Filtrar</button>
+          </form>
+          <section class="data-panel table-panel">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Empleado</th>
+                    <th>Sede</th>
+                    <th>Movimiento</th>
+                    <th>Estado</th>
+                    <th>Ubicación</th>
+                    <th>Dispositivo</th>
+                  </tr>
+                </thead>
+                <tbody id="history-table"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" data-view="organization" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Estructura</p>
+              <h2>Organización</h2>
+            </div>
+            <div class="inline-actions">
+              <button id="open-employee-import" class="quiet-button" type="button" hidden>
+                Importar Excel
+              </button>
+              <button id="open-organization-dialog" class="primary-button" type="button">
+                Crear registro
+              </button>
+            </div>
+          </div>
+          <div class="section-tabs" role="tablist" aria-label="Módulos organizacionales">
+            <button class="section-tab active" data-organization-entity="companies" type="button">
+              Empresas
+            </button>
+            <button class="section-tab" data-organization-entity="sites" type="button">
+              Sedes
+            </button>
+            <button class="section-tab" data-organization-entity="departments" type="button">
+              Áreas
+            </button>
+            <button class="section-tab" data-organization-entity="positions" type="button">
+              Cargos
+            </button>
+            <button class="section-tab" data-organization-entity="schedules" type="button">
+              Horarios
+            </button>
+            <button class="section-tab" data-organization-entity="employees" type="button">
+              Empleados
+            </button>
+            <button class="section-tab" data-organization-entity="site-schedules" type="button">
+              Horarios por sede
+            </button>
+          </div>
+          <section class="data-panel table-panel">
+            <div class="panel-heading table-heading">
+              <div>
+                <p class="eyebrow">Listado</p>
+                <h3 id="organization-title">Empresas</h3>
+              </div>
+              <button id="refresh-organization" class="quiet-button" type="button">
+                Actualizar
+              </button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead id="organization-table-head"></thead>
+                <tbody id="organization-table"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" data-view="reports" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Exportación</p>
+              <h2>Reportes</h2>
+            </div>
+            <div class="report-actions">
+              <button class="small-button" data-report-format="CSV" type="button">CSV</button>
+              <button class="small-button" data-report-format="XLSX" type="button">Excel</button>
+              <button class="small-button" data-report-format="PDF" type="button">PDF</button>
+            </div>
+          </div>
+          <div class="section-tabs" role="tablist" aria-label="Tipo de reporte">
+            <button class="section-tab active" data-report-type="ATTENDANCE" type="button">
+              Asistencias
+            </button>
+            <button class="section-tab" data-report-type="LATE_ARRIVALS" type="button">
+              Tardanzas
+            </button>
+            <button class="section-tab" data-report-type="OVERTIME" type="button">
+              Horas extra
+            </button>
+            <button class="section-tab" data-report-type="WORK_PERMISSIONS" type="button">
+              Permisos
+            </button>
+            <button class="section-tab" data-report-type="VACATIONS" type="button">
+              Vacaciones
+            </button>
+            <button class="section-tab" data-report-type="EMPLOYEES" type="button">
+              Empleados
+            </button>
+            <button class="section-tab" data-report-type="DEPARTMENTS" type="button">Áreas</button>
+          </div>
+          <form id="report-filter-form" class="filter-bar data-panel">
+            <label>Desde<input id="report-start-date" name="startDate" type="date" /></label>
+            <label>Hasta<input id="report-end-date" name="endDate" type="date" /></label>
+            <button class="primary-button" type="submit">Generar vista previa</button>
+          </form>
+          <section class="data-panel table-panel">
+            <div class="table-wrap">
+              <table>
+                <thead id="report-table-head"></thead>
+                <tbody id="report-table"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" data-view="statistics" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Indicadores</p>
+              <h2>Estadísticas</h2>
+            </div>
+            <button id="refresh-statistics" class="quiet-button" type="button">Actualizar</button>
+          </div>
+          <form id="statistics-filter-form" class="filter-bar data-panel">
+            <label>Desde<input id="statistics-start-date" name="startDate" type="date" /></label>
+            <label>Hasta<input id="statistics-end-date" name="endDate" type="date" /></label>
+            <button class="primary-button" type="submit">Aplicar período</button>
+          </form>
+          <div class="metrics-grid compact-metrics">
+            <article class="metric-card metric-teal">
+              <span>Asistencia</span><strong id="stat-attendance-rate">-</strong
+              ><small>Promedio del período</small>
+            </article>
+            <article class="metric-card metric-amber">
+              <span>Puntualidad</span><strong id="stat-punctuality-rate">-</strong
+              ><small>Entradas a tiempo</small>
+            </article>
+            <article class="metric-card metric-charcoal">
+              <span>Horas trabajadas</span><strong id="stat-worked-hours">-</strong
+              ><small>Registros pareados</small>
+            </article>
+            <article class="metric-card metric-coral">
+              <span>Ausencias</span><strong id="stat-absences">-</strong><small>Estimadas</small>
+            </article>
+          </div>
+          <section class="data-panel chart-panel statistics-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Tendencia</p>
+                <h3>Entradas, salidas y tardanzas</h3>
+              </div>
+            </div>
+            <div id="statistics-chart" class="attendance-chart"></div>
+          </section>
+        </section>
+
+        <section class="view" data-view="calendar" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Planificación</p>
+              <h2>Calendario operativo</h2>
+            </div>
+            <input
+              id="calendar-month"
+              class="month-input"
+              type="month"
+              aria-label="Mes del calendario"
+            />
+          </div>
+          <section class="data-panel">
+            <div id="calendar-events" class="calendar-events"></div>
+          </section>
+        </section>
+
+        <section class="view" data-view="announcements" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Comunicación interna</p>
+              <h2>Anuncios</h2>
+            </div>
+            <button id="open-announcement-dialog" class="primary-button" type="button">
+              Crear anuncio
+            </button>
+          </div>
+          <section class="data-panel">
+            <div id="announcement-list" class="request-list"></div>
+          </section>
+        </section>
+
+        <section class="view" data-view="devices" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Seguridad operativa</p>
+              <h2>Dispositivos</h2>
+            </div>
+            <button id="refresh-devices" class="quiet-button" type="button">Actualizar</button>
+          </div>
+          <section class="data-panel table-panel">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Dispositivo</th>
+                    <th>IP</th>
+                    <th>Último uso</th>
+                    <th>Estado</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="devices-table"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" data-view="settings" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Empresa y continuidad</p>
+              <h2>Configuración</h2>
+            </div>
+            <select id="settings-company" aria-label="Empresa"></select>
+          </div>
+          <div class="settings-layout">
+            <section class="data-panel">
+              <div class="panel-heading"><h3>Identidad de empresa</h3></div>
+              <form id="company-identity-form" class="form-stack compact-form">
+                <label>Nombre<input name="name" required /></label>
+                <label>Zona horaria<input name="timeZone" value="America/Lima" required /></label>
+                <label>Correo<input name="email" type="email" /></label>
+                <label>Logo URL<input name="logoUrl" type="url" /></label>
+                <button class="primary-button" type="submit">Guardar identidad</button>
+              </form>
+            </section>
+            <section class="data-panel">
+              <div class="panel-heading"><h3>Reglas operativas</h3></div>
+              <form id="company-settings-form" class="form-stack compact-form">
+                <label
+                  >Tiempo QR (segundos)<input name="qrExpiration" type="number" min="15" max="3600"
+                /></label>
+                <label
+                  >Radio GPS predeterminado (metros)<input
+                    name="gpsRadius"
+                    type="number"
+                    min="1"
+                    max="10000"
+                /></label>
+                <button class="primary-button" type="submit">Guardar reglas</button>
+              </form>
+            </section>
+            <section class="data-panel">
+              <div class="panel-heading"><h3>Respaldos</h3></div>
+              <div class="inline-actions">
+                <button class="small-button" data-backup-type="DATABASE" type="button">
+                  Respaldar base de datos
+                </button>
+                <button class="small-button" data-backup-type="FILES" type="button">
+                  Respaldar archivos
+                </button>
+              </div>
+              <form id="backup-schedule-form" class="form-stack compact-form">
+                <label class="check-label"
+                  ><input name="enabled" type="checkbox" /><span>Programación activa</span></label
+                >
+                <label
+                  >Frecuencia<select name="frequency">
+                    <option value="DAILY">Diaria</option>
+                    <option value="WEEKLY">Semanal</option>
+                  </select></label
+                >
+                <label id="backup-day-of-week-field" hidden
+                  >Día semanal<select name="dayOfWeek">
+                    <option value="1">Lunes</option>
+                    <option value="2">Martes</option>
+                    <option value="3">Miércoles</option>
+                    <option value="4">Jueves</option>
+                    <option value="5">Viernes</option>
+                    <option value="6">Sábado</option>
+                    <option value="0">Domingo</option>
+                  </select></label
+                >
+                <div class="form-pair">
+                  <label>Hora<input name="hour" type="number" min="0" max="23" value="2" /></label
+                  ><label
+                    >Minuto<input name="minute" type="number" min="0" max="59" value="0"
+                  /></label>
+                </div>
+                <button class="small-button" type="submit">Guardar programación</button>
+              </form>
+              <div id="backup-list" class="request-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" data-view="audit" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Mantenimiento</p>
+              <h2>Auditoría y logs</h2>
+            </div>
+            <div class="inline-actions">
+              <button id="refresh-audit" class="quiet-button" type="button">Actualizar</button>
+              <button id="analyze-database" class="small-button" type="button">Analizar BD</button>
+              <button id="clean-system-data" class="small-button" type="button">
+                Limpiar vencidos
+              </button>
+            </div>
+          </div>
+          <div class="settings-layout audit-layout">
+            <section class="data-panel">
+              <div class="panel-heading"><h3>Estado del sistema</h3></div>
+              <div id="system-status" class="system-status"></div>
+            </section>
+            <section class="data-panel">
+              <div class="panel-heading"><h3>Auditoría reciente</h3></div>
+              <div id="audit-list" class="request-list"></div>
+            </section>
+            <section class="data-panel">
+              <div class="panel-heading"><h3>Eventos del sistema</h3></div>
+              <div id="system-log-list" class="system-log-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" data-view="profile" hidden>
+          <div class="view-heading">
+            <div>
+              <p class="eyebrow">Autoservicio</p>
+              <h2>Mi perfil</h2>
+            </div>
+            <button id="refresh-profile" class="quiet-button" type="button">Actualizar</button>
+          </div>
+          <div class="profile-layout">
+            <section class="data-panel">
+              <div id="profile-summary" class="profile-summary"></div>
+              <form id="profile-form" class="form-stack compact-form">
+                <label>Nombre<input id="profile-first-name" name="firstName" required /></label>
+                <label>Apellido<input id="profile-last-name" name="lastName" required /></label>
+                <label
+                  >Foto URL<input id="profile-photo-url" name="profilePhotoUrl" type="url"
+                /></label>
+                <button class="primary-button" type="submit">Actualizar perfil</button>
+              </form>
+            </section>
+            <section class="data-panel">
+              <div class="panel-heading"><h3>Cambiar contraseña</h3></div>
+              <form id="profile-password-form" class="form-stack compact-form">
+                <label
+                  >Contraseña actual<input
+                    name="currentPassword"
+                    type="password"
+                    minlength="8"
+                    required
+                /></label>
+                <label
+                  >Nueva contraseña<input
+                    name="newPassword"
+                    type="password"
+                    minlength="12"
+                    required
+                /></label>
+                <button class="small-button" type="submit">Actualizar contraseña</button>
+              </form>
+              <div class="panel-heading profile-subheading"><h3>Mis dispositivos</h3></div>
+              <div id="profile-device-list" class="request-list"></div>
+            </section>
+            <section class="data-panel">
+              <div class="panel-heading"><h3>Mis solicitudes</h3></div>
+              <div id="my-request-list" class="request-list"></div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <dialog id="user-dialog" class="dialog">
+      <form id="create-user-form" class="dialog-content" method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Nuevo acceso</p>
+            <h2>Crear usuario</h2>
+          </div>
+          <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+        </div>
+        <div class="dialog-grid">
+          <label>Nombre<input name="firstName" type="text" maxlength="100" required /></label>
+          <label>Apellido<input name="lastName" type="text" maxlength="100" required /></label>
+          <label class="dialog-wide"
+            >Correo electrónico<input name="email" type="email" autocomplete="email" required
+          /></label>
+          <label
+            >Contraseña<input
+              name="password"
+              type="password"
+              autocomplete="new-password"
+              minlength="12"
+              required
+          /></label>
+          <label>Rol<select id="new-user-role" name="roleId" required></select></label>
+          <label
+            >Estado<select name="status">
+              <option value="PENDING">Pendiente</option>
+              <option value="ACTIVE">Activo</option>
+              <option value="INACTIVE">Inactivo</option>
+            </select></label
+          >
+        </div>
+        <div class="dialog-actions">
+          <button class="quiet-button" value="cancel" type="submit">Cancelar</button
+          ><button class="primary-button" type="button" id="submit-user-form">Crear usuario</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="organization-dialog" class="dialog">
+      <form id="organization-form" class="dialog-content" method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Estructura</p>
+            <h2 id="organization-dialog-title">Crear registro</h2>
+          </div>
+          <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+        </div>
+        <div id="organization-form-fields" class="dialog-grid"></div>
+        <div class="dialog-actions">
+          <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+          <button id="submit-organization-form" class="primary-button" type="button">
+            Guardar
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="qr-dialog" class="dialog compact-dialog">
+      <form class="dialog-content" method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Código temporal</p>
+            <h2 id="qr-dialog-title">Código QR</h2>
+          </div>
+          <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+        </div>
+        <div class="qr-display">
+          <img id="qr-image" alt="Código QR generado" />
+          <p id="qr-expiration" class="support-copy"></p>
+          <code id="qr-token" class="qr-token"></code>
+        </div>
+        <div class="dialog-actions">
+          <button class="primary-button" value="cancel" type="submit">Listo</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="qr-history-dialog" class="dialog">
+      <form class="dialog-content" method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Trazabilidad</p>
+            <h2 id="qr-history-title">Historial QR</h2>
+          </div>
+          <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+        </div>
+        <div id="qr-history-list" class="request-list"></div>
+      </form>
+    </dialog>
+
+    <dialog id="employee-import-dialog" class="dialog">
+      <form id="employee-import-form" class="dialog-content" method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Carga masiva</p>
+            <h2>Importar empleados</h2>
+          </div>
+          <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+        </div>
+        <div class="dialog-grid">
+          <label class="dialog-wide"
+            >Archivo Excel<input name="file" type="file" accept=".xlsx" required
+          /></label>
+        </div>
+        <div id="employee-import-result" class="import-result" hidden></div>
+        <div class="dialog-actions">
+          <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+          <button id="submit-employee-import" class="primary-button" type="button">Importar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="announcement-dialog" class="dialog">
+      <form id="announcement-form" class="dialog-content" method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Comunicación interna</p>
+            <h2>Crear anuncio</h2>
+          </div>
+          <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+        </div>
+        <div class="dialog-grid">
+          <label
+            >Empresa<select id="announcement-company" name="companyId" required></select
+          ></label>
+          <label
+            >Rol destino<select id="announcement-role" name="audienceRoleId">
+              <option value="">Todo el personal</option>
+            </select></label
+          >
+          <label class="dialog-wide">Título<input name="title" maxlength="191" required /></label>
+          <label class="dialog-wide"
+            >Mensaje<textarea name="body" maxlength="5000" required></textarea>
+          </label>
+          <label>Vence el<input name="expiresAt" type="date" /></label>
+        </div>
+        <div class="dialog-actions">
+          <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+          <button id="submit-announcement-form" class="primary-button" type="button">Crear</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="request-dialog" class="dialog">
+      <form id="request-form" class="dialog-content" method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">Autoservicio</p>
+            <h2>Nueva solicitud</h2>
+          </div>
+          <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+        </div>
+        <div class="dialog-grid">
+          <label class="dialog-wide"
+            >Tipo de solicitud<select id="request-type" name="requestType" required>
+              <option value="WORK_PERMISSION">Permiso laboral</option>
+              <option value="OVERTIME">Horas extra</option>
+              <option value="VACATION">Vacaciones</option>
+              <option value="LICENSE">Licencia</option>
+            </select></label
+          >
+          <label id="request-start-date-field"
+            >Fecha inicial<input name="startDate" type="date" required
+          /></label>
+          <label id="request-end-date-field"
+            >Fecha final<input name="endDate" type="date" required
+          /></label>
+          <label id="request-date-field" hidden>Fecha<input name="date" type="date" /></label>
+          <label id="request-minutes-field" hidden
+            >Minutos solicitados<input name="requestedMinutes" type="number" min="1" max="720"
+          /></label>
+          <label id="request-license-type-field" hidden
+            >Tipo de licencia<input name="licenseType" maxlength="100"
+          /></label>
+          <label class="dialog-wide"
+            >Motivo<textarea name="reason" maxlength="1000" required></textarea>
+          </label>
+        </div>
+        <div class="dialog-actions">
+          <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+          <button id="submit-request-form" class="primary-button" type="button">Enviar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" hidden role="alert"></div>
+    <script src="/vendor/leaflet/leaflet.js" defer></script>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

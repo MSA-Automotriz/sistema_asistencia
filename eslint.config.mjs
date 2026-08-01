@@ -17,5 +17,9 @@ export default tseslint.config(
       '@typescript-eslint/consistent-type-imports': 'error'
     }
   },
+  {
+    files: ['public/**/*.js'],
+    languageOptions: { globals: globals.browser }
+  },
   prettier
 );
