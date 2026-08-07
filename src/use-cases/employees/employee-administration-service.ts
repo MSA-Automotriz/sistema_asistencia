@@ -45,7 +45,11 @@ export class EmployeeAdministrationService {
     const companyId = input.companyId ?? current.companyId;
     await this.validateAssignments(companyId, input, employeeId);
     try {
-      return await prisma.employee.update({ where: { id: employeeId }, data: input, include: this.details() });
+      return await prisma.employee.update({
+        where: { id: employeeId },
+        data: input,
+        include: this.details()
+      });
     } catch (error) {
       this.throwUniqueError(error);
       throw error;
@@ -68,9 +72,14 @@ export class EmployeeAdministrationService {
     if (!worksheet) throw new AppError(422, 'El archivo no contiene una hoja de cálculo');
     const rows = this.spreadsheetRows(worksheet);
     if (!rows.length) throw new AppError(422, 'El archivo no contiene empleados');
-    if (rows.length > 500) throw new AppError(422, 'Puede importar hasta 500 empleados por archivo');
-    const defaultRole = await prisma.role.findUnique({ where: { name: 'Empleado' }, select: { id: true } });
-    if (!defaultRole) throw new AppError(500, 'No existe el rol Empleado requerido para la importación');
+    if (rows.length > 500)
+      throw new AppError(422, 'Puede importar hasta 500 empleados por archivo');
+    const defaultRole = await prisma.role.findUnique({
+      where: { name: 'Empleado' },
+      select: { id: true }
+    });
+    if (!defaultRole)
+      throw new AppError(500, 'No existe el rol Empleado requerido para la importación');
 
     const created: { row: number; employeeId: string; email: string }[] = [];
     const errors: { row: number; message: string }[] = [];
@@ -84,7 +93,8 @@ export class EmployeeAdministrationService {
         const employeeCode = this.required(row, 'employeecode', 'codigoempleado', 'codigo');
         const companyId = this.required(row, 'companyid', 'empresaid');
         const hiredAt = this.toDate(this.required(row, 'hiredat', 'fechaingreso'));
-        if (password.length < 12) throw new AppError(422, 'La contraseña debe tener al menos 12 caracteres');
+        if (password.length < 12)
+          throw new AppError(422, 'La contraseña debe tener al menos 12 caracteres');
         const role = await this.resolveRole(row.role, defaultRole.id);
         const status = this.toUserStatus(row.status);
         const employee = await prisma.$transaction(async (transaction) => {
@@ -127,7 +137,10 @@ export class EmployeeAdministrationService {
         });
         created.push({ row: rowNumber, employeeId: employee.id, email });
       } catch (error) {
-        errors.push({ row: rowNumber, message: error instanceof Error ? error.message : 'Error desconocido' });
+        errors.push({
+          row: rowNumber,
+          message: error instanceof Error ? error.message : 'Error desconocido'
+        });
       }
     }
     return { created, errors, total: rows.length };
@@ -141,32 +154,69 @@ export class EmployeeAdministrationService {
       department: { select: { id: true, name: true } },
       position: { select: { id: true, name: true } },
       schedule: { select: { id: true, name: true, type: true } },
-      supervisor: { select: { id: true, employeeCode: true, user: { select: { firstName: true, lastName: true } } } }
+      supervisor: {
+        select: {
+          id: true,
+          employeeCode: true,
+          user: { select: { firstName: true, lastName: true } }
+        }
+      }
     };
   }
 
   private async ensureUserAvailable(userId: string) {
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, employee: { select: { id: true } } } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, employee: { select: { id: true } } }
+    });
     if (!user) throw new AppError(404, 'Usuario no encontrado');
     if (user.employee) throw new AppError(409, 'El usuario ya tiene un perfil de empleado');
   }
 
-  private async validateAssignments(companyId: string, input: Partial<EmployeeInput>, employeeId?: string) {
+  private async validateAssignments(
+    companyId: string,
+    input: Partial<EmployeeInput>,
+    employeeId?: string
+  ) {
     const [company, site, department, position, schedule, supervisor] = await Promise.all([
       prisma.company.findUnique({ where: { id: companyId }, select: { id: true } }),
-      input.siteId ? prisma.site.findUnique({ where: { id: input.siteId }, select: { companyId: true } }) : null,
-      input.departmentId ? prisma.department.findUnique({ where: { id: input.departmentId }, select: { companyId: true } }) : null,
-      input.positionId ? prisma.position.findUnique({ where: { id: input.positionId }, select: { companyId: true } }) : null,
-      input.scheduleId ? prisma.schedule.findUnique({ where: { id: input.scheduleId }, select: { id: true } }) : null,
-      input.supervisorId ? prisma.employee.findUnique({ where: { id: input.supervisorId }, select: { companyId: true } }) : null
+      input.siteId
+        ? prisma.site.findUnique({ where: { id: input.siteId }, select: { companyId: true } })
+        : null,
+      input.departmentId
+        ? prisma.department.findUnique({
+            where: { id: input.departmentId },
+            select: { companyId: true }
+          })
+        : null,
+      input.positionId
+        ? prisma.position.findUnique({
+            where: { id: input.positionId },
+            select: { companyId: true }
+          })
+        : null,
+      input.scheduleId
+        ? prisma.schedule.findUnique({ where: { id: input.scheduleId }, select: { id: true } })
+        : null,
+      input.supervisorId
+        ? prisma.employee.findUnique({
+            where: { id: input.supervisorId },
+            select: { companyId: true }
+          })
+        : null
     ]);
     if (!company) throw new AppError(404, 'Empresa no encontrada');
-    if (input.siteId && (!site || site.companyId !== companyId)) throw new AppError(422, 'La sede no pertenece a la empresa');
-    if (input.departmentId && (!department || department.companyId !== companyId)) throw new AppError(422, 'El área no pertenece a la empresa');
-    if (input.positionId && (!position || position.companyId !== companyId)) throw new AppError(422, 'El cargo no pertenece a la empresa');
+    if (input.siteId && (!site || site.companyId !== companyId))
+      throw new AppError(422, 'La sede no pertenece a la empresa');
+    if (input.departmentId && (!department || department.companyId !== companyId))
+      throw new AppError(422, 'El área no pertenece a la empresa');
+    if (input.positionId && (!position || position.companyId !== companyId))
+      throw new AppError(422, 'El cargo no pertenece a la empresa');
     if (input.scheduleId && !schedule) throw new AppError(404, 'Horario no encontrado');
-    if (input.supervisorId && (!supervisor || supervisor.companyId !== companyId)) throw new AppError(422, 'El supervisor no pertenece a la empresa');
-    if (employeeId && input.supervisorId === employeeId) throw new AppError(422, 'Un empleado no puede ser su propio supervisor');
+    if (input.supervisorId && (!supervisor || supervisor.companyId !== companyId))
+      throw new AppError(422, 'El supervisor no pertenece a la empresa');
+    if (employeeId && input.supervisorId === employeeId)
+      throw new AppError(422, 'Un empleado no puede ser su propio supervisor');
   }
 
   private spreadsheetRows(worksheet: ExcelJS.Worksheet): SpreadsheetRow[] {
@@ -188,7 +238,11 @@ export class EmployeeAdministrationService {
   }
 
   private header(value: string) {
-    return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    return value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
   }
 
   private required(row: SpreadsheetRow, ...keys: string[]) {

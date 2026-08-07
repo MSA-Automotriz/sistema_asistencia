@@ -63,9 +63,26 @@ export class ReportService {
 
   async export(type: ReportType, format: ReportFormat, filters: ReportFilters) {
     const table = await this.buildTable(type, filters);
-    if (format === 'CSV') return { table, content: this.csv(table), contentType: 'text/csv; charset=utf-8', extension: 'csv' };
-    if (format === 'XLSX') return { table, content: await this.xlsx(table), contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', extension: 'xlsx' };
-    return { table, content: await this.pdf(table), contentType: 'application/pdf', extension: 'pdf' };
+    if (format === 'CSV')
+      return {
+        table,
+        content: this.csv(table),
+        contentType: 'text/csv; charset=utf-8',
+        extension: 'csv'
+      };
+    if (format === 'XLSX')
+      return {
+        table,
+        content: await this.xlsx(table),
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        extension: 'xlsx'
+      };
+    return {
+      table,
+      content: await this.pdf(table),
+      contentType: 'application/pdf',
+      extension: 'pdf'
+    };
   }
 
   private async attendanceTable(filters: ReportFilters, lateOnly: boolean): Promise<ReportTable> {
@@ -80,7 +97,18 @@ export class ReportService {
     });
     return {
       title: lateOnly ? 'Reporte de tardanzas' : 'Reporte de asistencias',
-      columns: ['Fecha y hora', 'Empleado', 'Código', 'Sede', 'Tipo', 'Estado', 'Distancia (m)', 'Dirección', 'IP', 'Dispositivo'],
+      columns: [
+        'Fecha y hora',
+        'Empleado',
+        'Código',
+        'Sede',
+        'Tipo',
+        'Estado',
+        'Distancia (m)',
+        'Dirección',
+        'IP',
+        'Dispositivo'
+      ],
       rows: records.map((record) => [
         this.dateTime(record.recordedAt),
         this.employeeName(record.employee),
@@ -158,7 +186,16 @@ export class ReportService {
     });
     return {
       title: 'Reporte de vacaciones',
-      columns: ['Inicio', 'Fin', 'Empleado', 'Código', 'Área', 'Estado', 'Motivo', 'Nota de revisión'],
+      columns: [
+        'Inicio',
+        'Fin',
+        'Empleado',
+        'Código',
+        'Área',
+        'Estado',
+        'Motivo',
+        'Nota de revisión'
+      ],
       rows: records.map((record) => [
         this.date(record.startDate),
         this.date(record.endDate),
@@ -254,7 +291,10 @@ export class ReportService {
 
   private csv(table: ReportTable) {
     const escape = (value: ReportCell) => `"${String(value).replaceAll('"', '""')}"`;
-    return Buffer.from(`\ufeff${[table.columns, ...table.rows].map((row) => row.map(escape).join(',')).join('\r\n')}`, 'utf8');
+    return Buffer.from(
+      `\ufeff${[table.columns, ...table.rows].map((row) => row.map(escape).join(',')).join('\r\n')}`,
+      'utf8'
+    );
   }
 
   private async xlsx(table: ReportTable) {
@@ -270,7 +310,10 @@ export class ReportService {
     worksheet.getRow(2).font = { bold: true, color: { argb: 'FFFFFFFF' } };
     table.rows.forEach((row) => worksheet.addRow(row));
     worksheet.columns.forEach((column) => {
-      column.width = Math.min(42, Math.max(12, ...(column.values ?? []).map((value) => String(value ?? '').length + 2)));
+      column.width = Math.min(
+        42,
+        Math.max(12, ...(column.values ?? []).map((value) => String(value ?? '').length + 2))
+      );
     });
     const output = await workbook.xlsx.writeBuffer();
     return Buffer.from(output);
@@ -289,9 +332,15 @@ export class ReportService {
       let y = 62;
       const drawHeader = () => {
         document.font('Helvetica-Bold').fontSize(7);
-        table.columns.forEach((column, index) => document.text(column, left + width * index + 2, y, { width: width - 4, lineBreak: false }));
+        table.columns.forEach((column, index) =>
+          document.text(column, left + width * index + 2, y, { width: width - 4, lineBreak: false })
+        );
         y += 18;
-        document.moveTo(left, y - 3).lineTo(right, y - 3).strokeColor('#999999').stroke();
+        document
+          .moveTo(left, y - 3)
+          .lineTo(right, y - 3)
+          .strokeColor('#999999')
+          .stroke();
       };
       document.font('Helvetica-Bold').fontSize(16).text(table.title, left, 32);
       drawHeader();
@@ -303,7 +352,12 @@ export class ReportService {
           drawHeader();
           document.font('Helvetica').fontSize(6.4);
         }
-        row.forEach((value, index) => document.text(String(value).slice(0, 56), left + width * index + 2, y, { width: width - 4, lineBreak: false }));
+        row.forEach((value, index) =>
+          document.text(String(value).slice(0, 56), left + width * index + 2, y, {
+            width: width - 4,
+            lineBreak: false
+          })
+        );
         y += 14;
       }
       document.end();
@@ -323,15 +377,17 @@ export class ReportService {
   }
 
   private status(value: string) {
-    return {
-      PENDING: 'Pendiente',
-      APPROVED: 'Aprobado',
-      REJECTED: 'Rechazado',
-      CANCELLED: 'Cancelado',
-      ON_TIME: 'Puntual',
-      LATE: 'Tardanza',
-      EARLY_DEPARTURE: 'Salida anticipada',
-      OUTSIDE_GEOFENCE: 'Fuera de geocerca'
-    }[value] ?? value;
+    return (
+      {
+        PENDING: 'Pendiente',
+        APPROVED: 'Aprobado',
+        REJECTED: 'Rechazado',
+        CANCELLED: 'Cancelado',
+        ON_TIME: 'Puntual',
+        LATE: 'Tardanza',
+        EARLY_DEPARTURE: 'Salida anticipada',
+        OUTSIDE_GEOFENCE: 'Fuera de geocerca'
+      }[value] ?? value
+    );
   }
 }

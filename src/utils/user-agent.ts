@@ -14,7 +14,8 @@ export const parseUserAgent = (userAgent?: string): DeviceMetadata => {
   const device = parser.getDevice();
   return {
     browser: [browser.name, browser.version].filter(Boolean).join(' ') || undefined,
-    operatingSystem: [operatingSystem.name, operatingSystem.version].filter(Boolean).join(' ') || undefined,
+    operatingSystem:
+      [operatingSystem.name, operatingSystem.version].filter(Boolean).join(' ') || undefined,
     device: [device.vendor, device.model, device.type].filter(Boolean).join(' ') || undefined
   };
 };

@@ -21,7 +21,9 @@ const state = {
   geofenceMap: null,
   geofenceSiteMarker: null,
   geofenceCircle: null,
-  geofenceLocationMarker: null
+  geofenceLocationMarker: null,
+  installPrompt: null,
+  appInstalled: false
 };
 
 const organizationDefinitions = {
@@ -525,6 +527,30 @@ function queueOfflineAttendance(payload) {
   renderOfflinePanel();
 }
 
+async function updateAttendanceTypeSelection() {
+  try {
+    const last = await api('/me/last-attendance');
+    const statusTextEl = query('#quick-check-status-text');
+    const radioCheckIn = query('#attendance-form input[value="CHECK_IN"]');
+    const radioCheckOut = query('#attendance-form input[value="CHECK_OUT"]');
+
+    if (last && last.type === 'CHECK_IN') {
+      if (radioCheckOut) radioCheckOut.checked = true;
+      if (statusTextEl) {
+        statusTextEl.textContent = `Último registro: ENTRADA (${formatTime(last.recordedAt)}). Su siguiente marcación debe ser SALIDA.`;
+      }
+    } else {
+      if (radioCheckIn) radioCheckIn.checked = true;
+      if (statusTextEl) {
+        const timeInfo = last?.recordedAt ? ` (${formatTime(last.recordedAt)})` : '';
+        statusTextEl.textContent = `Último registro: SALIDA${timeInfo}. Su siguiente marcación debe ser ENTRADA.`;
+      }
+    }
+  } catch (_err) {
+    // Fallback silencioso si no se encuentra perfil
+  }
+}
+
 async function submitAttendance(event) {
   event.preventDefault();
   const form = query('#attendance-form');
@@ -555,6 +581,7 @@ async function submitAttendance(event) {
           : 'Asistencia registrada correctamente'
       );
       void prepareOfflinePermit(false);
+      void updateAttendanceTypeSelection();
       if (state.session?.user?.permissions?.includes('dashboard.read')) void loadDashboard();
     } catch (error) {
       if (!/failed to fetch|network|internet/i.test(error.message)) throw error;
@@ -566,6 +593,118 @@ async function submitAttendance(event) {
   } finally {
     button.disabled = false;
   }
+}
+
+let qrScanner = null;
+let qrScannerStream = null;
+
+function openQrScanner() {
+  query('#qr-scanner-dialog').showModal();
+  initQrScanner();
+}
+
+function stopQrScanner() {
+  if (qrScannerStream) {
+    qrScannerStream.getTracks().forEach((track) => track.stop());
+    qrScannerStream = null;
+  }
+  if (qrScanner) {
+    qrScanner = null;
+  }
+}
+
+function initQrScanner() {
+  if (qrScanner) return;
+
+  const canvas = document.createElement('canvas');
+  const video = document.createElement('video');
+  const readerDiv = query('#qr-reader');
+
+  video.style.width = '100%';
+  video.style.maxWidth = '300px';
+  video.style.borderRadius = '4px';
+  video.style.display = 'block';
+  video.style.margin = '0 auto';
+  video.autoplay = true;
+  video.playsInline = true;
+
+  // Clear previous content
+  readerDiv.innerHTML = '';
+  readerDiv.appendChild(video);
+
+  navigator.mediaDevices
+    .getUserMedia({
+      video: { facingMode: 'environment' }
+    })
+    .then((stream) => {
+      qrScannerStream = stream;
+      video.srcObject = stream;
+
+      // Wait for video to be ready
+      const checkVideoReady = () => {
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+          startScanning();
+        } else {
+          setTimeout(checkVideoReady, 100);
+        }
+      };
+
+      const startScanning = () => {
+        let scanning = true;
+        const scanQr = () => {
+          if (!scanning) return;
+
+          if (video.videoWidth <= 0 || video.videoHeight <= 0) {
+            requestAnimationFrame(scanQr);
+            return;
+          }
+
+          try {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            ctx.drawImage(video, 0, 0);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const qrCode = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: 'attemptBoth'
+            });
+
+            if (qrCode) {
+              const input = query('#attendance-qr-token');
+              input.value = qrCode.data;
+              input.focus();
+
+              query('#scanner-result').textContent =
+                `✓ Código detectado: ${escapeHtml(qrCode.data.slice(0, 20))}...`;
+              query('#scanner-result').hidden = false;
+
+              scanning = false;
+              stopQrScanner();
+
+              setTimeout(() => {
+                query('#qr-scanner-dialog').close();
+              }, 500);
+            } else {
+              requestAnimationFrame(scanQr);
+            }
+          } catch (err) {
+            console.error('QR scan error:', err);
+            requestAnimationFrame(scanQr);
+          }
+        };
+
+        scanQr();
+        qrScanner = { scanning: true };
+      };
+
+      checkVideoReady();
+    })
+    .catch((err) => {
+      showToast(`Error al acceder a la cámara: ${err.message}`, 'error');
+      query('#qr-scanner-dialog').close();
+    });
 }
 
 async function registerKnownDevice() {
@@ -1527,6 +1666,89 @@ function setupLogoFallbacks() {
   });
 }
 
+function isInstalledApp() {
+  return (
+    state.appInstalled ||
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true
+  );
+}
+
+function updateInstallButtons() {
+  const hidden = isInstalledApp();
+  queryAll('[data-install-app]').forEach((button) => {
+    button.hidden = hidden;
+    button.disabled = hidden;
+  });
+}
+
+async function installApp() {
+  const prompt = state.installPrompt;
+  if (!prompt) {
+    showToast('Use la opción Instalar aplicación del menú de su navegador.');
+    return;
+  }
+  prompt.prompt();
+  const choice = await prompt.userChoice;
+  state.installPrompt = null;
+  if (choice.outcome === 'accepted') state.appInstalled = true;
+  updateInstallButtons();
+  if (choice.outcome === 'accepted') showToast('Aplicación instalada correctamente');
+}
+
+function setupAppInstallation() {
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    state.installPrompt = event;
+    updateInstallButtons();
+  });
+  window.addEventListener('appinstalled', () => {
+    state.installPrompt = null;
+    state.appInstalled = true;
+    updateInstallButtons();
+    showToast('Aplicación instalada correctamente');
+  });
+  updateInstallButtons();
+}
+
+function renderSidebarNavigation() {
+  const userPermissions = state.session?.user?.permissions || [];
+  const has = (permission) => userPermissions.includes(permission);
+  const hasAny = (permissions) => permissions.some((p) => userPermissions.includes(p));
+
+  const viewPermissions = {
+    dashboard: true,
+    attendance: true,
+    history: has('attendances.read'),
+    requests: true,
+    organization: hasAny([
+      'companies.read',
+      'sites.read',
+      'departments.read',
+      'positions.read',
+      'employees.read'
+    ]),
+    reports: has('reports.read'),
+    statistics: has('statistics.read'),
+    calendar: has('calendar.read'),
+    announcements: hasAny(['announcements.read', 'announcements.create']),
+    devices: has('devices.read'),
+    settings: has('settings.read'),
+    audit: has('audit-logs.read'),
+    profile: true,
+    users: has('users.read'),
+    roles: has('roles.read'),
+    sessions: hasAny(['sessions.read', 'users.read'])
+  };
+
+  queryAll('.nav-item').forEach((item) => {
+    const target = item.dataset.viewTarget;
+    if (target && viewPermissions[target] !== undefined) {
+      item.hidden = !viewPermissions[target];
+    }
+  });
+}
+
 function updateAccount() {
   const user = state.session?.user;
   if (!user) return;
@@ -1534,9 +1756,11 @@ function updateAccount() {
   query('#account-name').textContent = fullName(user);
   query('#account-role').textContent = user.role || 'Usuario';
   query('#account-initials').textContent = initials || 'MS';
+  renderSidebarNavigation();
 }
 
 function setView(viewName) {
+  clearMessage();
   queryAll('.view').forEach((view) => {
     view.hidden = view.dataset.view !== viewName;
     view.classList.toggle('active', view.dataset.view === viewName);
@@ -1562,12 +1786,15 @@ function setView(viewName) {
     roles: ['Control de acceso', 'Roles y permisos'],
     sessions: ['Seguridad', 'Sesiones activas']
   };
-  query('#page-kicker').textContent = titles[viewName][0];
-  query('#page-title').textContent = titles[viewName][1];
+  if (titles[viewName]) {
+    query('#page-kicker').textContent = titles[viewName][0];
+    query('#page-title').textContent = titles[viewName][1];
+  }
   query('#sidebar').classList.remove('open');
   if (viewName === 'dashboard') loadDashboard();
   if (viewName === 'attendance') {
     renderOfflinePanel();
+    void updateAttendanceTypeSelection();
     void loadAttendanceMap();
     void synchronizeOfflineQueue();
   }
@@ -1591,7 +1818,7 @@ function showApp() {
   query('#auth-screen').hidden = true;
   query('#app-shell').hidden = false;
   updateAccount();
-  setView(state.session?.user?.permissions?.includes('dashboard.read') ? 'dashboard' : 'profile');
+  setView('dashboard');
   void loadNotifications();
   void registerKnownDevice();
   void synchronizeOfflineQueue();
@@ -1689,10 +1916,111 @@ function renderActivity(items) {
     : '<p class="empty-state">Aún no hay actividad registrada hoy.</p>';
 }
 
+async function loadAnnouncementsForDashboard(targetSelector) {
+  const container = query(targetSelector);
+  if (!container) return;
+  try {
+    const announcements = await api('/me/announcements');
+    if (!announcements || !announcements.length) {
+      container.innerHTML =
+        '<p class="empty-state">No hay anuncios activos publicados en este momento.</p>';
+      return;
+    }
+    container.innerHTML = announcements
+      .map((ann) => {
+        const dateStr = ann.publishedAt ? formatDate(ann.publishedAt) : formatDate(ann.createdAt);
+        return `
+          <article class="announcement-card-hero">
+            <div class="announcement-card-header">
+              <span class="announcement-badge">Comunicado Oficial</span>
+              <span class="announcement-card-date">${escapeHtml(dateStr)}</span>
+            </div>
+            <h4 class="announcement-card-title">${escapeHtml(ann.title)}</h4>
+            <p class="announcement-card-body">${escapeHtml(ann.body)}</p>
+          </article>
+        `;
+      })
+      .join('');
+  } catch (error) {
+    container.innerHTML = `<p class="empty-state">No se pudieron cargar los anuncios: ${escapeHtml(error.message)}</p>`;
+  }
+}
+
+async function loadQuickEmployeeRequests() {
+  const container = query('#employee-quick-requests-list');
+  if (!container) return;
+  try {
+    const [permits, overtime] = await Promise.all([
+      api('/requests/work-permissions?limit=5').catch(() => ({ items: [] })),
+      api('/requests/overtime?limit=5').catch(() => ({ items: [] }))
+    ]);
+    const items = [
+      ...(permits.items || []).map((p) => ({ ...p, kind: 'Permiso' })),
+      ...(overtime.items || []).map((o) => ({ ...o, kind: 'Horas Extra' }))
+    ]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 5);
+
+    if (!items.length) {
+      container.innerHTML = '<p class="empty-state">No tienes solicitudes registradas.</p>';
+      return;
+    }
+
+    container.innerHTML = items
+      .map(
+        (item) => `
+      <div class="activity-row">
+        <span>
+          <strong class="row-name">${escapeHtml(item.kind)}: ${escapeHtml(item.reason || item.comments || 'Solicitud')}</strong>
+          <small class="row-meta">${formatDate(item.createdAt)}</small>
+        </span>
+        <span class="status-pill status-${(item.status || '').toLowerCase()}">${escapeHtml(item.status || 'PENDING')}</span>
+      </div>
+    `
+      )
+      .join('');
+  } catch (error) {
+    container.innerHTML = `<p class="empty-state">Sin solicitudes disponibles.</p>`;
+  }
+}
+
 async function loadDashboard() {
   try {
     clearMessage();
-    renderDashboard(await api('/dashboard/summary'));
+    const user = state.session?.user;
+    const userName = fullName(user) || 'Usuario';
+    const roleName = user?.role?.name || 'Empleado';
+    const hasAdminDashboardAccess = user?.permissions?.includes('dashboard.read');
+
+    query('#dashboard-date').textContent = new Intl.DateTimeFormat('es-PE', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long'
+    }).format(new Date());
+
+    query('#dashboard-welcome').textContent =
+      `Bienvenido, ${escapeHtml(userName)} (${escapeHtml(roleName)})`;
+
+    const adminPanel = query('#admin-dashboard-view');
+    const employeePanel = query('#employee-dashboard-view');
+
+    if (hasAdminDashboardAccess) {
+      if (adminPanel) adminPanel.hidden = false;
+      if (employeePanel) employeePanel.hidden = true;
+
+      const summary = await api('/dashboard/summary');
+      renderDashboard(summary);
+      await loadAnnouncementsForDashboard('#admin-announcements-list');
+    } else {
+      if (adminPanel) adminPanel.hidden = true;
+      if (employeePanel) employeePanel.hidden = false;
+
+      await Promise.all([
+        loadAnnouncementsForDashboard('#employee-announcements-list'),
+        loadQuickEmployeeRequests(),
+        updateAttendanceTypeSelection()
+      ]);
+    }
   } catch (error) {
     showMessage(error.message);
   }
@@ -2023,6 +2351,257 @@ function renderRoles() {
     : '<p class="empty-state">No hay roles configurados.</p>';
 }
 
+const PERMISSION_LABELS = {
+  // Módulo Dashboard y Análisis
+  'dashboard.read': {
+    title: 'Ver Panel Ejecutivo (Métricas globales)',
+    category: 'Dashboard y Análisis'
+  },
+  'statistics.read': {
+    title: 'Ver Estadísticas e Indicadores',
+    category: 'Dashboard y Análisis'
+  },
+  'reports.read': {
+    title: 'Generar y Exportar Reportes (PDF/Excel)',
+    category: 'Dashboard y Análisis'
+  },
+  'calendar.read': {
+    title: 'Ver Calendario Operativo de Asistencias',
+    category: 'Dashboard y Análisis'
+  },
+
+  // Módulo Control de Asistencia
+  'attendances.read': {
+    title: 'Ver Registros de Asistencia de Personal',
+    category: 'Control de Asistencia'
+  },
+  'attendances.create': {
+    title: 'Registrar Entrada / Salida de Asistencia',
+    category: 'Control de Asistencia'
+  },
+  'attendances.update': {
+    title: 'Editar Marcas de Asistencia',
+    category: 'Control de Asistencia'
+  },
+  'attendances.delete': {
+    title: 'Eliminar Registros de Asistencia',
+    category: 'Control de Asistencia'
+  },
+  'qr.read': { title: 'Ver Códigos QR e Historial de Sede', category: 'Control de Asistencia' },
+  'qr.create': { title: 'Generar Códigos QR de Sede', category: 'Control de Asistencia' },
+
+  // Módulo Solicitudes y Permisos
+  'work-permissions.read': {
+    title: 'Ver Solicitudes de Permisos de Trabajo',
+    category: 'Solicitudes y Permisos'
+  },
+  'work-permissions.create': {
+    title: 'Crear Permisos de Trabajo',
+    category: 'Solicitudes y Permisos'
+  },
+  'work-permissions.update': {
+    title: 'Aprobar o Rechazar Permisos de Trabajo',
+    category: 'Solicitudes y Permisos'
+  },
+  'work-permissions.delete': {
+    title: 'Eliminar Solicitudes de Permisos',
+    category: 'Solicitudes y Permisos'
+  },
+  'overtime-requests.read': {
+    title: 'Ver Solicitudes de Horas Extra',
+    category: 'Solicitudes y Permisos'
+  },
+  'overtime-requests.create': {
+    title: 'Solicitar Horas Extra',
+    category: 'Solicitudes y Permisos'
+  },
+  'overtime-requests.update': {
+    title: 'Aprobar o Rechazar Horas Extra',
+    category: 'Solicitudes y Permisos'
+  },
+  'overtime-requests.delete': {
+    title: 'Eliminar Solicitudes de Horas Extra',
+    category: 'Solicitudes y Permisos'
+  },
+  'vacations.read': {
+    title: 'Ver Solicitudes de Vacaciones',
+    category: 'Solicitudes y Permisos'
+  },
+  'vacations.create': { title: 'Solicitar Vacaciones', category: 'Solicitudes y Permisos' },
+  'vacations.update': {
+    title: 'Aprobar o Rechazar Vacaciones',
+    category: 'Solicitudes y Permisos'
+  },
+  'vacations.delete': {
+    title: 'Eliminar Solicitudes de Vacaciones',
+    category: 'Solicitudes y Permisos'
+  },
+  'licenses.read': {
+    title: 'Ver Licencias Médicas / Especiales',
+    category: 'Solicitudes y Permisos'
+  },
+  'licenses.create': {
+    title: 'Registrar Licencias Médicas',
+    category: 'Solicitudes y Permisos'
+  },
+  'licenses.update': {
+    title: 'Aprobar o Rechazar Licencias',
+    category: 'Solicitudes y Permisos'
+  },
+  'licenses.delete': { title: 'Eliminar Licencias Médicas', category: 'Solicitudes y Permisos' },
+
+  // Módulo Personal y Empleados
+  'employees.read': { title: 'Ver Lista de Empleados', category: 'Gestión de Personal' },
+  'employees.create': { title: 'Registrar Nuevos Empleados', category: 'Gestión de Personal' },
+  'employees.update': { title: 'Editar Fichas de Empleados', category: 'Gestión de Personal' },
+  'employees.delete': {
+    title: 'Eliminar Registros de Empleados',
+    category: 'Gestión de Personal'
+  },
+  'imports.create': {
+    title: 'Importar Empleados Masivamente (Excel)',
+    category: 'Gestión de Personal'
+  },
+
+  // Módulo Estructura Organizacional
+  'companies.read': { title: 'Ver Lista de Empresas', category: 'Estructura Organizacional' },
+  'companies.create': { title: 'Crear Empresas', category: 'Estructura Organizacional' },
+  'companies.update': {
+    title: 'Editar Datos de Empresa',
+    category: 'Estructura Organizacional'
+  },
+  'companies.delete': { title: 'Eliminar Empresas', category: 'Estructura Organizacional' },
+  'sites.read': { title: 'Ver Sedes y Geocercas GPS', category: 'Estructura Organizacional' },
+  'sites.create': { title: 'Crear Nuevas Sedes', category: 'Estructura Organizacional' },
+  'sites.update': {
+    title: 'Editar Sedes y Ubicación GPS',
+    category: 'Estructura Organizacional'
+  },
+  'sites.delete': { title: 'Eliminar Sedes', category: 'Estructura Organizacional' },
+  'departments.read': {
+    title: 'Ver Áreas y Departamentos',
+    category: 'Estructura Organizacional'
+  },
+  'departments.create': {
+    title: 'Crear Áreas y Departamentos',
+    category: 'Estructura Organizacional'
+  },
+  'departments.update': {
+    title: 'Editar Áreas y Departamentos',
+    category: 'Estructura Organizacional'
+  },
+  'departments.delete': {
+    title: 'Eliminar Áreas y Departamentos',
+    category: 'Estructura Organizacional'
+  },
+  'positions.read': { title: 'Ver Cargos y Puestos', category: 'Estructura Organizacional' },
+  'positions.create': { title: 'Crear Cargos y Puestos', category: 'Estructura Organizacional' },
+  'positions.update': {
+    title: 'Editar Cargos y Puestos',
+    category: 'Estructura Organizacional'
+  },
+  'positions.delete': {
+    title: 'Eliminar Cargos y Puestos',
+    category: 'Estructura Organizacional'
+  },
+  'schedules.read': { title: 'Ver Horarios de Trabajo', category: 'Estructura Organizacional' },
+  'schedules.create': {
+    title: 'Crear Horarios de Trabajo',
+    category: 'Estructura Organizacional'
+  },
+  'schedules.update': {
+    title: 'Editar Horarios de Trabajo',
+    category: 'Estructura Organizacional'
+  },
+  'schedules.delete': {
+    title: 'Eliminar Horarios de Trabajo',
+    category: 'Estructura Organizacional'
+  },
+  'holidays.read': { title: 'Ver Feriados y Calendario', category: 'Estructura Organizacional' },
+  'holidays.create': { title: 'Registrar Feriados', category: 'Estructura Organizacional' },
+  'holidays.update': { title: 'Editar Feriados', category: 'Estructura Organizacional' },
+  'holidays.delete': { title: 'Eliminar Feriados', category: 'Estructura Organizacional' },
+
+  // Módulo Anuncios y Comunicados
+  'announcements.read': { title: 'Ver Anuncios Corporativos', category: 'Comunicación Interna' },
+  'announcements.create': {
+    title: 'Crear Nuevos Comunicados',
+    category: 'Comunicación Interna'
+  },
+  'announcements.update': {
+    title: 'Publicar o Archivar Comunicados',
+    category: 'Comunicación Interna'
+  },
+  'announcements.delete': { title: 'Eliminar Comunicados', category: 'Comunicación Interna' },
+
+  // Módulo Seguridad, Usuarios y Sistema
+  'users.read': { title: 'Ver Cuentas de Usuario', category: 'Seguridad y Accesos' },
+  'users.create': { title: 'Crear Cuentas de Usuario', category: 'Seguridad y Accesos' },
+  'users.update': {
+    title: 'Editar Usuarios y Cambiar Contraseñas',
+    category: 'Seguridad y Accesos'
+  },
+  'users.delete': { title: 'Eliminar Cuentas de Usuario', category: 'Seguridad y Accesos' },
+  'roles.read': { title: 'Ver Roles y Permisos', category: 'Seguridad y Accesos' },
+  'roles.create': { title: 'Crear Nuevos Roles', category: 'Seguridad y Accesos' },
+  'roles.update': { title: 'Asignar Permisos a Roles', category: 'Seguridad y Accesos' },
+  'roles.delete': { title: 'Eliminar Roles', category: 'Seguridad y Accesos' },
+  'permissions.read': { title: 'Ver Registro de Permisos', category: 'Seguridad y Accesos' },
+  'permissions.create': { title: 'Crear Permisos del Sistema', category: 'Seguridad y Accesos' },
+  'permissions.update': {
+    title: 'Editar Permisos del Sistema',
+    category: 'Seguridad y Accesos'
+  },
+  'permissions.delete': {
+    title: 'Eliminar Permisos del Sistema',
+    category: 'Seguridad y Accesos'
+  },
+  'sessions.read': { title: 'Ver y Revocar Sesiones Activas', category: 'Seguridad y Accesos' },
+  'devices.read': { title: 'Ver Dispositivos Autorizados', category: 'Seguridad y Accesos' },
+  'devices.create': { title: 'Vincular Dispositivos', category: 'Seguridad y Accesos' },
+  'devices.update': {
+    title: 'Autorizar o Bloquear Dispositivos',
+    category: 'Seguridad y Accesos'
+  },
+  'devices.delete': { title: 'Eliminar Dispositivos', category: 'Seguridad y Accesos' },
+  'settings.read': {
+    title: 'Ver Configuración del Sistema',
+    category: 'Configuración y Auditoría'
+  },
+  'settings.update': {
+    title: 'Modificar Configuración de Empresa',
+    category: 'Configuración y Auditoría'
+  },
+  'backups.create': {
+    title: 'Generar Respaldos de Base de Datos',
+    category: 'Configuración y Auditoría'
+  },
+  'audit-logs.read': {
+    title: 'Ver Registros de Auditoría y Seguridad',
+    category: 'Configuración y Auditoría'
+  }
+};
+
+function formatPermission(permission) {
+  const meta = PERMISSION_LABELS[permission.code];
+  if (meta) {
+    return {
+      title: meta.title,
+      category: meta.category,
+      code: permission.code
+    };
+  }
+  const parts = permission.code.split('.');
+  const actionMap = { read: 'Ver', create: 'Crear', update: 'Editar', delete: 'Eliminar' };
+  const actionName = actionMap[parts[1]] || parts[1] || '';
+  const resourceName = parts[0] || 'recurso';
+  return {
+    title: `${actionName} ${resourceName}`.trim(),
+    category: 'Otros Permisos',
+    code: permission.code
+  };
+}
+
 async function selectRole(roleId) {
   state.selectedRoleId = roleId;
   renderRoles();
@@ -2031,14 +2610,47 @@ async function selectRole(roleId) {
     const role = await api(`/roles/${roleId}/permissions`);
     query('#selected-role-name').textContent = role.name;
     const assigned = new Set((role.rolePermissions || []).map((entry) => entry.permission.id));
-    query('#permissions-list').innerHTML = state.permissions.length
-      ? state.permissions
+
+    if (!state.permissions.length) {
+      query('#permissions-list').innerHTML =
+        '<p class="empty-state">No hay permisos configurados.</p>';
+      return;
+    }
+
+    const categoriesMap = {};
+    state.permissions.forEach((permission) => {
+      const formatted = formatPermission(permission);
+      if (!categoriesMap[formatted.category]) {
+        categoriesMap[formatted.category] = [];
+      }
+      categoriesMap[formatted.category].push({ ...permission, formatted });
+    });
+
+    query('#permissions-list').innerHTML = Object.entries(categoriesMap)
+      .map(([categoryName, items]) => {
+        const optionsHtml = items
           .map(
-            (permission) =>
-              `<label class="permission-option"><input type="checkbox" value="${permission.id}" ${assigned.has(permission.id) ? 'checked' : ''} /><span>${escapeHtml(permission.code)}</span></label>`
+            (p) => `
+              <label class="permission-option">
+                <input type="checkbox" value="${p.id}" ${assigned.has(p.id) ? 'checked' : ''} />
+                <div class="permission-option-info">
+                  <span class="permission-option-title">${escapeHtml(p.formatted.title)}</span>
+                  <small class="permission-code-tag">${escapeHtml(p.formatted.code)}</small>
+                </div>
+              </label>
+            `
           )
-          .join('')
-      : '<p class="empty-state">No hay permisos configurados.</p>';
+          .join('');
+
+        return `
+          <div class="permission-category-group">
+            <h4 class="permission-category-title">${escapeHtml(categoryName)}</h4>
+            <div class="permission-category-options">${optionsHtml}</div>
+          </div>
+        `;
+      })
+      .join('');
+
     query('#save-role-permissions').disabled = false;
   } catch (error) {
     showMessage(error.message);
@@ -2192,8 +2804,20 @@ function bindEvents() {
   query('#recovery-start-form').addEventListener('submit', startRecovery);
   query('#recovery-reset-form').addEventListener('submit', resetPassword);
   query('#logout-button').addEventListener('click', () => signOut());
+  queryAll('[data-install-app]').forEach((button) =>
+    button.addEventListener('click', () => void installApp())
+  );
   query('#refresh-dashboard').addEventListener('click', loadDashboard);
+  query('#quick-create-announcement')?.addEventListener('click', () => openAnnouncementDialog());
+  query('#quick-go-attendance')?.addEventListener('click', () => setView('attendance'));
+  query('#quick-go-requests')?.addEventListener('click', () => setView('requests'));
   query('#attendance-form').addEventListener('submit', submitAttendance);
+  query('#scan-qr-button').addEventListener('click', (event) => {
+    event.preventDefault();
+    openQrScanner();
+  });
+  query('#close-scanner').addEventListener('click', stopQrScanner);
+  query('#qr-scanner-dialog').addEventListener('close', stopQrScanner);
   query('#capture-location').addEventListener('click', () =>
     captureLocation().catch((error) => showToast(error.message, 'error'))
   );
@@ -2276,6 +2900,12 @@ function bindEvents() {
   query('#open-user-dialog').addEventListener('click', openUserDialog);
   query('#submit-user-form').addEventListener('click', createUser);
   query('#save-role-permissions').addEventListener('click', saveRolePermissions);
+  query('#select-all-permissions')?.addEventListener('click', () => {
+    queryAll('#permissions-list input[type="checkbox"]').forEach((cb) => (cb.checked = true));
+  });
+  query('#unselect-all-permissions')?.addEventListener('click', () => {
+    queryAll('#permissions-list input[type="checkbox"]').forEach((cb) => (cb.checked = false));
+  });
   query('#nav-toggle').addEventListener('click', () => query('#sidebar').classList.toggle('open'));
   queryAll('.nav-item').forEach((button) =>
     button.addEventListener('click', () => setView(button.dataset.viewTarget))
@@ -2314,6 +2944,7 @@ function bindEvents() {
 
 function initialize() {
   setupLogoFallbacks();
+  setupAppInstallation();
   updateClock();
   window.setInterval(updateClock, 15_000);
   bindEvents();

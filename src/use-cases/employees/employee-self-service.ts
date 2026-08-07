@@ -34,7 +34,16 @@ const profileSelect = {
   active: true,
   user: { select: { id: true, firstName: true, lastName: true, email: true, status: true } },
   company: { select: { id: true, name: true, timeZone: true, logoUrl: true } },
-  site: { select: { id: true, name: true, address: true, latitude: true, longitude: true, radiusMeters: true } },
+  site: {
+    select: {
+      id: true,
+      name: true,
+      address: true,
+      latitude: true,
+      longitude: true,
+      radiusMeters: true
+    }
+  },
   department: { select: { id: true, name: true } },
   position: { select: { id: true, name: true } },
   schedule: {
@@ -111,13 +120,40 @@ export class EmployeeSelfService {
     return { items, pagination: { page: filters.page, limit: filters.limit, total } };
   }
 
+  async getLastAttendance(userId: string) {
+    const employee = await this.activeEmployeeForUser(userId);
+    return prisma.attendance.findFirst({
+      where: { employeeId: employee.id },
+      orderBy: { recordedAt: 'desc' },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        recordedAt: true,
+        site: { select: { id: true, name: true } }
+      }
+    });
+  }
+
   async requestHistory(userId: string) {
     const employee = await this.activeEmployeeForUser(userId);
     const [vacations, licenses, permissions, overtime] = await Promise.all([
-      prisma.vacation.findMany({ where: { employeeId: employee.id }, orderBy: { createdAt: 'desc' } }),
-      prisma.license.findMany({ where: { employeeId: employee.id }, orderBy: { createdAt: 'desc' } }),
-      prisma.workPermission.findMany({ where: { employeeId: employee.id }, orderBy: { createdAt: 'desc' } }),
-      prisma.overtimeRequest.findMany({ where: { employeeId: employee.id }, orderBy: { createdAt: 'desc' } })
+      prisma.vacation.findMany({
+        where: { employeeId: employee.id },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.license.findMany({
+        where: { employeeId: employee.id },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.workPermission.findMany({
+        where: { employeeId: employee.id },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.overtimeRequest.findMany({
+        where: { employeeId: employee.id },
+        orderBy: { createdAt: 'desc' }
+      })
     ]);
     const items = [
       ...vacations.map((request) => ({
@@ -201,14 +237,27 @@ export class EmployeeSelfService {
     const [vacations, licenses, permissions, overtime] = await Promise.all([
       prisma.vacation.count({ where: { employeeId: employee.id, status: RequestStatus.PENDING } }),
       prisma.license.count({ where: { employeeId: employee.id, status: RequestStatus.PENDING } }),
-      prisma.workPermission.count({ where: { employeeId: employee.id, status: RequestStatus.PENDING } }),
-      prisma.overtimeRequest.count({ where: { employeeId: employee.id, status: RequestStatus.PENDING } })
+      prisma.workPermission.count({
+        where: { employeeId: employee.id, status: RequestStatus.PENDING }
+      }),
+      prisma.overtimeRequest.count({
+        where: { employeeId: employee.id, status: RequestStatus.PENDING }
+      })
     ]);
-    return { vacations, licenses, workPermissions: permissions, overtime, total: vacations + licenses + permissions + overtime };
+    return {
+      vacations,
+      licenses,
+      workPermissions: permissions,
+      overtime,
+      total: vacations + licenses + permissions + overtime
+    };
   }
 
   private async activeEmployeeForUser(userId: string) {
-    const employee = await prisma.employee.findUnique({ where: { userId }, select: { id: true, active: true } });
+    const employee = await prisma.employee.findUnique({
+      where: { userId },
+      select: { id: true, active: true }
+    });
     if (!employee || !employee.active)
       throw new AppError(403, 'No tiene un perfil de empleado activo');
     return employee;

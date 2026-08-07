@@ -60,7 +60,8 @@ export class AnnouncementService {
   async publish(announcementId: string) {
     const announcement = await prisma.announcement.findUnique({ where: { id: announcementId } });
     if (!announcement) throw new AppError(404, 'Anuncio no encontrado');
-    if (announcement.status === AnnouncementStatus.ARCHIVED) throw new AppError(400, 'No puede publicar un anuncio archivado');
+    if (announcement.status === AnnouncementStatus.ARCHIVED)
+      throw new AppError(400, 'No puede publicar un anuncio archivado');
     if (announcement.status === AnnouncementStatus.PUBLISHED) return announcement;
     const publishedAt = new Date();
     return prisma.$transaction(async (transaction) => {

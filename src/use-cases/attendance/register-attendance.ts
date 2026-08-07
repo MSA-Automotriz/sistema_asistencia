@@ -5,8 +5,22 @@ import { hashToken, haversineMeters } from '../../utils/crypto.js';
 import { determineAttendanceStatus } from './attendance-rules.js';
 import { parseUserAgent } from '../../utils/user-agent.js';
 
-type AttendanceInput = { qrToken: string; latitude: number; longitude: number; type: AttendanceType; approximateAddress?: string; connectionType?: string; deviceFingerprint?: string };
-type RequestMeta = { ip?: string; userAgent?: string; browser?: string; operatingSystem?: string; device?: string };
+type AttendanceInput = {
+  qrToken: string;
+  latitude: number;
+  longitude: number;
+  type: AttendanceType;
+  approximateAddress?: string;
+  connectionType?: string;
+  deviceFingerprint?: string;
+};
+type RequestMeta = {
+  ip?: string;
+  userAgent?: string;
+  browser?: string;
+  operatingSystem?: string;
+  device?: string;
+};
 
 export class RegisterAttendance {
   async execute(userId: string, input: AttendanceInput, meta: RequestMeta) {
@@ -14,15 +28,50 @@ export class RegisterAttendance {
       where: { userId },
       include: { site: true, schedule: true, company: { select: { timeZone: true } } }
     });
-    if (!employee?.site || !employee.active) throw new AppError(403, 'Empleado sin sede activa asignada');
+    if (!employee?.site || !employee.active)
+      throw new AppError(403, 'Empleado sin sede activa asignada');
     const site = employee.site;
     const qr = await prisma.qrToken.findUnique({ where: { tokenHash: hashToken(input.qrToken) } });
-    if (!qr || qr.siteId !== employee.siteId || qr.usedAt || qr.expiresAt <= new Date()) throw new AppError(422, 'Código QR inválido, expirado o ya utilizado');
-    const distanceMeters = haversineMeters(input.latitude, input.longitude, site.latitude, site.longitude);
-    if (distanceMeters > site.radiusMeters) throw new AppError(403, 'No se encuentra dentro del área autorizada.');
+    if (!qr || qr.siteId !== employee.siteId || qr.usedAt || qr.expiresAt <= new Date())
+      throw new AppError(422, 'Código QR inválido, expirado o ya utilizado');
+    const distanceMeters = haversineMeters(
+      input.latitude,
+      input.longitude,
+      site.latitude,
+      site.longitude
+    );
+    const toleranceMeters = site.radiusMeters + 150; // Add 150m tolerance buffer
+    if (distanceMeters > toleranceMeters)
+      throw new AppError(403, 'No se encuentra dentro del área autorizada.');
+
+    const lastAttendance = await prisma.attendance.findFirst({
+      where: { employeeId: employee.id },
+      orderBy: { recordedAt: 'desc' },
+      select: { type: true, recordedAt: true }
+    });
+
+    if (input.type === 'CHECK_IN' && lastAttendance?.type === 'CHECK_IN') {
+      throw new AppError(
+        400,
+        'Ya cuenta con una Entrada registrada sin Salida. Debe registrar su Salida antes de volver a ingresar.'
+      );
+    }
+
+    if (input.type === 'CHECK_OUT' && (!lastAttendance || lastAttendance.type === 'CHECK_OUT')) {
+      throw new AppError(
+        400,
+        'No puede registrar una Salida sin contar con un registro de Entrada previo activo.'
+      );
+    }
+
     const recordedAt = new Date();
     const deviceMeta = parseUserAgent(meta.userAgent ?? meta.browser);
-    const status = determineAttendanceStatus(input.type, employee.schedule, recordedAt, employee.company.timeZone);
+    const status = determineAttendanceStatus(
+      input.type,
+      employee.schedule,
+      recordedAt,
+      employee.company.timeZone
+    );
     const attendance = await prisma.$transaction(async (tx) => {
       if (input.deviceFingerprint) {
         const device = await tx.device.upsert({
@@ -35,9 +84,15 @@ export class RegisterAttendance {
             name: deviceMeta.device,
             status: 'PENDING'
           },
-          update: { userAgent: meta.userAgent, ipAddress: meta.ip, name: deviceMeta.device, lastSeenAt: recordedAt }
+          update: {
+            userAgent: meta.userAgent,
+            ipAddress: meta.ip,
+            name: deviceMeta.device,
+            lastSeenAt: recordedAt
+          }
         });
-        if (device.status === 'BLOCKED') throw new AppError(403, 'Este dispositivo está bloqueado para registrar asistencia');
+        if (device.status === 'BLOCKED')
+          throw new AppError(403, 'Este dispositivo está bloqueado para registrar asistencia');
       }
       await tx.qrToken.update({ where: { id: qr.id }, data: { usedAt: new Date() } });
       return tx.attendance.create({

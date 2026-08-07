@@ -29,22 +29,36 @@ export class BackupService {
   async list(companyId: string, page: number, limit: number) {
     const where = { companyId };
     const [items, total] = await Promise.all([
-      prisma.backupRecord.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: 'desc' } }),
+      prisma.backupRecord.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' }
+      }),
       prisma.backupRecord.count({ where })
     ]);
     return { items, pagination: { page, limit, total } };
   }
 
   async start(companyId: string, type: BackupType, createdById?: string) {
-    const company = await prisma.company.findUnique({ where: { id: companyId }, select: { id: true } });
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { id: true }
+    });
     if (!company) throw new AppError(404, 'Empresa no encontrada');
     const backup = await prisma.backupRecord.create({ data: { companyId, type, createdById } });
-    void this.execute(backup.id).catch((error: unknown) => logger.error('No se pudo ejecutar el respaldo', { backupId: backup.id, error: this.errorMessage(error) }));
+    void this.execute(backup.id).catch((error: unknown) =>
+      logger.error('No se pudo ejecutar el respaldo', {
+        backupId: backup.id,
+        error: this.errorMessage(error)
+      })
+    );
     return backup;
   }
 
   async restore(backupId: string, confirmation: string) {
-    if (confirmation !== 'RESTORE') throw new AppError(422, 'Debe confirmar la restauración con RESTORE');
+    if (confirmation !== 'RESTORE')
+      throw new AppError(422, 'Debe confirmar la restauración con RESTORE');
     const backup = await prisma.backupRecord.findUnique({ where: { id: backupId } });
     if (!backup || backup.status !== BackupStatus.COMPLETED || !backup.storagePath)
       throw new AppError(404, 'Respaldo disponible no encontrado');
@@ -55,7 +69,9 @@ export class BackupService {
   }
 
   async getSchedule(companyId: string): Promise<BackupSchedule | null> {
-    const setting = await prisma.setting.findUnique({ where: { companyId_key: { companyId, key: 'backup.schedule' } } });
+    const setting = await prisma.setting.findUnique({
+      where: { companyId_key: { companyId, key: 'backup.schedule' } }
+    });
     if (!setting) return null;
     try {
       return JSON.parse(setting.value) as BackupSchedule;
@@ -79,9 +95,10 @@ export class BackupService {
       data: { status: BackupStatus.RUNNING, startedAt: new Date(), errorMessage: null }
     });
     try {
-      const storagePath = backup.type === BackupType.DATABASE
-        ? await this.createDatabaseBackup(backup.id)
-        : await this.createFilesBackup(backup.id);
+      const storagePath =
+        backup.type === BackupType.DATABASE
+          ? await this.createDatabaseBackup(backup.id)
+          : await this.createFilesBackup(backup.id);
       await prisma.backupRecord.update({
         where: { id: backup.id },
         data: { status: BackupStatus.COMPLETED, storagePath, completedAt: new Date() }
@@ -89,7 +106,11 @@ export class BackupService {
     } catch (error) {
       await prisma.backupRecord.update({
         where: { id: backup.id },
-        data: { status: BackupStatus.FAILED, errorMessage: this.errorMessage(error), completedAt: new Date() }
+        data: {
+          status: BackupStatus.FAILED,
+          errorMessage: this.errorMessage(error),
+          completedAt: new Date()
+        }
       });
       throw error;
     }
@@ -100,21 +121,31 @@ export class BackupService {
     await mkdir(directory, { recursive: true });
     const target = path.join(directory, `msa-${this.fileTimestamp()}-${backupId}.sql`);
     const connection = this.databaseConnection();
-    await this.runProcess(this.mysqldumpPath(), [
-      `--host=${connection.host}`,
-      `--port=${connection.port}`,
-      `--user=${connection.username}`,
-      '--protocol=TCP',
-      '--single-transaction',
-      '--routines',
-      '--events',
-      connection.database
-    ], connection.password, undefined, target);
+    await this.runProcess(
+      this.mysqldumpPath(),
+      [
+        `--host=${connection.host}`,
+        `--port=${connection.port}`,
+        `--user=${connection.username}`,
+        '--protocol=TCP',
+        '--single-transaction',
+        '--routines',
+        '--events',
+        connection.database
+      ],
+      connection.password,
+      undefined,
+      target
+    );
     return target;
   }
 
   private async createFilesBackup(backupId: string) {
-    const directory = path.resolve(env.BACKUP_DIRECTORY, 'files', `msa-${this.fileTimestamp()}-${backupId}`);
+    const directory = path.resolve(
+      env.BACKUP_DIRECTORY,
+      'files',
+      `msa-${this.fileTimestamp()}-${backupId}`
+    );
     await mkdir(path.dirname(directory), { recursive: true });
     await cp(path.resolve('public'), directory, { recursive: true });
     return directory;
@@ -122,16 +153,27 @@ export class BackupService {
 
   private async restoreDatabase(source: string) {
     const connection = this.databaseConnection();
-    await this.runProcess(this.mysqlPath(), [
-      `--host=${connection.host}`,
-      `--port=${connection.port}`,
-      `--user=${connection.username}`,
-      '--protocol=TCP',
-      connection.database
-    ], connection.password, source);
+    await this.runProcess(
+      this.mysqlPath(),
+      [
+        `--host=${connection.host}`,
+        `--port=${connection.port}`,
+        `--user=${connection.username}`,
+        '--protocol=TCP',
+        connection.database
+      ],
+      connection.password,
+      source
+    );
   }
 
-  private runProcess(command: string, args: string[], password: string, inputPath?: string, outputPath?: string) {
+  private runProcess(
+    command: string,
+    args: string[],
+    password: string,
+    inputPath?: string,
+    outputPath?: string
+  ) {
     return new Promise<void>((resolve, reject) => {
       const child = spawn(command, args, {
         env: { ...process.env, ...(password ? { MYSQL_PWD: password } : {}) },
@@ -147,7 +189,9 @@ export class BackupService {
         else resolve();
       };
       child.once('error', (error) => finish(error));
-      child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+      child.stderr.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString();
+      });
 
       let output: ReturnType<typeof createWriteStream> | undefined;
       if (outputPath) {
@@ -163,7 +207,10 @@ export class BackupService {
       } else child.stdin.end();
 
       child.once('close', (code) => {
-        if (code !== 0) return finish(new Error(stderr.trim() || `El proceso de respaldo terminó con código ${code}`));
+        if (code !== 0)
+          return finish(
+            new Error(stderr.trim() || `El proceso de respaldo terminó con código ${code}`)
+          );
         if (output) output.once('finish', () => finish());
         else finish();
       });
@@ -173,7 +220,8 @@ export class BackupService {
   private databaseConnection(): DatabaseConnection {
     const url = new URL(env.DATABASE_URL);
     const database = decodeURIComponent(url.pathname.replace(/^\//, ''));
-    if (!database) throw new AppError(500, 'La URL de base de datos no contiene una base de datos válida');
+    if (!database)
+      throw new AppError(500, 'La URL de base de datos no contiene una base de datos válida');
     return {
       host: url.hostname || 'localhost',
       port: url.port || '3306',

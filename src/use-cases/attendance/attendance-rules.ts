@@ -3,7 +3,10 @@ import type { AttendanceType, Schedule } from '@prisma/client';
 
 export const determineAttendanceStatus = (
   type: AttendanceType,
-  schedule: Pick<Schedule, 'startTime' | 'endTime' | 'toleranceMinutes' | 'flexibleWindowMinutes' | 'type'> | null,
+  schedule: Pick<
+    Schedule,
+    'startTime' | 'endTime' | 'toleranceMinutes' | 'flexibleWindowMinutes' | 'type'
+  > | null,
   recordedAt: Date,
   timeZone: string
 ) => {
@@ -14,14 +17,19 @@ export const determineAttendanceStatus = (
 
   const actualMinutes = minutesInTimeZone(recordedAt, timeZone);
   const isNightSchedule = endMinutes <= startMinutes;
-  const relativeActual = isNightSchedule && actualMinutes < startMinutes ? actualMinutes + 24 * 60 : actualMinutes;
+  const relativeActual =
+    isNightSchedule && actualMinutes < startMinutes ? actualMinutes + 24 * 60 : actualMinutes;
   const relativeEnd = isNightSchedule ? endMinutes + 24 * 60 : endMinutes;
   const flexibility = schedule.type === ScheduleType.FLEXIBLE ? schedule.flexibleWindowMinutes : 0;
   const permittedVariance = schedule.toleranceMinutes + flexibility;
 
   if (type === 'CHECK_IN')
-    return relativeActual > startMinutes + permittedVariance ? AttendanceStatus.LATE : AttendanceStatus.ON_TIME;
-  return relativeActual < relativeEnd - permittedVariance ? AttendanceStatus.EARLY_DEPARTURE : AttendanceStatus.ON_TIME;
+    return relativeActual > startMinutes + permittedVariance
+      ? AttendanceStatus.LATE
+      : AttendanceStatus.ON_TIME;
+  return relativeActual < relativeEnd - permittedVariance
+    ? AttendanceStatus.EARLY_DEPARTURE
+    : AttendanceStatus.ON_TIME;
 };
 
 const timeToMinutes = (value: string) => {

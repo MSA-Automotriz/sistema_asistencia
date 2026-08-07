@@ -9,9 +9,9 @@
   "theme_color": "#e30613",
   "icons": [
     {
-      "src": "/images/logo_msa.jpeg",
+      "src": "/images/logo_msa.png",
       "sizes": "any",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any"
     }
   ]

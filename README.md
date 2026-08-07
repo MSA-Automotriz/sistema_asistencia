@@ -41,7 +41,7 @@ La migración se genera desde `schema.prisma`; no existen consultas SQL manuales
 
 La interfaz web se abre en `http://localhost:3000/`. Incluye inicio de sesión, dashboard, solicitudes, organización, QR, asistencia con geocerca, reportes, auditoría, respaldos, usuarios, roles/permisos y sesiones. También se puede instalar como PWA para conservar el shell y la cola de asistencia offline. Swagger continúa disponible en `http://localhost:3000/api/docs`.
 
-El logo de MSA se encuentra en `public/images/logo_msa.jpeg` y la interfaz lo carga desde `/images/logo_msa.jpeg`.
+El logo de MSA se encuentra en `public/images/logo_msa.png` y la interfaz lo carga desde `/images/logo_msa.png`.
 
 ## Endpoints
 

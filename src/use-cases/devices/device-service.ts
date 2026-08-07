@@ -4,7 +4,10 @@ import { prisma } from '../../database/prisma.js';
 
 export class DeviceService {
   async list(page: number, limit: number, status?: DeviceStatus, userId?: string) {
-    const where: Prisma.DeviceWhereInput = { ...(status ? { status } : {}), ...(userId ? { userId } : {}) };
+    const where: Prisma.DeviceWhereInput = {
+      ...(status ? { status } : {}),
+      ...(userId ? { userId } : {})
+    };
     const [items, total] = await Promise.all([
       prisma.device.findMany({
         where,

@@ -83,7 +83,11 @@ export class SystemService {
           await prisma.$executeRawUnsafe(`ANALYZE TABLE \`${table}\``);
           return { table, status: 'analyzed' };
         } catch (error) {
-          return { table, status: 'unavailable', message: error instanceof Error ? error.message : 'Error desconocido' };
+          return {
+            table,
+            status: 'unavailable',
+            message: error instanceof Error ? error.message : 'Error desconocido'
+          };
         }
       })
     );

@@ -65,7 +65,9 @@ export class AttendanceOperationsService {
     return { items, pagination: { page: filters.page, limit: filters.limit, total } };
   }
 
-  async statistics(filters: Omit<AttendanceFilters, 'page' | 'limit' | 'search' | 'type' | 'status'>) {
+  async statistics(
+    filters: Omit<AttendanceFilters, 'page' | 'limit' | 'search' | 'type' | 'status'>
+  ) {
     const endDate = filters.endDate ?? new Date();
     const startDate = filters.startDate ?? this.daysBefore(endDate, 29);
     const scopedFilters: AttendanceFilters = { ...filters, startDate, endDate, page: 1, limit: 1 };
@@ -79,13 +81,35 @@ export class AttendanceOperationsService {
       }),
       prisma.employee.count({ where: { active: true, ...employeeWhere } })
     ]);
-    const dayCount = Math.max(1, Math.floor((this.endOfDay(endDate).getTime() - this.startOfDay(startDate).getTime()) / 86_400_000) + 1);
-    const series = new Map<string, { date: string; checkIns: number; checkOuts: number; late: number; earlyDeparture: number; present: number }>();
+    const dayCount = Math.max(
+      1,
+      Math.floor(
+        (this.endOfDay(endDate).getTime() - this.startOfDay(startDate).getTime()) / 86_400_000
+      ) + 1
+    );
+    const series = new Map<
+      string,
+      {
+        date: string;
+        checkIns: number;
+        checkOuts: number;
+        late: number;
+        earlyDeparture: number;
+        present: number;
+      }
+    >();
     for (let offset = 0; offset < dayCount; offset += 1) {
       const date = new Date(this.startOfDay(startDate));
       date.setDate(date.getDate() + offset);
       const key = this.dateKey(date);
-      series.set(key, { date: key, checkIns: 0, checkOuts: 0, late: 0, earlyDeparture: 0, present: 0 });
+      series.set(key, {
+        date: key,
+        checkIns: 0,
+        checkOuts: 0,
+        late: 0,
+        earlyDeparture: 0,
+        present: 0
+      });
     }
     const presentByDay = new Map<string, Set<string>>();
     const openChecks = new Map<string, Date>();
@@ -115,24 +139,36 @@ export class AttendanceOperationsService {
       if (day) day.present = present.size;
     }
     const entries = records.filter((record) => record.type === 'CHECK_IN').length;
-    const late = records.filter((record) => record.type === 'CHECK_IN' && record.status === 'LATE').length;
+    const late = records.filter(
+      (record) => record.type === 'CHECK_IN' && record.status === 'LATE'
+    ).length;
     const checkOuts = records.filter((record) => record.type === 'CHECK_OUT').length;
     const daysWithPresence = presentByDay.size;
-    const totalPresent = [...presentByDay.values()].reduce((total, current) => total + current.size, 0);
+    const totalPresent = [...presentByDay.values()].reduce(
+      (total, current) => total + current.size,
+      0
+    );
     return {
       range: { startDate, endDate, days: dayCount },
       totals: {
         checkIns: entries,
         checkOuts,
         late,
-        earlyDepartures: records.filter((record) => record.type === 'CHECK_OUT' && record.status === 'EARLY_DEPARTURE').length,
+        earlyDepartures: records.filter(
+          (record) => record.type === 'CHECK_OUT' && record.status === 'EARLY_DEPARTURE'
+        ).length,
         workedHours: Number((workedMinutes / 60).toFixed(2)),
         absences: Math.max(0, activeEmployees * dayCount - totalPresent)
       },
       kpis: {
-        attendanceRate: activeEmployees && dayCount ? Number(((totalPresent / (activeEmployees * dayCount)) * 100).toFixed(2)) : 0,
+        attendanceRate:
+          activeEmployees && dayCount
+            ? Number(((totalPresent / (activeEmployees * dayCount)) * 100).toFixed(2))
+            : 0,
         punctualityRate: entries ? Number((((entries - late) / entries) * 100).toFixed(2)) : 0,
-        averageHoursPerPresentEmployee: totalPresent ? Number((workedMinutes / 60 / totalPresent).toFixed(2)) : 0,
+        averageHoursPerPresentEmployee: totalPresent
+          ? Number((workedMinutes / 60 / totalPresent).toFixed(2))
+          : 0,
         activeEmployees,
         daysWithPresence
       },
@@ -140,7 +176,11 @@ export class AttendanceOperationsService {
     };
   }
 
-  async calendar(startDate: Date, endDate: Date, filters: Pick<AttendanceFilters, 'companyId' | 'siteId' | 'departmentId' | 'employeeId'>) {
+  async calendar(
+    startDate: Date,
+    endDate: Date,
+    filters: Pick<AttendanceFilters, 'companyId' | 'siteId' | 'departmentId' | 'employeeId'>
+  ) {
     const employee = this.employeeWhere(filters);
     const attendanceWhere: Prisma.AttendanceWhereInput = {
       recordedAt: { gte: startDate, lte: endDate },
@@ -173,7 +213,10 @@ export class AttendanceOperationsService {
         orderBy: { startDate: 'asc' }
       }),
       prisma.holiday.findMany({
-        where: { date: { gte: startDate, lte: endDate }, ...(filters.companyId ? { companyId: filters.companyId } : {}) },
+        where: {
+          date: { gte: startDate, lte: endDate },
+          ...(filters.companyId ? { companyId: filters.companyId } : {})
+        },
         orderBy: { date: 'asc' }
       })
     ]);
@@ -246,9 +289,14 @@ export class AttendanceOperationsService {
   async issueOfflinePermit(userId: string) {
     const employee = await prisma.employee.findUnique({
       where: { userId },
-      include: { site: { select: { id: true, name: true, latitude: true, longitude: true, radiusMeters: true } } }
+      include: {
+        site: {
+          select: { id: true, name: true, latitude: true, longitude: true, radiusMeters: true }
+        }
+      }
     });
-    if (!employee?.active || !employee.site) throw new AppError(403, 'Empleado sin sede activa asignada');
+    if (!employee?.active || !employee.site)
+      throw new AppError(403, 'Empleado sin sede activa asignada');
     const token = randomToken();
     const expiresAt = new Date(Date.now() + env.OFFLINE_ATTENDANCE_EXPIRATION_HOURS * 3_600_000);
     const permit = await prisma.offlineAttendanceToken.create({
@@ -262,12 +310,26 @@ export class AttendanceOperationsService {
     };
   }
 
-  async synchronizeOfflineAttendance(userId: string, input: OfflineAttendanceInput, meta: AttendanceMeta) {
-    const offlinePermit = await prisma.offlineAttendanceToken.findUnique({ where: { tokenHash: hashToken(input.offlineToken) } });
+  async synchronizeOfflineAttendance(
+    userId: string,
+    input: OfflineAttendanceInput,
+    meta: AttendanceMeta
+  ) {
+    const offlinePermit = await prisma.offlineAttendanceToken.findUnique({
+      where: { tokenHash: hashToken(input.offlineToken) }
+    });
     const now = new Date();
-    if (!offlinePermit || offlinePermit.userId !== userId || offlinePermit.usedAt || offlinePermit.expiresAt <= now)
+    if (
+      !offlinePermit ||
+      offlinePermit.userId !== userId ||
+      offlinePermit.usedAt ||
+      offlinePermit.expiresAt <= now
+    )
       throw new AppError(422, 'Permiso offline inválido, vencido o ya utilizado');
-    if (input.recordedAt > new Date(now.getTime() + 5 * 60_000) || input.recordedAt < new Date(offlinePermit.createdAt.getTime() - 5 * 60_000))
+    if (
+      input.recordedAt > new Date(now.getTime() + 5 * 60_000) ||
+      input.recordedAt < new Date(offlinePermit.createdAt.getTime() - 5 * 60_000)
+    )
       throw new AppError(422, 'La hora del registro offline no es válida');
 
     const employee = await prisma.employee.findUnique({
@@ -277,19 +339,64 @@ export class AttendanceOperationsService {
     const site = employee?.site;
     if (!employee?.active || !site || site.id !== offlinePermit.siteId)
       throw new AppError(403, 'Empleado sin sede activa asignada');
-    const distanceMeters = haversineMeters(input.latitude, input.longitude, site.latitude, site.longitude);
-    if (distanceMeters > site.radiusMeters) throw new AppError(403, 'No se encuentra dentro del área autorizada.');
+    const distanceMeters = haversineMeters(
+      input.latitude,
+      input.longitude,
+      site.latitude,
+      site.longitude
+    );
+    const toleranceMeters = site.radiusMeters + 150; // Add 150m tolerance buffer
+    if (distanceMeters > toleranceMeters)
+      throw new AppError(403, 'No se encuentra dentro del área autorizada.');
+
+    const lastAttendance = await prisma.attendance.findFirst({
+      where: { employeeId: employee.id },
+      orderBy: { recordedAt: 'desc' },
+      select: { type: true, recordedAt: true }
+    });
+
+    if (input.type === 'CHECK_IN' && lastAttendance?.type === 'CHECK_IN') {
+      throw new AppError(
+        400,
+        'Ya cuenta con una Entrada registrada sin Salida. Debe registrar su Salida antes de volver a ingresar.'
+      );
+    }
+
+    if (input.type === 'CHECK_OUT' && (!lastAttendance || lastAttendance.type === 'CHECK_OUT')) {
+      throw new AppError(
+        400,
+        'No puede registrar una Salida sin contar con un registro de Entrada previo activo.'
+      );
+    }
 
     const deviceMeta = parseUserAgent(meta.userAgent);
-    const status = determineAttendanceStatus(input.type, employee.schedule, input.recordedAt, employee.company.timeZone);
+    const status = determineAttendanceStatus(
+      input.type,
+      employee.schedule,
+      input.recordedAt,
+      employee.company.timeZone
+    );
     return prisma.$transaction(async (transaction) => {
       if (input.deviceFingerprint) {
         const device = await transaction.device.upsert({
           where: { userId_fingerprint: { userId, fingerprint: input.deviceFingerprint } },
-          create: { userId, fingerprint: input.deviceFingerprint, name: deviceMeta.device, userAgent: meta.userAgent, ipAddress: meta.ip, status: 'PENDING' },
-          update: { name: deviceMeta.device, userAgent: meta.userAgent, ipAddress: meta.ip, lastSeenAt: now }
+          create: {
+            userId,
+            fingerprint: input.deviceFingerprint,
+            name: deviceMeta.device,
+            userAgent: meta.userAgent,
+            ipAddress: meta.ip,
+            status: 'PENDING'
+          },
+          update: {
+            name: deviceMeta.device,
+            userAgent: meta.userAgent,
+            ipAddress: meta.ip,
+            lastSeenAt: now
+          }
         });
-        if (device.status === 'BLOCKED') throw new AppError(403, 'Este dispositivo está bloqueado para registrar asistencia');
+        if (device.status === 'BLOCKED')
+          throw new AppError(403, 'Este dispositivo está bloqueado para registrar asistencia');
       }
       const consumed = await transaction.offlineAttendanceToken.updateMany({
         where: { id: offlinePermit.id, usedAt: null, expiresAt: { gt: now } },
@@ -333,7 +440,9 @@ export class AttendanceOperationsService {
     };
   }
 
-  private employeeWhere(filters: Pick<AttendanceFilters, 'companyId' | 'departmentId' | 'employeeId' | 'search'>): Prisma.EmployeeWhereInput {
+  private employeeWhere(
+    filters: Pick<AttendanceFilters, 'companyId' | 'departmentId' | 'employeeId' | 'search'>
+  ): Prisma.EmployeeWhereInput {
     return {
       ...(filters.companyId ? { companyId: filters.companyId } : {}),
       ...(filters.departmentId ? { departmentId: filters.departmentId } : {}),

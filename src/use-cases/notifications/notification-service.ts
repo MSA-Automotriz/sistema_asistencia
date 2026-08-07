@@ -33,7 +33,12 @@ export class NotificationService {
   async listForUser(userId: string, page: number, limit: number, unreadOnly = false) {
     const where = { userId, ...(unreadOnly ? { readAt: null } : {}) };
     const [items, total, unread] = await Promise.all([
-      prisma.notification.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { createdAt: 'desc' } }),
+      prisma.notification.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' }
+      }),
       prisma.notification.count({ where }),
       prisma.notification.count({ where: { userId, readAt: null } })
     ]);
@@ -41,12 +46,18 @@ export class NotificationService {
   }
 
   async markRead(userId: string, notificationId: string) {
-    const result = await prisma.notification.updateMany({ where: { id: notificationId, userId }, data: { readAt: new Date() } });
+    const result = await prisma.notification.updateMany({
+      where: { id: notificationId, userId },
+      data: { readAt: new Date() }
+    });
     if (!result.count) throw new AppError(404, 'Notificación no encontrada');
   }
 
   async markAllRead(userId: string) {
-    await prisma.notification.updateMany({ where: { userId, readAt: null }, data: { readAt: new Date() } });
+    await prisma.notification.updateMany({
+      where: { userId, readAt: null },
+      data: { readAt: new Date() }
+    });
   }
 
   private canSendEmail() {

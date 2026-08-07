@@ -75,7 +75,9 @@ export class LeaveService {
 
   async cancelVacation(userId: string, vacationId: string) {
     const employee = await this.employeeForUser(userId);
-    const vacation = await prisma.vacation.findFirst({ where: { id: vacationId, employeeId: employee.id } });
+    const vacation = await prisma.vacation.findFirst({
+      where: { id: vacationId, employeeId: employee.id }
+    });
     if (!vacation) throw new AppError(404, 'Solicitud de vacaciones no encontrada');
     this.ensurePending(vacation.status);
     return prisma.vacation.update({
@@ -91,7 +93,12 @@ export class LeaveService {
     this.ensurePending(vacation.status);
     return prisma.vacation.update({
       where: { id: vacationId },
-      data: { status: input.status, approvedById: reviewerId, reviewedAt: new Date(), reviewNote: input.reviewNote },
+      data: {
+        status: input.status,
+        approvedById: reviewerId,
+        reviewedAt: new Date(),
+        reviewNote: input.reviewNote
+      },
       include: { employee: employeeDetails }
     });
   }
@@ -117,7 +124,9 @@ export class LeaveService {
 
   async cancelLicense(userId: string, licenseId: string) {
     const employee = await this.employeeForUser(userId);
-    const license = await prisma.license.findFirst({ where: { id: licenseId, employeeId: employee.id } });
+    const license = await prisma.license.findFirst({
+      where: { id: licenseId, employeeId: employee.id }
+    });
     if (!license) throw new AppError(404, 'Solicitud de licencia no encontrada');
     this.ensurePending(license.status);
     return prisma.license.update({
@@ -133,7 +142,12 @@ export class LeaveService {
     this.ensurePending(license.status);
     return prisma.license.update({
       where: { id: licenseId },
-      data: { status: input.status, reviewedById: reviewerId, reviewedAt: new Date(), reviewNote: input.reviewNote },
+      data: {
+        status: input.status,
+        reviewedById: reviewerId,
+        reviewedAt: new Date(),
+        reviewNote: input.reviewNote
+      },
       include: { employee: employeeDetails }
     });
   }
@@ -160,10 +174,15 @@ export class LeaveService {
       startDate: { lte: endDate },
       endDate: { gte: startDate }
     };
-    const overlap = type === 'vacation'
-      ? await prisma.vacation.findFirst({ where, select: { id: true } })
-      : await prisma.license.findFirst({ where, select: { id: true } });
-    if (overlap) throw new AppError(409, `Ya tiene una ${type === 'vacation' ? 'vacación' : 'licencia'} pendiente o aprobada en ese período`);
+    const overlap =
+      type === 'vacation'
+        ? await prisma.vacation.findFirst({ where, select: { id: true } })
+        : await prisma.license.findFirst({ where, select: { id: true } });
+    if (overlap)
+      throw new AppError(
+        409,
+        `Ya tiene una ${type === 'vacation' ? 'vacación' : 'licencia'} pendiente o aprobada en ese período`
+      );
   }
 
   private ensureValidPeriod(startDate: Date, endDate: Date) {
