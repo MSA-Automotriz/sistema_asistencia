@@ -71,19 +71,59 @@ const profileSelect = {
 export class EmployeeSelfService {
   async getProfile(userId: string) {
     const employee = await prisma.employee.findUnique({ where: { userId }, select: profileSelect });
-    if (!employee) throw new AppError(404, 'Perfil de empleado no encontrado');
-    return employee;
+    if (!employee) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, firstName: true, lastName: true, email: true, status: true }
+      });
+      if (!user) throw new AppError(404, 'Usuario no encontrado');
+      const defaultSite = await prisma.site.findFirst({ where: { active: true } });
+      return {
+        id: `temp-${user.id}`,
+        employeeCode: 'N/A',
+        profilePhotoUrl: null,
+        hiredAt: new Date(),
+        active: true,
+        user,
+        company: defaultSite
+          ? {
+              id: defaultSite.companyId,
+              name: 'MSA Automotriz',
+              timeZone: 'America/Lima',
+              logoUrl: null
+            }
+          : null,
+        site: defaultSite
+          ? {
+              id: defaultSite.id,
+              name: defaultSite.name,
+              address: defaultSite.address,
+              latitude: Number(defaultSite.latitude),
+              longitude: Number(defaultSite.longitude),
+              radiusMeters: defaultSite.radiusMeters
+            }
+          : null,
+        department: null,
+        position: null,
+        schedule: null,
+        supervisor: null
+      };
+    }
+    return {
+      ...employee,
+      site: employee.site
+        ? {
+            ...employee.site,
+            latitude: Number(employee.site.latitude),
+            longitude: Number(employee.site.longitude)
+          }
+        : null
+    };
   }
 
   async updateProfile(userId: string, input: UpdateOwnProfileInput) {
     await this.getProfile(userId);
     return prisma.$transaction(async (transaction) => {
-      if (input.firstName || input.lastName) {
-        await transaction.user.update({
-          where: { id: userId },
-          data: { firstName: input.firstName, lastName: input.lastName }
-        });
-      }
       if (input.profilePhotoUrl !== undefined) {
         await transaction.employee.update({
           where: { userId },

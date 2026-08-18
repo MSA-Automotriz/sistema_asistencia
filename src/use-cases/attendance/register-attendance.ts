@@ -36,9 +36,13 @@ export class RegisterAttendance {
       site.latitude,
       site.longitude
     );
-    const toleranceMeters = site.radiusMeters + 150; // Add 150m tolerance buffer
-    if (distanceMeters > toleranceMeters)
-      throw new AppError(403, 'No se encuentra dentro del área autorizada.');
+    const toleranceMeters = site.radiusMeters;
+    if (distanceMeters > toleranceMeters) {
+      throw new AppError(
+        403,
+        `No se encuentra dentro del área autorizada (${Math.round(distanceMeters)} m calculados, máximo permitido ${toleranceMeters} m).`
+      );
+    }
 
     const lastAttendance = await prisma.attendance.findFirst({
       where: { employeeId: employee.id },

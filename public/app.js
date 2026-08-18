@@ -398,34 +398,80 @@ function renderGeofenceMap(site) {
     setGeofenceMapState('Sede sin geocerca', 'status-inactive');
     return;
   }
-  if (!state.geofenceMap) {
-    state.geofenceMap = leaflet.map('geofence-map', { scrollWheelZoom: false });
+  const container = query('#geofence-map');
+  if (!container) return;
+
+  if (state.geofenceMap) {
+    try {
+      state.geofenceMap.remove();
+    } catch {
+      // Ignorar error al limpiar mapa previo
+    }
+    state.geofenceMap = null;
+  }
+
+  if (container._leaflet_id) {
+    try {
+      delete container._leaflet_id;
+    } catch {
+      container._leaflet_id = null;
+    }
+  }
+  container.innerHTML = '';
+
+  try {
+    state.geofenceMap = leaflet.map(container, {
+      scrollWheelZoom: false,
+      preferCanvas: true
+    });
     leaflet
       .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 19
+        maxZoom: 19,
+        subdomains: ['a', 'b', 'c']
       })
       .addTo(state.geofenceMap);
+  } catch (err) {
+    console.error('Error al inicializar Leaflet:', err);
+    setGeofenceMapState('Error de inicialización', 'status-inactive');
+    return;
   }
-  clearGeofenceLayers();
-  const center = [latitude, longitude];
-  state.geofenceSiteMarker = leaflet
-    .circleMarker(center, { radius: 8, color: '#e30613', fillColor: '#e30613', fillOpacity: 1 })
-    .bindPopup(`Sede autorizada: ${escapeHtml(site.name || 'Sin nombre')}`)
-    .addTo(state.geofenceMap);
-  state.geofenceCircle = leaflet
-    .circle(center, {
-      radius: Math.max(1, radiusMeters),
-      color: '#e30613',
-      fillColor: '#e30613',
-      fillOpacity: 0.12,
-      weight: 2
-    })
-    .addTo(state.geofenceMap);
-  state.geofenceMap.fitBounds(state.geofenceCircle.getBounds(), { padding: [24, 24], maxZoom: 17 });
-  if (state.attendanceLocation) renderGeofenceLocation(state.attendanceLocation);
-  setGeofenceMapState('Geocerca activa', 'status-active');
-  window.requestAnimationFrame(() => state.geofenceMap?.invalidateSize());
+
+  try {
+    clearGeofenceLayers();
+    const center = [latitude, longitude];
+    state.geofenceMap.setView(center, 16);
+
+    state.geofenceSiteMarker = leaflet
+      .circleMarker(center, {
+        radius: 9,
+        color: '#ffffff',
+        weight: 2,
+        fillColor: '#e30613',
+        fillOpacity: 1
+      })
+      .bindPopup(
+        `<strong>Sede autorizada: ${escapeHtml(site.name || 'Sin nombre')}</strong><br><small>${latitude.toFixed(6)}, ${longitude.toFixed(6)}</small>`
+      )
+      .addTo(state.geofenceMap);
+
+    state.geofenceCircle = leaflet
+      .circle(center, {
+        radius: Math.max(10, radiusMeters),
+        color: '#e30613',
+        fillColor: '#e30613',
+        fillOpacity: 0.18,
+        weight: 2
+      })
+      .addTo(state.geofenceMap);
+
+    if (state.attendanceLocation) renderGeofenceLocation(state.attendanceLocation);
+    setGeofenceMapState(`Sede: ${site.name || 'Autorizada'} (${radiusMeters}m)`, 'status-active');
+    setTimeout(() => state.geofenceMap?.invalidateSize(), 100);
+    setTimeout(() => state.geofenceMap?.invalidateSize(), 500);
+  } catch (err) {
+    console.error('Error al renderizar geocerca en mapa:', err);
+  }
 }
 
 function renderGeofenceLocation(location) {
@@ -445,18 +491,27 @@ function renderGeofenceLocation(location) {
 }
 
 async function loadAttendanceMap() {
+  setGeofenceMapState('Cargando mapa...', 'status-pending');
+  let siteToRender = null;
   try {
-    const profile = state.profile || (await api('/me/profile'));
+    const profile = await api('/me/profile');
     state.profile = profile;
-    if (!profile.site) {
-      setGeofenceMapState('Sede no disponible', 'status-inactive');
-      return;
-    }
-    renderGeofenceMap(profile.site);
-    void prepareOfflinePermit(false);
-  } catch {
-    setGeofenceMapState('Sede no disponible', 'status-inactive');
+    siteToRender = profile?.site;
+  } catch (error) {
+    console.warn('Error al obtener perfil en vivo:', error);
   }
+
+  if (!siteToRender) {
+    siteToRender = state.profile?.site || {
+      name: 'MSA Automotriz',
+      latitude: -7.144582,
+      longitude: -78.512535,
+      radiusMeters: 30
+    };
+  }
+
+  renderGeofenceMap(siteToRender);
+  void prepareOfflinePermit(false);
 }
 
 async function prepareOfflinePermit(showFeedback = true) {
@@ -499,7 +554,7 @@ async function captureLocation() {
     navigator.geolocation.getCurrentPosition(resolve, reject, {
       enableHighAccuracy: true,
       timeout: 15_000,
-      maximumAge: 15_000
+      maximumAge: 0
     });
   });
   state.attendanceLocation = {
@@ -1391,12 +1446,33 @@ async function loadProfile() {
   try {
     const profile = await api('/me/profile');
     state.profile = profile;
-    query('#profile-summary').innerHTML =
-      `<strong>${escapeHtml(fullName(profile.user))}</strong><small>${escapeHtml(profile.user.email)}</small><small>Código: ${escapeHtml(profile.employeeCode)} · ${escapeHtml(profile.company?.name || '-')}</small><small>${escapeHtml(profile.site?.name || 'Sin sede')} · ${escapeHtml(profile.schedule?.name || 'Sin horario')}</small>`;
-    query('#profile-first-name').value = profile.user.firstName || '';
-    query('#profile-last-name').value = profile.user.lastName || '';
+    const user = profile.user;
+    const initials =
+      `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || 'MS';
+
+    if (query('#profile-avatar-badge')) query('#profile-avatar-badge').textContent = initials;
+    if (query('#profile-hero-name')) query('#profile-hero-name').textContent = fullName(user);
+    if (query('#profile-hero-email')) query('#profile-hero-email').textContent = user.email || '-';
+    if (query('#profile-hero-role'))
+      query('#profile-hero-role').textContent = user.role || 'Empleado';
+
+    if (query('#hero-code')) query('#hero-code').textContent = profile.employeeCode || 'N/A';
+    if (query('#hero-company'))
+      query('#hero-company').textContent = profile.company?.name || 'MSA Automotriz';
+    if (query('#hero-site')) query('#hero-site').textContent = profile.site?.name || 'Sin sede';
+    if (query('#hero-schedule'))
+      query('#hero-schedule').textContent = profile.schedule?.name || 'Sin horario';
+
+    query('#profile-first-name').value = user.firstName || '';
+    query('#profile-last-name').value = user.lastName || '';
     query('#profile-photo-url').value = profile.profilePhotoUrl || '';
-    const [devices, requests] = await Promise.all([api('/me/devices'), api('/me/requests')]);
+
+    const [devices, requests, recoveryQuestions] = await Promise.all([
+      api('/me/devices'),
+      api('/me/requests'),
+      api('/auth/recovery-questions').catch(() => [])
+    ]);
+
     query('#profile-device-list').innerHTML = devices.length
       ? devices
           .map(
@@ -1405,12 +1481,20 @@ async function loadProfile() {
           )
           .join('')
       : '<p class="empty-state">No hay dispositivos registrados.</p>';
+
+    if (Array.isArray(recoveryQuestions)) {
+      if (recoveryQuestions[0] && query('#recovery-q1')) {
+        query('#recovery-q1').value = recoveryQuestions[0].question || '';
+      }
+      if (recoveryQuestions[1] && query('#recovery-q2')) {
+        query('#recovery-q2').value = recoveryQuestions[1].question || '';
+      }
+    }
+
     renderMyRequests(requests.items || []);
   } catch (error) {
     state.profile = null;
-    query('#profile-summary').innerHTML = `<p class="empty-state">${escapeHtml(error.message)}</p>`;
-    query('#profile-device-list').innerHTML = '';
-    query('#my-request-list').innerHTML = '';
+    showToast(error.message, 'error');
   }
 }
 
@@ -1422,9 +1506,9 @@ async function saveProfile(event) {
   try {
     await api('/me/profile', {
       method: 'PATCH',
-      body: JSON.stringify({ ...values, profilePhotoUrl: values.profilePhotoUrl || null })
+      body: JSON.stringify({ profilePhotoUrl: values.profilePhotoUrl || null })
     });
-    showToast('Perfil actualizado correctamente');
+    showToast('Foto de perfil actualizada correctamente');
     loadProfile();
   } catch (error) {
     showToast(error.message, 'error');
@@ -1440,6 +1524,37 @@ async function changeOwnPassword(event) {
     await api('/auth/change-password', { method: 'POST', body: JSON.stringify(values) });
     showToast('Contraseña actualizada. Inicie sesión nuevamente.');
     await signOut(false);
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+async function saveOwnRecoveryQuestions(event) {
+  event.preventDefault();
+  const q1 = query('#recovery-q1').value.trim();
+  const a1 = query('#recovery-a1').value.trim();
+  const q2 = query('#recovery-q2').value.trim();
+  const a2 = query('#recovery-a2').value.trim();
+
+  if (!q1 || !a1 || !q2 || !a2) {
+    showToast('Debe ingresar 2 preguntas y sus respuestas secretas', 'error');
+    return;
+  }
+
+  try {
+    await api('/auth/recovery-questions', {
+      method: 'POST',
+      body: JSON.stringify({
+        questions: [
+          { question: q1, answer: a1 },
+          { question: q2, answer: a2 }
+        ]
+      })
+    });
+    showToast('Preguntas de recuperación guardadas correctamente');
+    query('#recovery-a1').value = '';
+    query('#recovery-a2').value = '';
+    loadProfile();
   } catch (error) {
     showToast(error.message, 'error');
   }
@@ -2691,6 +2806,7 @@ function bindEvents() {
   query('#refresh-profile').addEventListener('click', loadProfile);
   query('#profile-form').addEventListener('submit', saveProfile);
   query('#profile-password-form').addEventListener('submit', changeOwnPassword);
+  query('#profile-recovery-form').addEventListener('submit', saveOwnRecoveryQuestions);
   query('#notification-button').addEventListener('click', () => {
     const menu = query('#notification-menu');
     menu.hidden = !menu.hidden;

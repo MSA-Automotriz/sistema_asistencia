@@ -9,7 +9,19 @@
   "theme_color": "#e30613",
   "icons": [
     {
-      "src": "/images/logo_msa.png",
+      "src": "/images/logo_msa_app.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/logo_msa_app.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/logo_msa_app.png",
       "sizes": "any",
       "type": "image/png",
       "purpose": "any"

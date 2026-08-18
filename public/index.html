@@ -8,9 +8,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>MSA Asistencia</title>
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" href="/images/logo_msa.png" type="image/png" />
-    <link rel="apple-touch-icon" href="/images/logo_msa.png" />
+    <link rel="icon" href="/images/logo_msa_app.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/images/logo_msa_app.png" />
     <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+    <script src="/vendor/leaflet/leaflet.js"></script>
     <link rel="stylesheet" href="/app.css" />
   </head>
   <body>
@@ -115,7 +116,7 @@
     <main id="app-shell" class="app-shell" hidden>
       <aside id="sidebar" class="sidebar">
         <div class="sidebar-brand">
-          <img id="sidebar-logo" src="/images/logo_msa.png" alt="" />
+          <img id="sidebar-logo" src="/images/logo_msa.png" alt="MSA Automotriz" />
           <span id="sidebar-fallback" class="brand-mark" hidden>MSA</span>
           <span>Asistencia</span>
         </div>
@@ -917,44 +918,163 @@
             </div>
             <button id="refresh-profile" class="quiet-button" type="button">Actualizar</button>
           </div>
-          <div class="profile-layout">
-            <section class="data-panel">
-              <div id="profile-summary" class="profile-summary"></div>
-              <form id="profile-form" class="form-stack compact-form">
-                <label>Nombre<input id="profile-first-name" name="firstName" required /></label>
-                <label>Apellido<input id="profile-last-name" name="lastName" required /></label>
-                <label
-                  >Foto URL<input id="profile-photo-url" name="profilePhotoUrl" type="url"
-                /></label>
-                <button class="primary-button" type="submit">Actualizar perfil</button>
-              </form>
+
+          <div class="profile-view-wrapper">
+            <!-- TARJETA HERO SUPERIOR -->
+            <section class="data-panel profile-hero-card">
+              <div class="profile-hero-content">
+                <div class="profile-avatar-large" id="profile-avatar-badge">MS</div>
+                <div class="profile-hero-info">
+                  <div class="profile-hero-title-row">
+                    <h3 id="profile-hero-name">Cargando...</h3>
+                    <span id="profile-hero-role" class="status-pill status-active">Empleado</span>
+                  </div>
+                  <p id="profile-hero-email" class="profile-hero-email">correo@ejemplo.com</p>
+                  <div class="profile-hero-badges">
+                    <span class="badge-item">Código: <strong id="hero-code">-</strong></span>
+                    <span class="badge-item">Empresa: <strong id="hero-company">-</strong></span>
+                    <span class="badge-item">Sede: <strong id="hero-site">-</strong></span>
+                    <span class="badge-item">Horario: <strong id="hero-schedule">-</strong></span>
+                  </div>
+                </div>
+              </div>
             </section>
-            <section class="data-panel">
-              <div class="panel-heading"><h3>Cambiar contraseña</h3></div>
-              <form id="profile-password-form" class="form-stack compact-form">
-                <label
-                  >Contraseña actual<input
-                    name="currentPassword"
-                    type="password"
-                    minlength="8"
-                    required
-                /></label>
-                <label
-                  >Nueva contraseña<input
-                    name="newPassword"
-                    type="password"
-                    minlength="12"
-                    required
-                /></label>
-                <button class="small-button" type="submit">Actualizar contraseña</button>
-              </form>
-              <div class="panel-heading profile-subheading"><h3>Mis dispositivos</h3></div>
-              <div id="profile-device-list" class="request-list"></div>
-            </section>
-            <section class="data-panel">
-              <div class="panel-heading"><h3>Mis solicitudes</h3></div>
-              <div id="my-request-list" class="request-list"></div>
-            </section>
+
+            <!-- GRID DE 2 COLUMNAS -->
+            <div class="profile-grid-container">
+              <!-- COLUMNA PRINCIPAL (IZQUIERDA) -->
+              <div class="profile-grid-column">
+                <section class="data-panel">
+                  <div class="panel-heading">
+                    <div>
+                      <p class="eyebrow">Información personal</p>
+                      <h3>Datos del usuario</h3>
+                    </div>
+                  </div>
+                  <form id="profile-form" class="form-stack">
+                    <div class="form-row-grid">
+                      <label
+                        >Nombre<input
+                          id="profile-first-name"
+                          name="firstName"
+                          readonly
+                          disabled
+                          title="Administrado por la empresa"
+                      /></label>
+                      <label
+                        >Apellido<input
+                          id="profile-last-name"
+                          name="lastName"
+                          readonly
+                          disabled
+                          title="Administrado por la empresa"
+                      /></label>
+                    </div>
+                    <small class="field-help-text"
+                      >El nombre y apellido son administrados por la empresa. Si requiere
+                      modificaciones, contacte a RRHH.</small
+                    >
+                    <label
+                      >URL de Foto de Perfil<input
+                        id="profile-photo-url"
+                        name="profilePhotoUrl"
+                        type="url"
+                        placeholder="https://..."
+                    /></label>
+                    <button class="primary-button align-start" type="submit">
+                      Guardar foto de perfil
+                    </button>
+                  </form>
+                </section>
+
+                <section class="data-panel">
+                  <div class="panel-heading">
+                    <div>
+                      <p class="eyebrow">Trámites y permisos</p>
+                      <h3>Mis solicitudes</h3>
+                    </div>
+                  </div>
+                  <div id="my-request-list" class="request-list"></div>
+                </section>
+              </div>
+
+              <!-- COLUMNA SECUNDARIA (DERECHA) -->
+              <div class="profile-grid-column">
+                <section class="data-panel">
+                  <div class="panel-heading">
+                    <div>
+                      <p class="eyebrow">Seguridad</p>
+                      <h3>Cambiar contraseña</h3>
+                    </div>
+                  </div>
+                  <form id="profile-password-form" class="form-stack compact-form">
+                    <label
+                      >Contraseña actual<input
+                        name="currentPassword"
+                        type="password"
+                        minlength="8"
+                        required
+                    /></label>
+                    <label
+                      >Nueva contraseña<input
+                        name="newPassword"
+                        type="password"
+                        minlength="12"
+                        required
+                    /></label>
+                    <button class="small-button" type="submit">Actualizar contraseña</button>
+                  </form>
+                </section>
+
+                <section class="data-panel">
+                  <div class="panel-heading">
+                    <div>
+                      <p class="eyebrow">Autenticación</p>
+                      <h3>Preguntas de recuperación</h3>
+                    </div>
+                  </div>
+                  <form id="profile-recovery-form" class="form-stack compact-form">
+                    <label
+                      >Pregunta 1<input
+                        id="recovery-q1"
+                        placeholder="Ej: ¿Nombre de tu primera mascota?"
+                        required
+                    /></label>
+                    <label
+                      >Respuesta 1<input
+                        id="recovery-a1"
+                        type="password"
+                        placeholder="Respuesta secreta"
+                        required
+                    /></label>
+                    <label
+                      >Pregunta 2<input
+                        id="recovery-q2"
+                        placeholder="Ej: ¿Ciudad de nacimiento?"
+                        required
+                    /></label>
+                    <label
+                      >Respuesta 2<input
+                        id="recovery-a2"
+                        type="password"
+                        placeholder="Respuesta secreta"
+                        required
+                    /></label>
+                    <button class="small-button" type="submit">Guardar preguntas</button>
+                  </form>
+                </section>
+
+                <section class="data-panel">
+                  <div class="panel-heading">
+                    <div>
+                      <p class="eyebrow">Sesiones activas</p>
+                      <h3>Mis dispositivos</h3>
+                    </div>
+                  </div>
+                  <div id="profile-device-list" class="request-list"></div>
+                </section>
+              </div>
+            </div>
           </div>
         </section>
       </section>
@@ -1114,7 +1234,6 @@
     </dialog>
 
     <div id="toast" class="toast" hidden role="alert"></div>
-    <script src="/vendor/leaflet/leaflet.js" defer></script>
     <script src="/app.js" defer></script>
   </body>
 </html>

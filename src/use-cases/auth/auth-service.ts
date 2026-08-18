@@ -167,6 +167,13 @@ export class AuthService {
     });
   }
 
+  async getRecoveryQuestions(userId: string) {
+    return prisma.recoveryQuestion.findMany({
+      where: { userId },
+      select: { id: true, question: true }
+    });
+  }
+
   async startPasswordRecovery(email: string) {
     const user = await prisma.user.findUnique({
       where: { email },

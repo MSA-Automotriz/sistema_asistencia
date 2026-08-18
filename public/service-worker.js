@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'msa-asistencia-';
-const CACHE_NAME = `${CACHE_PREFIX}v3`;
+const CACHE_NAME = `${CACHE_PREFIX}v5`;
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -7,6 +7,7 @@ const APP_SHELL = [
   '/app.js',
   '/manifest.webmanifest',
   '/images/logo_msa.png',
+  '/images/logo_msa_app.png',
   '/vendor/leaflet/leaflet.css',
   '/vendor/leaflet/leaflet.js'
 ];

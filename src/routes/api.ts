@@ -441,6 +441,13 @@ apiRouter.post(
     return ok(response, 'Contraseña actualizada; las sesiones fueron revocadas');
   }
 );
+apiRouter.get('/auth/recovery-questions', authenticate, async (request, response) =>
+  ok(
+    response,
+    'Preguntas de recuperación obtenidas',
+    await auth.getRecoveryQuestions(request.auth!.sub)
+  )
+);
 apiRouter.post(
   '/auth/recovery-questions',
   authenticate,
