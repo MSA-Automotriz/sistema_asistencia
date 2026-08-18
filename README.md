@@ -1,6 +1,6 @@
 # MSA Asistencia API
 
-API REST TypeScript para el control de asistencia empresarial de MSA Automotriz. Implementa Clean Architecture con casos de uso, Prisma/MySQL, JWT con rotación de sesiones, RBAC por permisos, auditoría, QR dinámico de un uso y geocercas GPS.
+API REST TypeScript para el control de asistencia empresarial de MSA Automotriz. Implementa Clean Architecture con casos de uso, Prisma/MySQL, JWT con rotación de sesiones, RBAC por permisos, auditoría y geocercas GPS.
 
 ## Arquitectura
 
@@ -25,7 +25,6 @@ erDiagram
   USER ||--o| EMPLOYEE : owns
   SITE ||--o{ ATTENDANCE : registers
   EMPLOYEE ||--o{ ATTENDANCE : records
-  SITE ||--o{ QR_TOKEN : publishes
   USER ||--o{ SESSION : opens
 ```
 
@@ -39,7 +38,7 @@ erDiagram
 
 La migración se genera desde `schema.prisma`; no existen consultas SQL manuales. El seed crea los roles Administrador, Gerente, Supervisor, Recursos Humanos y Empleado, más un administrador inicial `admin@msaautomotriz.com` con contraseña temporal `ChangeMe123!` que debe cambiarse de inmediato.
 
-La interfaz web se abre en `http://localhost:3000/`. Incluye inicio de sesión, dashboard, solicitudes, organización, QR, asistencia con geocerca, reportes, auditoría, respaldos, usuarios, roles/permisos y sesiones. También se puede instalar como PWA para conservar el shell y la cola de asistencia offline. Swagger continúa disponible en `http://localhost:3000/api/docs`.
+La interfaz web se abre en `http://localhost:3000/`. Incluye inicio de sesión, dashboard, solicitudes, organización, asistencia con geocerca, reportes, auditoría, respaldos, usuarios, roles/permisos y sesiones. También se puede instalar como PWA para conservar el shell y la cola de asistencia offline. Swagger continúa disponible en `http://localhost:3000/api/docs`.
 
 El logo de MSA se encuentra en `public/images/logo_msa.png` y la interfaz lo carga desde `/images/logo_msa.png`.
 
@@ -53,7 +52,7 @@ Usuarios y accesos: `GET|POST /users`, `GET|PUT|PATCH|DELETE /users/:id`, `PUT /
 
 Solicitudes: el empleado usa `POST|GET /requests/work-permissions` y `DELETE /requests/work-permissions/:id`, o `POST|GET /requests/overtime` y `DELETE /requests/overtime/:id`. Administración revisa mediante `PATCH /work-permissions/:id/review` y `PATCH /overtime-requests/:id/review` con `APPROVED` o `REJECTED`.
 
-Asistencia: `POST /qr/site/:siteId`, `POST /attendance/check`. La marcación valida QR vigente/no reutilizado, sede, distancia Haversine contra el radio de geocerca y almacena coordenadas, IP y agente de usuario. Un intento externo recibe `403` y el mensaje requerido.
+Asistencia: `POST /attendance/check`. La marcación valida sede, distancia Haversine contra el radio de geocerca y almacena coordenadas, IP y agente de usuario. Un intento externo recibe `403` y el mensaje requerido.
 
 ## Correo y respaldos
 
@@ -69,4 +68,4 @@ Con `.env` configurado y `DATABASE_URL` apuntando a `mysql`, ejecute `docker com
 
 ## Calidad
 
-`npm run build`, `npm run lint`, `npm test` y `npm run format:check` validan compilación, estilo, pruebas y formato. El plan de desarrollo se completa en este orden: infraestructura y RBAC, datos maestros, autenticación/sesiones, QR-geocerca, reportes asíncronos y observabilidad/despliegue.
+`npm run build`, `npm run lint`, `npm test` y `npm run format:check` validan compilación, estilo, pruebas y formato. El plan de desarrollo se completa en este orden: infraestructura y RBAC, datos maestros, autenticación/sesiones, geocerca GPS, reportes asíncronos y observabilidad/despliegue.

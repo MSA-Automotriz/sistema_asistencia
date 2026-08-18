@@ -59,17 +59,15 @@ export class SystemService {
   async cleanExpiredData(retentionDays: number) {
     const before = new Date(Date.now() - retentionDays * 86_400_000);
     const now = new Date();
-    const [audit, sessions, qrTokens, offlineTokens, passwordTokens] = await prisma.$transaction([
+    const [audit, sessions, offlineTokens, passwordTokens] = await prisma.$transaction([
       prisma.auditLog.deleteMany({ where: { createdAt: { lt: before } } }),
       prisma.session.deleteMany({ where: { expiresAt: { lt: before } } }),
-      prisma.qrToken.deleteMany({ where: { expiresAt: { lt: now } } }),
       prisma.offlineAttendanceToken.deleteMany({ where: { expiresAt: { lt: now } } }),
       prisma.passwordResetToken.deleteMany({ where: { expiresAt: { lt: now } } })
     ]);
     return {
       auditLogs: audit.count,
       sessions: sessions.count,
-      qrTokens: qrTokens.count,
       offlineTokens: offlineTokens.count,
       passwordTokens: passwordTokens.count
     };

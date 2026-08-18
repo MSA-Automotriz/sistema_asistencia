@@ -271,21 +271,6 @@ export class AttendanceOperationsService {
     };
   }
 
-  async qrHistory(siteId: string, page: number, limit: number) {
-    const where = { siteId };
-    const [items, total] = await Promise.all([
-      prisma.qrToken.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: { site: { select: { id: true, name: true } } }
-      }),
-      prisma.qrToken.count({ where })
-    ]);
-    return { items, pagination: { page, limit, total } };
-  }
-
   async issueOfflinePermit(userId: string) {
     const employee = await prisma.employee.findUnique({
       where: { userId },

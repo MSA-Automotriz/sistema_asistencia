@@ -3,7 +3,6 @@ import ExcelJS from 'exceljs';
 import { Prisma, UserStatus } from '@prisma/client';
 import { AppError } from '../../common/errors/app-error.js';
 import { prisma } from '../../database/prisma.js';
-import { randomToken } from '../../utils/crypto.js';
 
 export type EmployeeInput = {
   userId: string;
@@ -14,7 +13,6 @@ export type EmployeeInput = {
   positionId?: string | null;
   scheduleId?: string | null;
   supervisorId?: string | null;
-  qrCode?: string | null;
   profilePhotoUrl?: string | null;
   hiredAt: Date;
   active?: boolean;
@@ -30,7 +28,7 @@ export class EmployeeAdministrationService {
     await this.validateAssignments(input.companyId, input);
     try {
       return await prisma.employee.create({
-        data: { ...input, qrCode: input.qrCode ?? randomToken(), active: input.active ?? true },
+        data: { ...input, active: input.active ?? true },
         include: this.details()
       });
     } catch (error) {
@@ -54,15 +52,6 @@ export class EmployeeAdministrationService {
       this.throwUniqueError(error);
       throw error;
     }
-  }
-
-  async generateQrCode(employeeId: string) {
-    const employee = await prisma.employee.update({
-      where: { id: employeeId },
-      data: { qrCode: randomToken() },
-      select: { id: true, employeeCode: true, qrCode: true }
-    });
-    return employee;
   }
 
   async importWorkbook(buffer: Buffer) {
@@ -130,7 +119,6 @@ export class EmployeeAdministrationService {
               positionId: this.optional(row, 'positionid', 'cargoid'),
               scheduleId: this.optional(row, 'scheduleid', 'horarioid'),
               supervisorId: this.optional(row, 'supervisorid'),
-              qrCode: randomToken(),
               active: this.toBoolean(row.active, true)
             }
           });

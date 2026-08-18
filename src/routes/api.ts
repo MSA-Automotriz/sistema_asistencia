@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import type { Request } from 'express';
 import multer from 'multer';
-import QRCode from 'qrcode';
 import { z } from 'zod';
 import { prisma } from '../database/prisma.js';
 import { authenticate, authorize } from '../middleware/auth.js';
@@ -11,8 +10,6 @@ import { AuthService } from '../use-cases/auth/auth-service.js';
 import { RegisterAttendance } from '../use-cases/attendance/register-attendance.js';
 import { AppError } from '../common/errors/app-error.js';
 import { ok } from '../common/http/response.js';
-import { env } from '../config/env.js';
-import { hashToken, randomToken } from '../utils/crypto.js';
 import { AnnouncementStatus, AttendanceType, BackupType, DeviceStatus } from '@prisma/client';
 import { AccessControlService } from '../use-cases/access-control/access-control-service.js';
 import { DashboardService } from '../use-cases/dashboard/dashboard-service.js';
@@ -204,7 +201,6 @@ const leaveReviewSchema = z.object({
 });
 const attendanceSchema = z.object({
   body: z.object({
-    qrToken: z.string().min(20),
     latitude: z.number().gte(-90).lte(90),
     longitude: z.number().gte(-180).lte(180),
     type: z.nativeEnum(AttendanceType),
@@ -323,7 +319,6 @@ const employeeProvisionSchema = z.object({
       positionId: z.string().min(1).nullable().optional(),
       scheduleId: z.string().min(1).nullable().optional(),
       supervisorId: z.string().min(1).nullable().optional(),
-      qrCode: z.string().trim().min(8).max(191).nullable().optional(),
       profilePhotoUrl: z.string().url().max(500).nullable().optional(),
       hiredAt: z.coerce.date(),
       active: z.boolean().optional()
@@ -952,20 +947,6 @@ apiRouter.post(
     return ok(response, 'Asistencia offline sincronizada correctamente', record, 201);
   }
 );
-apiRouter.get('/qr/site/:siteId/history', authorize('qr.read'), async (request, response) => {
-  const query = z
-    .object({
-      page: z.coerce.number().int().min(1).default(1),
-      limit: z.coerce.number().int().min(1).max(100).default(20)
-    })
-    .strict()
-    .parse(request.query);
-  return ok(
-    response,
-    'Historial de QR obtenido correctamente',
-    await attendanceOperations.qrHistory(String(request.params.siteId), query.page, query.limit)
-  );
-});
 
 apiRouter.get('/reports/:type/export', authorize('reports.read'), async (request, response) => {
   const type = z.enum(reportTypes).parse(request.params.type);
@@ -1033,15 +1014,6 @@ apiRouter.patch(
     return ok(response, 'Empleado actualizado correctamente', employee);
   }
 );
-apiRouter.post('/employees/:id/qr', authorize('employees.update'), async (request, response) => {
-  const employee = await employees.generateQrCode(String(request.params.id));
-  const qrImage = await QRCode.toDataURL(employee.qrCode ?? employee.employeeCode, {
-    width: 320,
-    margin: 1
-  });
-  auditEvent(request, 'REGENERATE_QR', 'Employee', employee.id);
-  return ok(response, 'Código QR del empleado generado correctamente', { ...employee, qrImage });
-});
 apiRouter.post(
   '/employees/import',
   authorize('imports.create'),
@@ -1309,34 +1281,6 @@ const resourceDefinitions: [string, string, CrudDelegate, string][] = [
 resourceDefinitions.forEach(([path, label, delegate, resource]) =>
   mountCrud(apiRouter, path, label, delegate, resource)
 );
-
-apiRouter.post('/qr/site/:siteId', authorize('qr.create'), async (request, response, next) => {
-  const site = await prisma.site.findUnique({ where: { id: String(request.params.siteId) } });
-  if (!site) return next(new AppError(404, 'Sede no encontrada'));
-  const rawToken = randomToken();
-  const qr = await prisma.qrToken.create({
-    data: {
-      siteId: site.id,
-      tokenHash: hashToken(rawToken),
-      createdById: request.auth!.sub,
-      expiresAt: new Date(Date.now() + env.QR_EXPIRATION_SECONDS * 1000)
-    }
-  });
-  const qrImage = await QRCode.toDataURL(rawToken, { width: 360, margin: 1 });
-  auditEvent(request, 'GENERATE', 'QrToken', qr.id);
-  return ok(
-    response,
-    'Código QR dinámico generado correctamente',
-    {
-      id: qr.id,
-      token: rawToken,
-      qrImage,
-      expiresAt: qr.expiresAt,
-      site: { id: site.id, name: site.name }
-    },
-    201
-  );
-});
 
 apiRouter.post('/attendance/check', validate(attendanceSchema), async (request, response) => {
   const data = await attendance.execute(request.auth!.sub, request.body, meta(request));

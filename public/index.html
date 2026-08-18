@@ -12,7 +12,6 @@
     <link rel="apple-touch-icon" href="/images/logo_msa.png" />
     <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
     <link rel="stylesheet" href="/app.css" />
-    <script src="/vendor/html5-qrcode/jsqr.js"></script>
   </head>
   <body>
     <main id="auth-screen" class="auth-shell">
@@ -495,7 +494,7 @@
             <section class="data-panel">
               <div class="panel-heading">
                 <div>
-                  <p class="eyebrow">QR y geocerca</p>
+                  <p class="eyebrow">Geocerca GPS</p>
                   <h3>Registrar movimiento</h3>
                 </div>
                 <span id="attendance-location-state" class="status-pill status-pending"
@@ -512,29 +511,6 @@
                   <label
                     ><input name="type" type="radio" value="CHECK_OUT" /><span>Salida</span></label
                   >
-                </div>
-                <div class="qr-input-group">
-                  <label>
-                    Código QR
-                    <div class="qr-input-wrapper">
-                      <input
-                        id="attendance-qr-token"
-                        name="qrToken"
-                        autocomplete="off"
-                        minlength="20"
-                        required
-                        placeholder="Escanear o escribir código QR"
-                      />
-                      <button
-                        id="scan-qr-button"
-                        class="icon-button"
-                        type="button"
-                        title="Escanear código QR con cámara"
-                      >
-                        📷
-                      </button>
-                    </div>
-                  </label>
                 </div>
                 <div class="location-readout">
                   <span id="attendance-coordinates">Aún no se obtuvo la ubicación.</span>
@@ -850,9 +826,6 @@
               <div class="panel-heading"><h3>Reglas operativas</h3></div>
               <form id="company-settings-form" class="form-stack compact-form">
                 <label
-                  >Tiempo QR (segundos)<input name="qrExpiration" type="number" min="15" max="3600"
-                /></label>
-                <label
                   >Radio GPS predeterminado (metros)<input
                     name="gpsRadius"
                     type="number"
@@ -1042,60 +1015,6 @@
             Guardar
           </button>
         </div>
-      </form>
-    </dialog>
-
-    <dialog id="qr-dialog" class="dialog compact-dialog">
-      <form class="dialog-content" method="dialog">
-        <div class="dialog-heading">
-          <div>
-            <p class="eyebrow">Código temporal</p>
-            <h2 id="qr-dialog-title">Código QR</h2>
-          </div>
-          <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
-        </div>
-        <div class="qr-display">
-          <img id="qr-image" alt="Código QR generado" />
-          <p id="qr-expiration" class="support-copy"></p>
-          <code id="qr-token" class="qr-token"></code>
-        </div>
-        <div class="dialog-actions">
-          <button class="primary-button" value="cancel" type="submit">Listo</button>
-        </div>
-      </form>
-    </dialog>
-
-    <dialog id="qr-history-dialog" class="dialog">
-      <form class="dialog-content" method="dialog">
-        <div class="dialog-heading">
-          <div>
-            <p class="eyebrow">Trazabilidad</p>
-            <h2 id="qr-history-title">Historial QR</h2>
-          </div>
-          <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
-        </div>
-        <div id="qr-history-list" class="request-list"></div>
-      </form>
-    </dialog>
-
-    <dialog id="qr-scanner-dialog" class="dialog">
-      <form class="dialog-content" method="dialog">
-        <div class="dialog-heading">
-          <div>
-            <p class="eyebrow">Escaneo en vivo</p>
-            <h2>Escanear código QR</h2>
-          </div>
-          <button class="quiet-button" id="close-scanner" value="cancel" type="submit">
-            Cerrar
-          </button>
-        </div>
-        <div id="qr-reader" style="width: 100%; margin: 16px 0"></div>
-        <div
-          id="scanner-result"
-          class="support-copy"
-          style="text-align: center; margin-top: 16px"
-          hidden
-        ></div>
       </form>
     </dialog>
 

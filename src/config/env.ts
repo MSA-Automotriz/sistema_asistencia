@@ -12,7 +12,6 @@ const schema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
   JWT_REMEMBER_ME_EXPIRES_IN: z.string().default('90d'),
   LOG_LEVEL: z.string().default('info'),
-  QR_EXPIRATION_SECONDS: z.coerce.number().int().positive().default(60),
   OFFLINE_ATTENDANCE_EXPIRATION_HOURS: z.coerce.number().int().min(1).max(168).default(24),
   GPS_RADIUS_METERS: z.coerce.number().positive().default(10),
   CORS_ORIGIN: z.string().default('*'),

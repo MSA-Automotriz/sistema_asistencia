@@ -546,7 +546,7 @@ async function updateAttendanceTypeSelection() {
         statusTextEl.textContent = `Último registro: SALIDA${timeInfo}. Su siguiente marcación debe ser ENTRADA.`;
       }
     }
-  } catch (_err) {
+  } catch {
     // Fallback silencioso si no se encuentra perfil
   }
 }
@@ -561,7 +561,6 @@ async function submitAttendance(event) {
     const location = state.attendanceLocation || (await captureLocation());
     const values = Object.fromEntries(new FormData(form));
     const payload = {
-      qrToken: values.qrToken,
       type: values.type,
       latitude: location.latitude,
       longitude: location.longitude,
@@ -593,118 +592,6 @@ async function submitAttendance(event) {
   } finally {
     button.disabled = false;
   }
-}
-
-let qrScanner = null;
-let qrScannerStream = null;
-
-function openQrScanner() {
-  query('#qr-scanner-dialog').showModal();
-  initQrScanner();
-}
-
-function stopQrScanner() {
-  if (qrScannerStream) {
-    qrScannerStream.getTracks().forEach((track) => track.stop());
-    qrScannerStream = null;
-  }
-  if (qrScanner) {
-    qrScanner = null;
-  }
-}
-
-function initQrScanner() {
-  if (qrScanner) return;
-
-  const canvas = document.createElement('canvas');
-  const video = document.createElement('video');
-  const readerDiv = query('#qr-reader');
-
-  video.style.width = '100%';
-  video.style.maxWidth = '300px';
-  video.style.borderRadius = '4px';
-  video.style.display = 'block';
-  video.style.margin = '0 auto';
-  video.autoplay = true;
-  video.playsInline = true;
-
-  // Clear previous content
-  readerDiv.innerHTML = '';
-  readerDiv.appendChild(video);
-
-  navigator.mediaDevices
-    .getUserMedia({
-      video: { facingMode: 'environment' }
-    })
-    .then((stream) => {
-      qrScannerStream = stream;
-      video.srcObject = stream;
-
-      // Wait for video to be ready
-      const checkVideoReady = () => {
-        if (video.videoWidth > 0 && video.videoHeight > 0) {
-          startScanning();
-        } else {
-          setTimeout(checkVideoReady, 100);
-        }
-      };
-
-      const startScanning = () => {
-        let scanning = true;
-        const scanQr = () => {
-          if (!scanning) return;
-
-          if (video.videoWidth <= 0 || video.videoHeight <= 0) {
-            requestAnimationFrame(scanQr);
-            return;
-          }
-
-          try {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
-            ctx.drawImage(video, 0, 0);
-
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const qrCode = jsQR(imageData.data, imageData.width, imageData.height, {
-              inversionAttempts: 'attemptBoth'
-            });
-
-            if (qrCode) {
-              const input = query('#attendance-qr-token');
-              input.value = qrCode.data;
-              input.focus();
-
-              query('#scanner-result').textContent =
-                `✓ Código detectado: ${escapeHtml(qrCode.data.slice(0, 20))}...`;
-              query('#scanner-result').hidden = false;
-
-              scanning = false;
-              stopQrScanner();
-
-              setTimeout(() => {
-                query('#qr-scanner-dialog').close();
-              }, 500);
-            } else {
-              requestAnimationFrame(scanQr);
-            }
-          } catch (err) {
-            console.error('QR scan error:', err);
-            requestAnimationFrame(scanQr);
-          }
-        };
-
-        scanQr();
-        qrScanner = { scanning: true };
-      };
-
-      checkVideoReady();
-    })
-    .catch((err) => {
-      showToast(`Error al acceder a la cámara: ${err.message}`, 'error');
-      query('#qr-scanner-dialog').close();
-    });
 }
 
 async function registerKnownDevice() {
@@ -930,20 +817,6 @@ function renderOrganization(items) {
             `<button class="small-button" data-organization-edit="${item.id}" type="button">Editar</button>`,
             `<button class="small-button reject-button" data-organization-delete="${item.id}" type="button">Eliminar</button>`
           ];
-          if (state.organizationEntity === 'employees' && hasPermission('employees.update'))
-            actions.unshift(
-              `<button class="small-button" data-employee-qr="${item.id}" type="button">QR</button>`
-            );
-          if (state.organizationEntity === 'sites') {
-            if (hasPermission('qr.create'))
-              actions.unshift(
-                `<button class="small-button" data-site-qr="${item.id}" type="button">QR</button>`
-              );
-            if (hasPermission('qr.read'))
-              actions.unshift(
-                `<button class="small-button" data-site-qr-history="${item.id}" type="button">Historial QR</button>`
-              );
-          }
           return `<tr>${config.columns.map(([, getter]) => `<td>${escapeHtml(getter(item))}</td>`).join('')}<td><span class="table-actions">${actions.join('')}</span></td></tr>`;
         })
         .join('')
@@ -968,64 +841,6 @@ async function deleteOrganizationItem(itemId) {
     await api(`${config.endpoint}/${itemId}`, { method: 'DELETE' });
     showToast('Registro eliminado correctamente');
     loadOrganization();
-  } catch (error) {
-    showToast(error.message, 'error');
-  }
-}
-
-function showQrCode({ title, qrImage, token, expiresAt }) {
-  query('#qr-dialog-title').textContent = title;
-  query('#qr-image').src = qrImage;
-  query('#qr-expiration').textContent = expiresAt
-    ? `Válido hasta ${formatDate(expiresAt, { dateStyle: 'medium', timeStyle: 'short' })}.`
-    : 'Código QR generado correctamente.';
-  query('#qr-token').textContent = token || '';
-  query('#qr-dialog').showModal();
-}
-
-async function generateSiteQr(siteId) {
-  try {
-    const qr = await api(`/qr/site/${siteId}`, { method: 'POST' });
-    showQrCode({
-      title: `QR de ${qr.site.name}`,
-      qrImage: qr.qrImage,
-      token: qr.token,
-      expiresAt: qr.expiresAt
-    });
-  } catch (error) {
-    showToast(error.message, 'error');
-  }
-}
-
-async function generateEmployeeQr(employeeId) {
-  try {
-    const qr = await api(`/employees/${employeeId}/qr`, { method: 'POST' });
-    showQrCode({
-      title: `QR de empleado ${qr.employeeCode}`,
-      qrImage: qr.qrImage,
-      token: qr.qrCode
-    });
-  } catch (error) {
-    showToast(error.message, 'error');
-  }
-}
-
-async function loadSiteQrHistory(siteId) {
-  try {
-    const data = await api(`/qr/site/${siteId}/history?limit=50`);
-    const site = state.organizationItems.find((item) => item.id === siteId);
-    query('#qr-history-title').textContent = `Historial QR · ${site?.name || 'Sede'}`;
-    query('#qr-history-list').innerHTML = data.items?.length
-      ? data.items
-          .map((item) => {
-            const expired = new Date(item.expiresAt) <= new Date();
-            const status = item.usedAt ? 'Consumido' : expired ? 'Vencido' : 'Disponible';
-            const statusClass = item.usedAt || expired ? 'status-inactive' : 'status-approved';
-            return `<div class="request-row"><span><strong class="row-name">${formatDate(item.createdAt, { dateStyle: 'medium', timeStyle: 'short' })}</strong><small class="row-meta">Vence ${formatDate(item.expiresAt, { dateStyle: 'medium', timeStyle: 'short' })}</small></span><span class="status-pill ${statusClass}">${status}</span></div>`;
-          })
-          .join('')
-      : '<p class="empty-state">No hay códigos QR generados para esta sede.</p>';
-    query('#qr-history-dialog').showModal();
   } catch (error) {
     showToast(error.message, 'error');
   }
@@ -1368,7 +1183,6 @@ async function loadCompanySettings() {
       (settings || []).map((setting) => [setting.key, setting.value])
     );
     const rules = query('#company-settings-form');
-    rules.elements.qrExpiration.value = values.qrExpirationSeconds || '';
     rules.elements.gpsRadius.value = values.gpsRadiusMeters || '';
     const form = query('#backup-schedule-form');
     form.elements.enabled.checked = Boolean(schedule?.enabled);
@@ -1427,10 +1241,9 @@ async function saveCompanySettings(event) {
   const form = query('#company-settings-form');
   if (!selectedCompanyId()) return;
   const values = Object.fromEntries(new FormData(form));
-  const settings = [
-    { key: 'qrExpirationSeconds', value: values.qrExpiration || '' },
-    { key: 'gpsRadiusMeters', value: values.gpsRadius || '' }
-  ].filter((setting) => setting.value !== '');
+  const settings = [{ key: 'gpsRadiusMeters', value: values.gpsRadius || '' }].filter(
+    (setting) => setting.value !== ''
+  );
   if (!settings.length) return showToast('Ingrese al menos una regla', 'error');
   try {
     await api(`/companies/${selectedCompanyId()}/settings`, {
@@ -1979,7 +1792,7 @@ async function loadQuickEmployeeRequests() {
     `
       )
       .join('');
-  } catch (error) {
+  } catch {
     container.innerHTML = `<p class="empty-state">Sin solicitudes disponibles.</p>`;
   }
 }
@@ -1989,8 +1802,9 @@ async function loadDashboard() {
     clearMessage();
     const user = state.session?.user;
     const userName = fullName(user) || 'Usuario';
-    const roleName = user?.role?.name || 'Empleado';
-    const hasAdminDashboardAccess = user?.permissions?.includes('dashboard.read');
+    const roleName = typeof user?.role === 'string' ? user.role : user?.role?.name || 'Empleado';
+    const hasAdminDashboardAccess =
+      user?.permissions?.includes('dashboard.read') || roleName === 'Administrador';
 
     query('#dashboard-date').textContent = new Intl.DateTimeFormat('es-PE', {
       weekday: 'long',
@@ -2812,12 +2626,6 @@ function bindEvents() {
   query('#quick-go-attendance')?.addEventListener('click', () => setView('attendance'));
   query('#quick-go-requests')?.addEventListener('click', () => setView('requests'));
   query('#attendance-form').addEventListener('submit', submitAttendance);
-  query('#scan-qr-button').addEventListener('click', (event) => {
-    event.preventDefault();
-    openQrScanner();
-  });
-  query('#close-scanner').addEventListener('click', stopQrScanner);
-  query('#qr-scanner-dialog').addEventListener('close', stopQrScanner);
   query('#capture-location').addEventListener('click', () =>
     captureLocation().catch((error) => showToast(error.message, 'error'))
   );
@@ -2914,6 +2722,11 @@ function bindEvents() {
     button.addEventListener('click', () => loadRoster(button.dataset.roster))
   );
   query('#app-shell').addEventListener('click', (event) => {
+    const viewTarget = event.target.closest('[data-view-target]');
+    if (viewTarget) {
+      setView(viewTarget.dataset.viewTarget);
+      return;
+    }
     const target = event.target.closest('button');
     if (!target) return;
     if (target.dataset.reviewId) reviewRequest(target);
@@ -2925,9 +2738,6 @@ function bindEvents() {
     if (target.dataset.organizationEdit) openOrganizationDialog(target.dataset.organizationEdit);
     if (target.dataset.organizationDelete)
       deleteOrganizationItem(target.dataset.organizationDelete);
-    if (target.dataset.siteQr) generateSiteQr(target.dataset.siteQr);
-    if (target.dataset.siteQrHistory) loadSiteQrHistory(target.dataset.siteQrHistory);
-    if (target.dataset.employeeQr) generateEmployeeQr(target.dataset.employeeQr);
     if (target.dataset.announcementPublish) publishAnnouncement(target.dataset.announcementPublish);
     if (target.dataset.announcementArchive) archiveAnnouncement(target.dataset.announcementArchive);
     if (target.dataset.deviceId)

@@ -5,7 +5,16 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'prisma/**', 'vitest.config.*'] },
+  {
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'coverage/**',
+      'prisma/**',
+      'vitest.config.*',
+      'public/vendor/**'
+    ]
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -19,7 +28,7 @@ export default tseslint.config(
   },
   {
     files: ['public/**/*.js'],
-    languageOptions: { globals: globals.browser }
+    languageOptions: { globals: { ...globals.browser, jsQR: 'readonly' } }
   },
   prettier
 );

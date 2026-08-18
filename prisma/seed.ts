@@ -24,7 +24,6 @@ const resources = [
   'notifications',
   'announcements',
   'devices',
-  'qr',
   'reports',
   'statistics',
   'calendar',

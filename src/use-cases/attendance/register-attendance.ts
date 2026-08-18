@@ -1,12 +1,11 @@
 import type { AttendanceType } from '@prisma/client';
 import { prisma } from '../../database/prisma.js';
 import { AppError } from '../../common/errors/app-error.js';
-import { hashToken, haversineMeters } from '../../utils/crypto.js';
+import { haversineMeters } from '../../utils/crypto.js';
 import { determineAttendanceStatus } from './attendance-rules.js';
 import { parseUserAgent } from '../../utils/user-agent.js';
 
 type AttendanceInput = {
-  qrToken: string;
   latitude: number;
   longitude: number;
   type: AttendanceType;
@@ -31,9 +30,6 @@ export class RegisterAttendance {
     if (!employee?.site || !employee.active)
       throw new AppError(403, 'Empleado sin sede activa asignada');
     const site = employee.site;
-    const qr = await prisma.qrToken.findUnique({ where: { tokenHash: hashToken(input.qrToken) } });
-    if (!qr || qr.siteId !== employee.siteId || qr.usedAt || qr.expiresAt <= new Date())
-      throw new AppError(422, 'Código QR inválido, expirado o ya utilizado');
     const distanceMeters = haversineMeters(
       input.latitude,
       input.longitude,
@@ -94,12 +90,10 @@ export class RegisterAttendance {
         if (device.status === 'BLOCKED')
           throw new AppError(403, 'Este dispositivo está bloqueado para registrar asistencia');
       }
-      await tx.qrToken.update({ where: { id: qr.id }, data: { usedAt: new Date() } });
       return tx.attendance.create({
         data: {
           employeeId: employee.id,
           siteId: site.id,
-          qrTokenId: qr.id,
           type: input.type,
           status,
           recordedAt,

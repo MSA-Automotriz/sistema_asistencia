@@ -104,7 +104,6 @@ model Site {
   updatedAt DateTime @updatedAt
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   employees Employee[]
-  qrTokens QrToken[]
   attendances Attendance[]
   schedules SiteSchedule[]
   offlineAttendanceTokens OfflineAttendanceToken[]
@@ -248,7 +247,6 @@ model Employee {
   scheduleId String?
   supervisorId String?
   employeeCode String @unique
-  qrCode String? @unique
   profilePhotoUrl String?
   hiredAt DateTime
   active Boolean @default(true)
@@ -285,18 +283,6 @@ model Device {
   @@index([userId, status])
 }
 
-model QrToken {
-  id String @id @default(cuid())
-  siteId String
-  tokenHash String @unique
-  expiresAt DateTime
-  usedAt DateTime?
-  createdById String
-  createdAt DateTime @default(now())
-  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  @@index([siteId, expiresAt])
-}
-
 model OfflineAttendanceToken {
   id String @id @default(cuid())
   userId String
@@ -315,7 +301,6 @@ model Attendance {
   id String @id @default(cuid())
   employeeId String
   siteId String
-  qrTokenId String?
   type AttendanceType
   status AttendanceStatus
   recordedAt DateTime @default(now())

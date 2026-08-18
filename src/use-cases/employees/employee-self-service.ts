@@ -28,7 +28,6 @@ export type RegisterDeviceInput = {
 const profileSelect = {
   id: true,
   employeeCode: true,
-  qrCode: true,
   profilePhotoUrl: true,
   hiredAt: true,
   active: true,
