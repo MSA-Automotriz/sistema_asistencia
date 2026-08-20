@@ -1,5 +1,15 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 import { z } from 'zod';
+
+// Cargar variables desde .env o config.env (para paneles que restringen archivos con punto)
+['.env', 'config.env', 'app.env'].forEach((fileName) => {
+  const filePath = path.resolve(process.cwd(), fileName);
+  if (fs.existsSync(filePath)) {
+    dotenv.config({ path: filePath });
+  }
+});
 
 const schema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
