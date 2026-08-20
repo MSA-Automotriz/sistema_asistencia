@@ -114,7 +114,13 @@ export class ReportService {
         this.employeeName(record.employee),
         record.employee.employeeCode,
         record.site.name,
-        record.type === 'CHECK_IN' ? 'Entrada' : 'Salida',
+        record.type === 'CHECK_IN'
+          ? 'Entrada'
+          : record.type === 'BREAK_OUT'
+            ? 'Salida Refrigerio'
+            : record.type === 'BREAK_IN'
+              ? 'Retorno Refrigerio'
+              : 'Salida',
         this.status(record.status),
         Number(record.distanceMeters.toFixed(2)),
         record.approximateAddress ?? '-',

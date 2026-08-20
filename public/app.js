@@ -221,8 +221,8 @@ const formatDate = (value, options = { dateStyle: 'medium' }) =>
 const formatTime = (value) =>
   value
     ? new Intl.DateTimeFormat('es-PE', { hour: '2-digit', minute: '2-digit' }).format(
-        new Date(value)
-      )
+      new Date(value)
+    )
     : '-';
 const fullName = (person) =>
   [person?.firstName, person?.lastName].filter(Boolean).join(' ') || 'Sin nombre';
@@ -363,11 +363,11 @@ function renderOfflinePanel() {
     : 'Prepare un permiso mientras tenga conexión para registrar una asistencia pendiente.';
   query('#offline-queue-list').innerHTML = items.length
     ? items
-        .map(
-          (item) =>
-            `<div class="request-row"><span><strong class="row-name">${item.type === 'CHECK_IN' ? 'Entrada' : 'Salida'} pendiente</strong><small class="row-meta">${formatDate(item.recordedAt, { dateStyle: 'medium', timeStyle: 'short' })}</small></span><span class="status-pill status-pending">En cola</span></div>`
-        )
-        .join('')
+      .map(
+        (item) =>
+          `<div class="request-row"><span><strong class="row-name">${item.type === 'CHECK_IN' ? 'Entrada' : 'Salida'} pendiente</strong><small class="row-meta">${formatDate(item.recordedAt, { dateStyle: 'medium', timeStyle: 'short' })}</small></span><span class="status-pill status-pending">En cola</span></div>`
+      )
+      .join('')
     : '<p class="empty-state">No hay asistencias pendientes de sincronizar.</p>';
 }
 
@@ -582,25 +582,66 @@ function queueOfflineAttendance(payload) {
   renderOfflinePanel();
 }
 
+function attendanceTypeLabel(type) {
+  return (
+    {
+      CHECK_IN: 'Entrada',
+      BREAK_OUT: 'Salida Refrigerio',
+      BREAK_IN: 'Retorno Refrigerio',
+      CHECK_OUT: 'Salida'
+    }[type] || type
+  );
+}
+
 async function updateAttendanceTypeSelection() {
   try {
     const last = await api('/me/last-attendance');
-    const statusTextEl = query('#quick-check-status-text');
-    const radioCheckIn = query('#attendance-form input[value="CHECK_IN"]');
-    const radioCheckOut = query('#attendance-form input[value="CHECK_OUT"]');
+    const formStatusEl = query('#attendance-check-status-text');
+    const dashStatusEl = query('#quick-check-status-text');
+    const submitBtn = query('#submit-attendance');
 
-    if (last && last.type === 'CHECK_IN') {
-      if (radioCheckOut) radioCheckOut.checked = true;
-      if (statusTextEl) {
-        statusTextEl.textContent = `Último registro: ENTRADA (${formatTime(last.recordedAt)}). Su siguiente marcación debe ser SALIDA.`;
-      }
-    } else {
-      if (radioCheckIn) radioCheckIn.checked = true;
-      if (statusTextEl) {
-        const timeInfo = last?.recordedAt ? ` (${formatTime(last.recordedAt)})` : '';
-        statusTextEl.textContent = `Último registro: SALIDA${timeInfo}. Su siguiente marcación debe ser ENTRADA.`;
-      }
+    const radios = {
+      CHECK_IN: query('#attendance-form input[value="CHECK_IN"]'),
+      BREAK_OUT: query('#attendance-form input[value="BREAK_OUT"]'),
+      BREAK_IN: query('#attendance-form input[value="BREAK_IN"]'),
+      CHECK_OUT: query('#attendance-form input[value="CHECK_OUT"]')
+    };
+
+    const setOnlyAllowed = (allowedType, btnLabel) => {
+      Object.keys(radios).forEach((type) => {
+        const radio = radios[type];
+        if (radio) {
+          if (type === allowedType) {
+            radio.disabled = false;
+            radio.checked = true;
+          } else {
+            radio.disabled = true;
+            radio.checked = false;
+          }
+        }
+      });
+      if (submitBtn) submitBtn.textContent = btnLabel;
+    };
+
+    let text = '';
+    if (!last || last.type === 'CHECK_OUT') {
+      setOnlyAllowed('CHECK_IN', 'Registrar Entrada');
+      const timeInfo = last?.recordedAt ? ` (Última salida registrada: ${formatTime(last.recordedAt)})` : '';
+      text = `Paso 1 de 4: Registre su ENTRADA al iniciar su jornada laboral.${timeInfo}`;
+    } else if (last.type === 'CHECK_IN') {
+      setOnlyAllowed('BREAK_OUT', 'Registrar Salida a Refrigerio');
+      text = `Paso 2 de 4: ENTRADA registrada a las ${formatTime(last.recordedAt)}. Siguiente paso: SALIDA A REFRIGERIO.`;
+    } else if (last.type === 'BREAK_OUT') {
+      setOnlyAllowed('BREAK_IN', 'Registrar Retorno de Refrigerio');
+      text = `Paso 3 de 4: En refrigerio desde las ${formatTime(last.recordedAt)}. Siguiente paso: RETORNO DE REFRIGERIO.`;
+    } else if (last.type === 'BREAK_IN') {
+      setOnlyAllowed('CHECK_OUT', 'Registrar Salida de Jornada');
+      const excessInfo = last.excessMinutes ? ` (Tardanza en refrigerio: +${last.excessMinutes} min)` : '';
+      text = `Paso 4 de 4: RETORNO registrado a las ${formatTime(last.recordedAt)}${excessInfo}. Siguiente paso: SALIDA de la jornada.`;
     }
+
+    if (formStatusEl) formStatusEl.textContent = text;
+    if (dashStatusEl) dashStatusEl.textContent = text;
   } catch {
     // Fallback silencioso si no se encuentra perfil
   }
@@ -629,10 +670,21 @@ async function submitAttendance(event) {
       form.reset();
       state.attendanceLocation = null;
       query('#attendance-coordinates').textContent = 'Aún no se obtuvo la ubicación.';
+      let message = 'Asistencia registrada correctamente';
+      if (record.type === 'BREAK_OUT') {
+        message = 'Salida a refrigerio registrada correctamente';
+      } else if (record.type === 'BREAK_IN') {
+        if (record.status === 'LATE' && record.excessMinutes) {
+          message = `Retorno registrado (Tardanza en refrigerio: +${record.excessMinutes} min)`;
+        } else {
+          message = 'Retorno de refrigerio registrado correctamente';
+        }
+      } else if (record.status === 'LATE') {
+        message = 'Entrada registrada con tardanza';
+      }
       showToast(
-        record.status === 'LATE'
-          ? 'Entrada registrada con tardanza'
-          : 'Asistencia registrada correctamente'
+        message,
+        record.status === 'LATE' ? 'error' : undefined
       );
       void prepareOfflinePermit(false);
       void updateAttendanceTypeSelection();
@@ -671,11 +723,11 @@ function renderNotifications(data) {
   count.hidden = !unread;
   query('#notification-list').innerHTML = items.length
     ? items
-        .map(
-          (item) =>
-            `<button class="notification-entry ${item.readAt ? '' : 'unread'}" data-notification-id="${item.id}" type="button"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.body)} · ${formatDate(item.createdAt, { dateStyle: 'short', timeStyle: 'short' })}</small></button>`
-        )
-        .join('')
+      .map(
+        (item) =>
+          `<button class="notification-entry ${item.readAt ? '' : 'unread'}" data-notification-id="${item.id}" type="button"><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.body)} · ${formatDate(item.createdAt, { dateStyle: 'short', timeStyle: 'short' })}</small></button>`
+      )
+      .join('')
     : '<p class="empty-state">No hay notificaciones recientes.</p>';
 }
 
@@ -723,7 +775,13 @@ async function loadHistory() {
     ['startDate', 'endDate', 'status', 'search'].forEach((key) => {
       if (values[key]) parameters.set(key, values[key]);
     });
-    const canReadAll = state.session?.user?.permissions?.includes('attendances.read');
+    const user = state.session?.user;
+    const roleName = typeof user?.role === 'string' ? user.role : user?.role?.name || '';
+    const canReadAll =
+      roleName !== 'Empleado' &&
+      (hasPermission('attendances.update') ||
+        hasPermission('attendances.delete') ||
+        hasPermission('attendances.read'));
     if (!canReadAll) parameters.delete('search');
     const data = await api(
       `${canReadAll ? '/attendance/history' : '/me/attendance'}?${parameters}`
@@ -731,11 +789,12 @@ async function loadHistory() {
     const items = data.items || [];
     query('#history-table').innerHTML = items.length
       ? items
-          .map((item) => {
-            const employee = item.employee?.user;
-            return `<tr><td>${formatDate(item.recordedAt, { dateStyle: 'medium', timeStyle: 'short' })}</td><td>${escapeHtml(employee ? fullName(employee) : state.profile?.user ? fullName(state.profile.user) : '-')}</td><td>${escapeHtml(item.site?.name || '-')}</td><td>${item.type === 'CHECK_IN' ? 'Entrada' : 'Salida'}</td><td><span class="status-pill ${item.status === 'ON_TIME' ? 'status-approved' : 'status-pending'}">${escapeHtml(attendanceStatusLabel(item.status))}</span></td><td>${escapeHtml(item.approximateAddress || `${Number(item.distanceMeters || 0).toFixed(1)} m`)}</td><td>${escapeHtml(item.device || item.browser || '-')}</td></tr>`;
-          })
-          .join('')
+        .map((item) => {
+          const employee = item.employee?.user;
+          const typeText = attendanceTypeLabel(item.type);
+          return `<tr><td>${formatDate(item.recordedAt, { dateStyle: 'medium', timeStyle: 'short' })}</td><td>${escapeHtml(employee ? fullName(employee) : state.profile?.user ? fullName(state.profile.user) : '-')}</td><td>${escapeHtml(item.site?.name || '-')}</td><td>${escapeHtml(typeText)}</td><td><span class="status-pill ${item.status === 'ON_TIME' ? 'status-approved' : 'status-pending'}">${escapeHtml(attendanceStatusLabel(item.status))}</span></td><td>${escapeHtml(item.approximateAddress || `${Number(item.distanceMeters || 0).toFixed(1)} m`)}</td><td>${escapeHtml(item.device || item.browser || '-')}</td></tr>`;
+        })
+        .join('')
       : '<tr><td colspan="7">No hay asistencias para el período indicado.</td></tr>';
   } catch (error) {
     showMessage(error.message);
@@ -786,9 +845,9 @@ function organizationFieldMarkup(field, item) {
     const choices = Array.isArray(field.options)
       ? options.map((option) => ({ value: option, label: option }))
       : options.map((option) => ({
-          value: option.id,
-          label: referenceLabel(field.source, option)
-        }));
+        value: option.id,
+        label: referenceLabel(field.source, option)
+      }));
     return `<label class="${fieldClass}">${escapeHtml(field.label)}<select name="${field.name}" ${field.required ? 'required' : ''}>${field.optional ? '<option value="">Sin asignar</option>' : '<option value="">Seleccionar</option>'}${choices.map((choice) => `<option value="${escapeHtml(choice.value)}" ${String(choice.value) === String(value) ? 'selected' : ''}>${escapeHtml(choice.label)}</option>`).join('')}</select></label>`;
   }
   return `<label class="${fieldClass}">${escapeHtml(field.label)}<input name="${field.name}" type="${field.type || 'text'}" value="${escapeHtml(value)}" ${field.step ? `step="${field.step}"` : ''} ${field.required ? 'required' : ''} /></label>`;
@@ -843,9 +902,9 @@ async function submitOrganizationForm() {
     const isUpdate = Boolean(state.organizationEditingId);
     const endpoint = isUpdate
       ? (config.updateEndpoint || `${config.endpoint}/:id`).replace(
-          ':id',
-          state.organizationEditingId
-        )
+        ':id',
+        state.organizationEditingId
+      )
       : config.createEndpoint || config.endpoint;
     await api(endpoint, { method: isUpdate ? 'PUT' : 'POST', body: JSON.stringify(payload) });
     query('#organization-dialog').close();
@@ -867,14 +926,14 @@ function renderOrganization(items) {
     `<tr>${config.columns.map(([label]) => `<th>${escapeHtml(label)}</th>`).join('')}<th></th></tr>`;
   query('#organization-table').innerHTML = items.length
     ? items
-        .map((item) => {
-          const actions = [
-            `<button class="small-button" data-organization-edit="${item.id}" type="button">Editar</button>`,
-            `<button class="small-button reject-button" data-organization-delete="${item.id}" type="button">Eliminar</button>`
-          ];
-          return `<tr>${config.columns.map(([, getter]) => `<td>${escapeHtml(getter(item))}</td>`).join('')}<td><span class="table-actions">${actions.join('')}</span></td></tr>`;
-        })
-        .join('')
+      .map((item) => {
+        const actions = [
+          `<button class="small-button" data-organization-edit="${item.id}" type="button">Editar</button>`,
+          `<button class="small-button reject-button" data-organization-delete="${item.id}" type="button">Eliminar</button>`
+        ];
+        return `<tr>${config.columns.map(([, getter]) => `<td>${escapeHtml(getter(item))}</td>`).join('')}<td><span class="table-actions">${actions.join('')}</span></td></tr>`;
+      })
+      .join('')
     : `<tr><td colspan="${config.columns.length + 1}">No hay registros para mostrar.</td></tr>`;
 }
 
@@ -956,8 +1015,8 @@ async function loadReports() {
       `<tr>${data.columns.map((column) => `<th>${escapeHtml(column)}</th>`).join('')}</tr>`;
     query('#report-table').innerHTML = data.rows.length
       ? data.rows
-          .map((row) => `<tr>${row.map((value) => `<td>${escapeHtml(value)}</td>`).join('')}</tr>`)
-          .join('')
+        .map((row) => `<tr>${row.map((value) => `<td>${escapeHtml(value)}</td>`).join('')}</tr>`)
+        .join('')
       : `<tr><td colspan="${data.columns.length}">No hay datos para el período indicado.</td></tr>`;
   } catch (error) {
     showMessage(error.message);
@@ -1009,13 +1068,13 @@ function renderStatisticsChart(series) {
   const max = Math.max(1, ...visible.flatMap((item) => [item.checkIns || 0, item.late || 0]));
   container.innerHTML = visible.length
     ? visible
-        .map((item) => {
-          const label = formatDate(`${item.date}T12:00:00`, { weekday: 'short' }).replace('.', '');
-          const entries = Math.max(3, Math.round(((item.checkIns || 0) / max) * 100));
-          const late = item.late ? Math.max(3, Math.round((item.late / max) * 100)) : 3;
-          return `<div class="chart-day"><div class="chart-columns"><span class="chart-bar" style="height:${entries}%"></span><span class="chart-bar late" style="height:${late}%"></span></div><small>${escapeHtml(label)}</small></div>`;
-        })
-        .join('')
+      .map((item) => {
+        const label = formatDate(`${item.date}T12:00:00`, { weekday: 'short' }).replace('.', '');
+        const entries = Math.max(3, Math.round(((item.checkIns || 0) / max) * 100));
+        const late = item.late ? Math.max(3, Math.round((item.late / max) * 100)) : 3;
+        return `<div class="chart-day"><div class="chart-columns"><span class="chart-bar" style="height:${entries}%"></span><span class="chart-bar late" style="height:${late}%"></span></div><small>${escapeHtml(label)}</small></div>`;
+      })
+      .join('')
     : '<p class="empty-state">No hay datos estadísticos para el período.</p>';
 }
 
@@ -1059,11 +1118,11 @@ async function loadCalendar() {
     const events = data.events || [];
     query('#calendar-events').innerHTML = events.length
       ? events
-          .map(
-            (event) =>
-              `<article class="calendar-event ${calendarClass(event.category)}"><small>${formatDate(event.start, { dateStyle: 'medium', timeStyle: event.category === 'ATTENDANCE' ? 'short' : undefined })}</small><strong>${escapeHtml(event.title)}</strong><small>${escapeHtml(event.detail || attendanceStatusLabel(event.status))}</small></article>`
-          )
-          .join('')
+        .map(
+          (event) =>
+            `<article class="calendar-event ${calendarClass(event.category)}"><small>${formatDate(event.start, { dateStyle: 'medium', timeStyle: event.category === 'ATTENDANCE' ? 'short' : undefined })}</small><strong>${escapeHtml(event.title)}</strong><small>${escapeHtml(event.detail || attendanceStatusLabel(event.status))}</small></article>`
+        )
+        .join('')
       : '<p class="empty-state">No hay eventos para el mes seleccionado.</p>';
   } catch (error) {
     showMessage(error.message);
@@ -1073,7 +1132,7 @@ async function loadCalendar() {
 function announcementStatusClass(status) {
   return (
     { DRAFT: 'status-pending', PUBLISHED: 'status-approved', ARCHIVED: 'status-inactive' }[
-      status
+    status
     ] || 'status-inactive'
   );
 }
@@ -1084,16 +1143,16 @@ async function loadAnnouncements() {
     const items = data.items || [];
     query('#announcement-list').innerHTML = items.length
       ? items
-          .map((item) => {
-            const actions =
-              item.status === 'DRAFT'
-                ? `<button class="small-button approve-button" data-announcement-publish="${item.id}" type="button">Publicar</button>`
-                : item.status === 'PUBLISHED'
-                  ? `<button class="small-button reject-button" data-announcement-archive="${item.id}" type="button">Archivar</button>`
-                  : '';
-            return `<div class="request-row"><span><strong class="row-name">${escapeHtml(item.title)}</strong><small class="row-meta">${escapeHtml(item.body)}${item.expiresAt ? ` · vence ${formatDate(item.expiresAt)}` : ''}</small></span><span class="request-actions"><span class="status-pill ${announcementStatusClass(item.status)}">${escapeHtml(item.status)}</span>${actions}</span></div>`;
-          })
-          .join('')
+        .map((item) => {
+          const actions =
+            item.status === 'DRAFT'
+              ? `<button class="small-button approve-button" data-announcement-publish="${item.id}" type="button">Publicar</button>`
+              : item.status === 'PUBLISHED'
+                ? `<button class="small-button reject-button" data-announcement-archive="${item.id}" type="button">Archivar</button>`
+                : '';
+          return `<div class="request-row"><span><strong class="row-name">${escapeHtml(item.title)}</strong><small class="row-meta">${escapeHtml(item.body)}${item.expiresAt ? ` · vence ${formatDate(item.expiresAt)}` : ''}</small></span><span class="request-actions"><span class="status-pill ${announcementStatusClass(item.status)}">${escapeHtml(item.status)}</span>${actions}</span></div>`;
+        })
+        .join('')
       : '<p class="empty-state">No hay anuncios creados.</p>';
   } catch (error) {
     showMessage(error.message);
@@ -1170,14 +1229,14 @@ async function loadDevices() {
     const items = data.items || [];
     query('#devices-table').innerHTML = items.length
       ? items
-          .map((item) => {
-            const actions =
-              item.status === 'BLOCKED'
-                ? `<button class="small-button" data-device-id="${item.id}" data-device-status="AUTHORIZED" type="button">Autorizar</button>`
-                : `<button class="small-button approve-button" data-device-id="${item.id}" data-device-status="AUTHORIZED" type="button">Autorizar</button><button class="small-button reject-button" data-device-id="${item.id}" data-device-status="BLOCKED" type="button">Bloquear</button>`;
-            return `<tr><td>${escapeHtml(fullName(item.user))}<small class="row-meta">${escapeHtml(item.user?.email || '-')}</small></td><td>${escapeHtml(item.name || item.userAgent || '-')}</td><td>${escapeHtml(item.ipAddress || '-')}</td><td>${formatDate(item.lastSeenAt, { dateStyle: 'medium', timeStyle: 'short' })}</td><td><span class="status-pill ${item.status === 'AUTHORIZED' ? 'status-approved' : item.status === 'BLOCKED' ? 'status-rejected' : 'status-pending'}">${escapeHtml(item.status)}</span></td><td><span class="table-actions">${actions}</span></td></tr>`;
-          })
-          .join('')
+        .map((item) => {
+          const actions =
+            item.status === 'BLOCKED'
+              ? `<button class="small-button" data-device-id="${item.id}" data-device-status="AUTHORIZED" type="button">Autorizar</button>`
+              : `<button class="small-button approve-button" data-device-id="${item.id}" data-device-status="AUTHORIZED" type="button">Autorizar</button><button class="small-button reject-button" data-device-id="${item.id}" data-device-status="BLOCKED" type="button">Bloquear</button>`;
+          return `<tr><td>${escapeHtml(fullName(item.user))}<small class="row-meta">${escapeHtml(item.user?.email || '-')}</small></td><td>${escapeHtml(item.name || item.userAgent || '-')}</td><td>${escapeHtml(item.ipAddress || '-')}</td><td>${formatDate(item.lastSeenAt, { dateStyle: 'medium', timeStyle: 'short' })}</td><td><span class="status-pill ${item.status === 'AUTHORIZED' ? 'status-approved' : item.status === 'BLOCKED' ? 'status-rejected' : 'status-pending'}">${escapeHtml(item.status)}</span></td><td><span class="table-actions">${actions}</span></td></tr>`;
+        })
+        .join('')
       : '<tr><td colspan="6">No hay dispositivos registrados.</td></tr>';
   } catch (error) {
     showMessage(error.message);
@@ -1201,14 +1260,14 @@ function selectedCompanyId() {
 function renderBackups(items) {
   query('#backup-list').innerHTML = items.length
     ? items
-        .map((item) => {
-          const action =
-            item.status === 'COMPLETED'
-              ? `<button class="small-button reject-button" data-backup-restore="${item.id}" type="button">Restaurar</button>`
-              : '';
-          return `<div class="request-row"><span><strong class="row-name">${item.type === 'DATABASE' ? 'Base de datos' : 'Archivos'}</strong><small class="row-meta">${formatDate(item.createdAt, { dateStyle: 'medium', timeStyle: 'short' })}${item.errorMessage ? ` · ${escapeHtml(item.errorMessage)}` : ''}</small></span><span class="request-actions"><span class="status-pill ${item.status === 'COMPLETED' ? 'status-approved' : item.status === 'FAILED' ? 'status-rejected' : 'status-pending'}">${escapeHtml(item.status)}</span>${action}</span></div>`;
-        })
-        .join('')
+      .map((item) => {
+        const action =
+          item.status === 'COMPLETED'
+            ? `<button class="small-button reject-button" data-backup-restore="${item.id}" type="button">Restaurar</button>`
+            : '';
+        return `<div class="request-row"><span><strong class="row-name">${item.type === 'DATABASE' ? 'Base de datos' : 'Archivos'}</strong><small class="row-meta">${formatDate(item.createdAt, { dateStyle: 'medium', timeStyle: 'short' })}${item.errorMessage ? ` · ${escapeHtml(item.errorMessage)}` : ''}</small></span><span class="request-actions"><span class="status-pill ${item.status === 'COMPLETED' ? 'status-approved' : item.status === 'FAILED' ? 'status-rejected' : 'status-pending'}">${escapeHtml(item.status)}</span>${action}</span></div>`;
+      })
+      .join('')
     : '<p class="empty-state">No hay respaldos registrados.</p>';
 }
 
@@ -1391,18 +1450,18 @@ async function loadAudit() {
     renderSystemStatus(status);
     query('#audit-list').innerHTML = (audits.items || []).length
       ? audits.items
-          .map(
-            (item) =>
-              `<div class="request-row"><span><strong class="row-name">${escapeHtml(item.action)} · ${escapeHtml(item.entity)}</strong><small class="row-meta">${escapeHtml(fullName(item.user))} · ${formatDate(item.createdAt, { dateStyle: 'medium', timeStyle: 'short' })} · ${escapeHtml(item.ipAddress || '-')}</small></span></div>`
-          )
-          .join('')
+        .map(
+          (item) =>
+            `<div class="request-row"><span><strong class="row-name">${escapeHtml(item.action)} · ${escapeHtml(item.entity)}</strong><small class="row-meta">${escapeHtml(fullName(item.user))} · ${formatDate(item.createdAt, { dateStyle: 'medium', timeStyle: 'short' })} · ${escapeHtml(item.ipAddress || '-')}</small></span></div>`
+        )
+        .join('')
       : '<p class="empty-state">No hay eventos de auditoría.</p>';
     query('#system-log-list').innerHTML = logs.length
       ? logs
-          .map(
-            (entry) => `<pre class="system-log-entry">${escapeHtml(JSON.stringify(entry))}</pre>`
-          )
-          .join('')
+        .map(
+          (entry) => `<pre class="system-log-entry">${escapeHtml(JSON.stringify(entry))}</pre>`
+        )
+        .join('')
       : '<p class="empty-state">No hay eventos del sistema.</p>';
   } catch (error) {
     showMessage(error.message);
@@ -1434,11 +1493,11 @@ async function cleanSystemData() {
 function renderMyRequests(items) {
   query('#my-request-list').innerHTML = items.length
     ? items
-        .map((item) => {
-          const date = item.date || item.startDate;
-          return `<div class="request-row"><span><strong class="row-name">${escapeHtml(item.type)}</strong><small class="row-meta">${formatDate(date)} · ${escapeHtml(item.reason || item.licenseType || '-')}</small></span><span class="status-pill ${requestStatusClass(item.status)}">${escapeHtml(item.status)}</span></div>`;
-        })
-        .join('')
+      .map((item) => {
+        const date = item.date || item.startDate;
+        return `<div class="request-row"><span><strong class="row-name">${escapeHtml(item.type)}</strong><small class="row-meta">${formatDate(date)} · ${escapeHtml(item.reason || item.licenseType || '-')}</small></span><span class="status-pill ${requestStatusClass(item.status)}">${escapeHtml(item.status)}</span></div>`;
+      })
+      .join('')
     : '<p class="empty-state">No hay solicitudes registradas.</p>';
 }
 
@@ -1475,11 +1534,11 @@ async function loadProfile() {
 
     query('#profile-device-list').innerHTML = devices.length
       ? devices
-          .map(
-            (device) =>
-              `<div class="request-row"><span><strong class="row-name">${escapeHtml(device.name || device.userAgent || 'Dispositivo')}</strong><small class="row-meta">${formatDate(device.lastSeenAt, { dateStyle: 'medium', timeStyle: 'short' })}</small></span><button class="small-button reject-button" data-own-device-delete="${device.id}" type="button">Quitar</button></div>`
-          )
-          .join('')
+        .map(
+          (device) =>
+            `<div class="request-row"><span><strong class="row-name">${escapeHtml(device.name || device.userAgent || 'Dispositivo')}</strong><small class="row-meta">${formatDate(device.lastSeenAt, { dateStyle: 'medium', timeStyle: 'short' })}</small></span><button class="small-button reject-button" data-own-device-delete="${device.id}" type="button">Quitar</button></div>`
+        )
+        .join('')
       : '<p class="empty-state">No hay dispositivos registrados.</p>';
 
     if (Array.isArray(recoveryQuestions)) {
@@ -1821,13 +1880,13 @@ function renderChart(days) {
   const max = Math.max(1, ...days.flatMap((day) => [day.entradas || 0, day.tardanzas || 0]));
   container.innerHTML = days.length
     ? days
-        .map((day) => {
-          const label = formatDate(`${day.fecha}T12:00:00`, { weekday: 'short' }).replace('.', '');
-          const entries = Math.max(3, Math.round(((day.entradas || 0) / max) * 100));
-          const late = day.tardanzas ? Math.max(3, Math.round((day.tardanzas / max) * 100)) : 3;
-          return `<div class="chart-day"><div class="chart-columns"><span class="chart-bar" style="height:${entries}%"></span><span class="chart-bar late" style="height:${late}%"></span></div><small>${escapeHtml(label)}</small></div>`;
-        })
-        .join('')
+      .map((day) => {
+        const label = formatDate(`${day.fecha}T12:00:00`, { weekday: 'short' }).replace('.', '');
+        const entries = Math.max(3, Math.round(((day.entradas || 0) / max) * 100));
+        const late = day.tardanzas ? Math.max(3, Math.round((day.tardanzas / max) * 100)) : 3;
+        return `<div class="chart-day"><div class="chart-columns"><span class="chart-bar" style="height:${entries}%"></span><span class="chart-bar late" style="height:${late}%"></span></div><small>${escapeHtml(label)}</small></div>`;
+      })
+      .join('')
     : '<p class="empty-state">Sin movimientos para el período.</p>';
 }
 
@@ -1835,12 +1894,12 @@ function renderActivity(items) {
   const container = query('#activity-list');
   container.innerHTML = items.length
     ? items
-        .map((item) => {
-          const name = fullName(item.employee?.user);
-          const event = item.type === 'CHECK_IN' ? 'Entrada' : 'Salida';
-          return `<div class="activity-row"><span><strong class="row-name">${escapeHtml(name)}</strong><small class="row-meta">${escapeHtml(item.approximateAddress || 'Sin ubicación')} · ${formatTime(item.recordedAt)}</small></span><span class="event-pill">${event}</span></div>`;
-        })
-        .join('')
+      .map((item) => {
+        const name = fullName(item.employee?.user);
+        const event = attendanceTypeLabel(item.type);
+        return `<div class="activity-row"><span><strong class="row-name">${escapeHtml(name)}</strong><small class="row-meta">${escapeHtml(item.approximateAddress || 'Sin ubicación')} · ${formatTime(item.recordedAt)}</small></span><span class="event-pill">${event}</span></div>`;
+      })
+      .join('')
     : '<p class="empty-state">Aún no hay actividad registrada hoy.</p>';
 }
 
@@ -1968,12 +2027,12 @@ async function loadRoster(kind) {
     query('#roster-panel').hidden = false;
     query('#roster-list').innerHTML = items.length
       ? items
-          .map((item) => {
-            const person = item.employee?.user || item.user;
-            const meta = item.employeeCode || item.employee?.employeeCode || item.status || '-';
-            return `<div class="roster-row"><span><strong class="row-name">${escapeHtml(fullName(person))}</strong><small class="row-meta">${escapeHtml(meta)}</small></span><span class="status-pill ${item.status === 'LATE' ? 'status-pending' : 'status-active'}">${escapeHtml(item.status || 'Activo')}</span></div>`;
-          })
-          .join('')
+        .map((item) => {
+          const person = item.employee?.user || item.user;
+          const meta = item.employeeCode || item.employee?.employeeCode || item.status || '-';
+          return `<div class="roster-row"><span><strong class="row-name">${escapeHtml(fullName(person))}</strong><small class="row-meta">${escapeHtml(meta)}</small></span><span class="status-pill ${item.status === 'LATE' ? 'status-pending' : 'status-active'}">${escapeHtml(item.status || 'Activo')}</span></div>`;
+        })
+        .join('')
       : '<p class="empty-state">No hay registros para mostrar.</p>';
   } catch (error) {
     showToast(error.message, 'error');
@@ -2037,29 +2096,33 @@ function renderRequests(items, target, type, options) {
   const container = query(target);
   container.innerHTML = items.length
     ? items
-        .map((item) => {
-          const employee = item.employee?.user
+      .map((item) => {
+        const employee =
+          options.canReview && item.employee?.user
             ? `${fullName(item.employee.user)} · ${item.employee.employeeCode}`
             : '';
-          const actions =
-            item.status === 'PENDING' && options.canReview
-              ? `<span class="request-actions"><button class="small-button approve-button" data-review-type="${type}" data-review-id="${item.id}" data-review-status="APPROVED" type="button">Aprobar</button><button class="small-button reject-button" data-review-type="${type}" data-review-id="${item.id}" data-review-status="REJECTED" type="button">Rechazar</button></span>`
-              : item.status === 'PENDING' && options.canCancel
-                ? `<span class="request-actions"><button class="small-button reject-button" data-request-cancel-type="${type}" data-request-cancel-id="${item.id}" type="button">Cancelar</button></span>`
-                : `<span class="status-pill ${requestStatusClass(item.status)}">${escapeHtml(item.status)}</span>`;
-          return `<div class="request-row"><span><strong class="row-name">${escapeHtml(requestDateRange(item, type))}</strong><small class="row-meta">${escapeHtml([employee, requestDetail(item, type)].filter(Boolean).join(' · '))}</small></span>${actions}</div>`;
-        })
-        .join('')
+        const actions =
+          item.status === 'PENDING' && options.canReview
+            ? `<span class="request-actions"><button class="small-button approve-button" data-review-type="${type}" data-review-id="${item.id}" data-review-status="APPROVED" type="button">Aprobar</button><button class="small-button reject-button" data-review-type="${type}" data-review-id="${item.id}" data-review-status="REJECTED" type="button">Rechazar</button></span>`
+            : item.status === 'PENDING' && options.canCancel
+              ? `<span class="request-actions"><button class="small-button reject-button" data-request-cancel-type="${type}" data-request-cancel-id="${item.id}" type="button">Cancelar</button></span>`
+              : `<span class="status-pill ${requestStatusClass(item.status)}">${escapeHtml(item.status)}</span>`;
+        return `<div class="request-row"><span><strong class="row-name">${escapeHtml(requestDateRange(item, type))}</strong><small class="row-meta">${escapeHtml([employee, requestDetail(item, type)].filter(Boolean).join(' · '))}</small></span>${actions}</div>`;
+      })
+      .join('')
     : '<p class="empty-state">No hay solicitudes registradas.</p>';
 }
 
 async function loadRequestCollection(type) {
   const definition = requestDefinitions[type];
-  if (hasPermission(`${definition.resource}.read`)) {
+  const user = state.session?.user;
+  const roleName = typeof user?.role === 'string' ? user.role : user?.role?.name || '';
+  const canReview = roleName !== 'Empleado' && hasPermission(`${definition.resource}.update`);
+  if (canReview) {
     const data = await api(definition.adminEndpoint);
     return {
-      items: data.items || [],
-      canReview: hasPermission(`${definition.resource}.update`),
+      items: Array.isArray(data) ? data : data.items || [],
+      canReview: true,
       canCancel: false
     };
   }
@@ -2074,6 +2137,20 @@ async function loadRequestCollection(type) {
 async function loadRequests() {
   try {
     clearMessage();
+    const user = state.session?.user;
+    const roleName = typeof user?.role === 'string' ? user.role : user?.role?.name || '';
+    const hasAdminReview =
+      roleName !== 'Empleado' &&
+      (hasPermission('work-permissions.update') ||
+        hasPermission('overtime-requests.update') ||
+        hasPermission('vacations.update') ||
+        hasPermission('licenses.update'));
+
+    const eyebrow = query('#requests-view-eyebrow');
+    const title = query('#requests-view-title');
+    if (eyebrow) eyebrow.textContent = hasAdminReview ? 'Administración' : 'Mis trámites';
+    if (title) title.textContent = hasAdminReview ? 'Gestión de Solicitudes' : 'Mis Solicitudes';
+
     const [work, overtime, vacation, license] = await Promise.all([
       loadRequestCollection('work'),
       loadRequestCollection('overtime'),
@@ -2213,19 +2290,100 @@ async function cancelRequest(button) {
 function renderUsers(items) {
   query('#users-table').innerHTML = items.length
     ? items
-        .map((user) => {
-          const statusClass =
-            user.status === 'ACTIVE'
-              ? 'status-active'
-              : user.status === 'PENDING'
-                ? 'status-pending'
-                : 'status-inactive';
-          const recovery = user._count?.recoveryQuestions || 0;
-          const nextStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-          return `<tr><td><strong class="row-name">${escapeHtml(fullName(user))}</strong><small class="row-meta">${escapeHtml(user.email)}</small></td><td>${escapeHtml(user.role?.name || '-')}</td><td><span class="status-pill ${statusClass}">${escapeHtml(user.status)}</span></td><td>${recovery}/2 preguntas</td><td><span class="table-actions"><button class="small-button" data-user-id="${user.id}" data-user-status="${nextStatus}" type="button">${nextStatus === 'ACTIVE' ? 'Activar' : 'Desactivar'}</button></span></td></tr>`;
-        })
-        .join('')
+      .map((user) => {
+        const statusClass =
+          user.status === 'ACTIVE'
+            ? 'status-active'
+            : user.status === 'PENDING'
+              ? 'status-pending'
+              : 'status-inactive';
+        const recovery = user._count?.recoveryQuestions || 0;
+        const nextStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+        const userCode =
+          user.employee?.employeeCode ||
+          (user.email && user.email.endsWith('@msa.local') ? user.email.split('@')[0] : '');
+        const isStandardEmail = user.email && !user.email.endsWith('@msa.local');
+        const displayMeta = userCode
+          ? `ID: ${userCode}${isStandardEmail ? ` (${user.email})` : ''}`
+          : user.email || '-';
+        const userFullName = fullName(user);
+        return `<tr><td><strong class="row-name">${escapeHtml(userFullName)}</strong><small class="row-meta">${escapeHtml(displayMeta)}</small></td><td>${escapeHtml(user.role?.name || '-')}</td><td><span class="status-pill ${statusClass}">${escapeHtml(user.status)}</span></td><td>${recovery}/2 preguntas</td><td><span class="table-actions"><button class="small-button quiet-button" data-edit-user-id="${user.id}" type="button">Editar</button><button class="small-button" data-user-id="${user.id}" data-user-status="${nextStatus}" type="button">${nextStatus === 'ACTIVE' ? 'Activar' : 'Desactivar'}</button><button class="small-button danger-button" data-delete-user-id="${user.id}" data-user-name="${escapeHtml(userFullName)}" type="button">Eliminar</button></span></td></tr>`;
+      })
+      .join('')
     : '<tr><td colspan="5">No hay usuarios registrados.</td></tr>';
+}
+
+async function openEditUserDialog(userId) {
+  if (!state.roles.length) await loadRolesAndPermissions();
+  try {
+    const user = await api(`/users/${userId}`);
+    query('#edit-user-id').value = user.id;
+    query('#edit-user-first-name').value = user.firstName || '';
+    query('#edit-user-last-name').value = user.lastName || '';
+    const userCode =
+      user.employee?.employeeCode ||
+      (user.email && user.email.endsWith('@msa.local') ? user.email.split('@')[0] : '');
+    const isInternalEmail = user.email && user.email.endsWith('@msa.local');
+    query('#edit-user-id-input').value = userCode || '';
+    query('#edit-user-email').value = isInternalEmail ? '' : user.email || '';
+    if (query('#edit-user-password')) query('#edit-user-password').value = '';
+    query('#edit-user-role').innerHTML = state.roles
+      .map(
+        (role) =>
+          `<option value="${role.id}" ${role.id === user.role?.id ? 'selected' : ''}>${escapeHtml(role.name)}</option>`
+      )
+      .join('');
+    query('#edit-user-dialog').showModal();
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+async function updateUser() {
+  const form = query('#edit-user-form');
+  if (!form.reportValidity()) return;
+  const values = Object.fromEntries(new FormData(form));
+  const userId = values.userId;
+  delete values.userId;
+  if (values.email !== undefined) values.email = values.email.trim();
+  if (values.idUsuario !== undefined) values.idUsuario = values.idUsuario.trim();
+  if (!values.password?.trim()) {
+    delete values.password;
+  } else {
+    values.password = values.password.trim();
+  }
+  const button = query('#submit-edit-user-form');
+  button.disabled = true;
+  try {
+    await api(`/users/${userId}`, { method: 'PUT', body: JSON.stringify(values) });
+    query('#edit-user-dialog').close();
+    showToast('Usuario actualizado correctamente');
+    loadUsers();
+  } catch (error) {
+    showToast(error.message, 'error');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function deleteUser(button) {
+  const userId = button.dataset.deleteUserId;
+  const userName = button.dataset.userName || 'este usuario';
+  if (
+    !window.confirm(
+      `¿Estás seguro de que deseas eliminar permanentemente al usuario "${userName}"? Esta acción no se puede deshacer.`
+    )
+  )
+    return;
+  button.disabled = true;
+  try {
+    await api(`/users/${userId}`, { method: 'DELETE' });
+    showToast('Usuario eliminado correctamente');
+    loadUsers();
+  } catch (error) {
+    showToast(error.message, 'error');
+    button.disabled = false;
+  }
 }
 
 async function loadUsers() {
@@ -2272,12 +2430,38 @@ async function loadRolesAndPermissions() {
 function renderRoles() {
   query('#roles-list').innerHTML = state.roles.length
     ? state.roles
-        .map(
-          (role) =>
-            `<button class="role-row ${role.id === state.selectedRoleId ? 'active' : ''}" data-role-id="${role.id}" type="button"><strong>${escapeHtml(role.name)}</strong><small>${escapeHtml(role.description || 'Sin descripción')}</small></button>`
-        )
-        .join('')
+      .map(
+        (role) =>
+          `<button class="role-row ${role.id === state.selectedRoleId ? 'active' : ''}" data-role-id="${role.id}" type="button"><strong>${escapeHtml(role.name)}</strong><small>${escapeHtml(role.description || 'Sin descripción')}</small></button>`
+      )
+      .join('')
     : '<p class="empty-state">No hay roles configurados.</p>';
+}
+
+function openRoleDialog() {
+  const form = query('#create-role-form');
+  form.reset();
+  query('#role-dialog').showModal();
+}
+
+async function createRole() {
+  const form = query('#create-role-form');
+  if (!form.reportValidity()) return;
+  const values = Object.fromEntries(new FormData(form));
+  const button = query('#submit-role-form');
+  button.disabled = true;
+  try {
+    const created = await api('/roles', { method: 'POST', body: JSON.stringify(values) });
+    query('#role-dialog').close();
+    form.reset();
+    showToast('Rol creado exitosamente');
+    state.selectedRoleId = created?.id;
+    await loadRolesAndPermissions();
+  } catch (error) {
+    showToast(error.message, 'error');
+  } finally {
+    button.disabled = false;
+  }
 }
 
 const PERMISSION_LABELS = {
@@ -2610,11 +2794,11 @@ async function loadSessions() {
     const sessions = await api('/auth/sessions');
     query('#sessions-list').innerHTML = sessions.length
       ? sessions
-          .map(
-            (session) =>
-              `<div class="session-row"><span><strong class="row-name">${escapeHtml(session.userAgent || 'Dispositivo no identificado')}</strong><small class="row-meta">${escapeHtml(session.ipAddress || 'IP no disponible')} · ${formatDate(session.lastActiveAt, { dateStyle: 'medium', timeStyle: 'short' })}${session.rememberMe ? ' · Recordada' : ''}</small></span>${session.current ? '<span class="status-pill status-active">Actual</span>' : `<button class="quiet-button" data-session-id="${session.id}" type="button">Cerrar</button>`}</div>`
-          )
-          .join('')
+        .map(
+          (session) =>
+            `<div class="session-row"><span><strong class="row-name">${escapeHtml(session.userAgent || 'Dispositivo no identificado')}</strong><small class="row-meta">${escapeHtml(session.ipAddress || 'IP no disponible')} · ${formatDate(session.lastActiveAt, { dateStyle: 'medium', timeStyle: 'short' })}${session.rememberMe ? ' · Recordada' : ''}</small></span>${session.current ? '<span class="status-pill status-active">Actual</span>' : `<button class="quiet-button" data-session-id="${session.id}" type="button">Cerrar</button>`}</div>`
+        )
+        .join('')
       : '<p class="empty-state">No hay sesiones activas.</p>';
   } catch (error) {
     showMessage(error.message);
@@ -2806,6 +2990,7 @@ function bindEvents() {
   query('#refresh-profile').addEventListener('click', loadProfile);
   query('#profile-form').addEventListener('submit', saveProfile);
   query('#profile-password-form').addEventListener('submit', changeOwnPassword);
+  query('#theme-toggle-button')?.addEventListener('click', toggleTheme);
   query('#profile-recovery-form').addEventListener('submit', saveOwnRecoveryQuestions);
   query('#notification-button').addEventListener('click', () => {
     const menu = query('#notification-menu');
@@ -2823,6 +3008,9 @@ function bindEvents() {
   });
   query('#open-user-dialog').addEventListener('click', openUserDialog);
   query('#submit-user-form').addEventListener('click', createUser);
+  query('#submit-edit-user-form')?.addEventListener('click', updateUser);
+  query('#open-role-dialog')?.addEventListener('click', openRoleDialog);
+  query('#submit-role-form')?.addEventListener('click', createRole);
   query('#save-role-permissions').addEventListener('click', saveRolePermissions);
   query('#select-all-permissions')?.addEventListener('click', () => {
     queryAll('#permissions-list input[type="checkbox"]').forEach((cb) => (cb.checked = true));
@@ -2847,7 +3035,9 @@ function bindEvents() {
     if (!target) return;
     if (target.dataset.reviewId) reviewRequest(target);
     if (target.dataset.requestCancelId) cancelRequest(target);
+    if (target.dataset.editUserId) openEditUserDialog(target.dataset.editUserId);
     if (target.dataset.userId) setUserStatus(target);
+    if (target.dataset.deleteUserId) deleteUser(target);
     if (target.dataset.roleId) selectRole(target.dataset.roleId);
     if (target.dataset.sessionId) revokeSession(target);
     if (target.dataset.notificationId) markNotificationRead(target.dataset.notificationId);
@@ -2868,7 +3058,34 @@ function bindEvents() {
   });
 }
 
+const themeStorageKey = 'msa-theme';
+
+function initTheme() {
+  const savedTheme = localStorage.getItem(themeStorageKey);
+  const systemPrefersDark =
+    window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+  applyTheme(theme);
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(themeStorageKey, theme);
+  const toggleBtn = query('#theme-toggle-button');
+  if (toggleBtn) {
+    toggleBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    toggleBtn.title = theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro';
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+}
+
 function initialize() {
+  initTheme();
   setupLogoFallbacks();
   setupAppInstallation();
   updateClock();

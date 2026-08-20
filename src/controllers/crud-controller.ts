@@ -37,19 +37,45 @@ export class CrudController {
     if (!item) return next(new AppError(404, `${this.label} no encontrado`));
     return ok(response, `${this.label} obtenido correctamente`, item);
   };
-  create = async (request: Request, response: Response) =>
-    ok(
-      response,
-      `${this.label} registrado correctamente`,
-      await this.model.create({ data: request.body }),
-      201
-    );
-  update = async (request: Request, response: Response) =>
-    ok(
-      response,
-      `${this.label} actualizado correctamente`,
-      await this.model.update({ where: { id: String(request.params.id) }, data: request.body })
-    );
+  create = async (request: Request, response: Response) => {
+    try {
+      return ok(
+        response,
+        `${this.label} registrado correctamente`,
+        await this.model.create({ data: request.body }),
+        201
+      );
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === 'P2002'
+      ) {
+        throw new AppError(409, `Ya existe un registro en ${this.label} con ese nombre`);
+      }
+      throw error;
+    }
+  };
+  update = async (request: Request, response: Response) => {
+    try {
+      return ok(
+        response,
+        `${this.label} actualizado correctamente`,
+        await this.model.update({ where: { id: String(request.params.id) }, data: request.body })
+      );
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === 'P2002'
+      ) {
+        throw new AppError(409, `Ya existe un registro en ${this.label} con ese nombre`);
+      }
+      throw error;
+    }
+  };
   remove = async (request: Request, response: Response) => {
     await this.model.delete({ where: { id: String(request.params.id) } });
     return response.status(204).send();

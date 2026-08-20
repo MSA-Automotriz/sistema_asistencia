@@ -4,7 +4,8 @@ import { AppError } from '../../common/errors/app-error.js';
 import { prisma } from '../../database/prisma.js';
 
 export type CreateUserInput = {
-  email: string;
+  email?: string;
+  idUsuario?: string;
   password: string;
   firstName: string;
   lastName: string;
@@ -14,6 +15,8 @@ export type CreateUserInput = {
 
 export type UpdateUserInput = {
   email?: string;
+  idUsuario?: string;
+  password?: string;
   firstName?: string;
   lastName?: string;
   roleId?: string;
@@ -31,6 +34,7 @@ const userDetails = {
   createdAt: true,
   updatedAt: true,
   role: { select: { id: true, name: true, description: true } },
+  employee: { select: { id: true, employeeCode: true } },
   userPermissions: {
     select: { permission: { select: { id: true, code: true, description: true } } }
   },
@@ -59,48 +63,123 @@ export class UserManagementService {
 
   async create(input: CreateUserInput) {
     await this.ensureRole(input.roleId);
+    const idValue = input.idUsuario?.trim();
+    const rawEmail = input.email?.trim() || (idValue ? `${idValue}@msa.local` : '');
+    if (!rawEmail)
+      throw new AppError(400, 'Debe proporcionar un ID de usuario o correo electrónico');
+
     try {
-      return await prisma.user.create({
-        data: {
-          email: input.email.toLocaleLowerCase(),
-          passwordHash: await bcrypt.hash(input.password, 12),
-          firstName: input.firstName,
-          lastName: input.lastName,
-          roleId: input.roleId,
-          status: input.status ?? UserStatus.PENDING
-        },
-        select: userDetails
+      return await prisma.$transaction(async (transaction) => {
+        const user = await transaction.user.create({
+          data: {
+            email: rawEmail.toLocaleLowerCase(),
+            passwordHash: await bcrypt.hash(input.password, 12),
+            firstName: input.firstName,
+            lastName: input.lastName,
+            roleId: input.roleId,
+            status: input.status ?? UserStatus.PENDING
+          },
+          select: userDetails
+        });
+
+        if (idValue) {
+          const defaultCompany = await transaction.company.findFirst();
+          if (defaultCompany) {
+            await transaction.employee.create({
+              data: {
+                userId: user.id,
+                companyId: defaultCompany.id,
+                employeeCode: idValue,
+                hiredAt: new Date(),
+                active: true
+              }
+            });
+          }
+        }
+
+        return (await transaction.user.findUnique({
+          where: { id: user.id },
+          select: userDetails
+        }))!;
       });
     } catch (error) {
-      this.throwConflictIfUnique(error, 'Ya existe un usuario con ese correo electrónico');
+      this.throwConflictIfUnique(
+        error,
+        'Ya existe un usuario registrado con ese ID o correo electrónico'
+      );
       throw error;
     }
   }
 
   async update(userId: string, input: UpdateUserInput) {
-    await this.get(userId);
+    const existing = await this.get(userId);
     if (input.roleId) await this.ensureRole(input.roleId);
+    const idValue = input.idUsuario?.trim();
+    const hasEmail = input.email !== undefined && input.email.trim() !== '';
+    const targetEmail = hasEmail
+      ? input.email!.trim().toLocaleLowerCase()
+      : idValue && existing.email.endsWith('@msa.local')
+        ? `${idValue}@msa.local`.toLocaleLowerCase()
+        : undefined;
+
+    const hasPassword = input.password !== undefined && input.password.trim().length >= 8;
+    const passwordHash = hasPassword ? await bcrypt.hash(input.password!.trim(), 12) : undefined;
+
     try {
       return await prisma.$transaction(async (transaction) => {
-        const user = await transaction.user.update({
+        await transaction.user.update({
           where: { id: userId },
           data: {
-            email: input.email?.toLocaleLowerCase(),
+            email: targetEmail,
             firstName: input.firstName,
             lastName: input.lastName,
-            roleId: input.roleId
-          },
-          select: userDetails
+            roleId: input.roleId,
+            ...(passwordHash ? { passwordHash, failedLoginAttempts: 0, lockedUntil: null } : {})
+          }
         });
-        if (input.roleId)
+
+        if (idValue) {
+          const existingEmployee = await transaction.employee.findUnique({
+            where: { userId }
+          });
+
+          if (existingEmployee) {
+            await transaction.employee.update({
+              where: { userId },
+              data: { employeeCode: idValue }
+            });
+          } else {
+            const defaultCompany = await transaction.company.findFirst();
+            if (defaultCompany) {
+              await transaction.employee.create({
+                data: {
+                  userId,
+                  companyId: defaultCompany.id,
+                  employeeCode: idValue,
+                  hiredAt: new Date(),
+                  active: true
+                }
+              });
+            }
+          }
+        }
+
+        if (passwordHash || input.roleId)
           await transaction.session.updateMany({
             where: { userId, revokedAt: null },
             data: { revokedAt: new Date() }
           });
-        return user;
+
+        return (await transaction.user.findUnique({
+          where: { id: userId },
+          select: userDetails
+        }))!;
       });
     } catch (error) {
-      this.throwConflictIfUnique(error, 'Ya existe un usuario con ese correo electrónico');
+      this.throwConflictIfUnique(
+        error,
+        'Ya existe un usuario registrado con ese ID o correo electrónico'
+      );
       throw error;
     }
   }
@@ -143,7 +222,30 @@ export class UserManagementService {
 
   async remove(userId: string) {
     await this.get(userId);
-    await prisma.user.delete({ where: { id: userId } });
+    return prisma.$transaction(async (tx) => {
+      const employee = await tx.employee.findUnique({ where: { userId } });
+      if (employee) {
+        await tx.attendance.deleteMany({ where: { employeeId: employee.id } });
+        await tx.vacation.deleteMany({ where: { employeeId: employee.id } });
+        await tx.workPermission.deleteMany({ where: { employeeId: employee.id } });
+        await tx.license.deleteMany({ where: { employeeId: employee.id } });
+        await tx.overtimeRequest.deleteMany({ where: { employeeId: employee.id } });
+        await tx.employee.updateMany({
+          where: { supervisorId: employee.id },
+          data: { supervisorId: null }
+        });
+        await tx.employee.delete({ where: { id: employee.id } });
+      }
+      await tx.session.deleteMany({ where: { userId } });
+      await tx.notification.deleteMany({ where: { userId } });
+      await tx.passwordResetToken.deleteMany({ where: { userId } });
+      await tx.recoveryQuestion.deleteMany({ where: { userId } });
+      await tx.userPermission.deleteMany({ where: { userId } });
+      await tx.device.deleteMany({ where: { userId } });
+      await tx.offlineAttendanceToken.deleteMany({ where: { userId } });
+      await tx.auditLog.deleteMany({ where: { userId } });
+      await tx.user.delete({ where: { id: userId } });
+    });
   }
 
   async assignRole(userId: string, roleId: string) {

@@ -28,9 +28,11 @@ const expirationMs = (value: string) => {
 };
 
 export class AuthService {
-  async login(email: string, password: string, meta: RequestMeta, rememberMe = false) {
-    const user = await prisma.user.findUnique({
-      where: { email },
+  async login(identifier: string, password: string, meta: RequestMeta, rememberMe = false) {
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ email: identifier }, { employee: { employeeCode: identifier } }]
+      },
       include: {
         role: { include: { rolePermissions: { include: { permission: true } } } },
         userPermissions: { include: { permission: true } }
@@ -174,9 +176,11 @@ export class AuthService {
     });
   }
 
-  async startPasswordRecovery(email: string) {
-    const user = await prisma.user.findUnique({
-      where: { email },
+  async startPasswordRecovery(identifier: string) {
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ email: identifier }, { employee: { employeeCode: identifier } }]
+      },
       include: { recoveryQuestions: { select: { id: true, question: true } } }
     });
     if (
@@ -202,18 +206,20 @@ export class AuthService {
   }
 
   async resetPasswordWithRecovery(
-    email: string,
+    identifier: string,
     recoveryToken: string,
     answers: RecoveryAnswerInput[],
     newPassword: string
   ) {
     const token = await prisma.passwordResetToken.findUnique({
       where: { tokenHash: hashToken(recoveryToken) },
-      include: { user: { include: { recoveryQuestions: true } } }
+      include: { user: { include: { recoveryQuestions: true, employee: true } } }
     });
+    const isMatchingUser =
+      token?.user.email === identifier || token?.user.employee?.employeeCode === identifier;
     if (
       !token ||
-      token.user.email !== email ||
+      !isMatchingUser ||
       token.usedAt ||
       token.expiresAt <= new Date() ||
       token.user.status !== 'ACTIVE'

@@ -225,7 +225,7 @@ export class AttendanceOperationsService {
         ...attendances.map((item) => ({
           id: `attendance:${item.id}`,
           category: 'ATTENDANCE',
-          title: `${item.type === 'CHECK_IN' ? 'Entrada' : 'Salida'} - ${this.employeeName(item.employee)}`,
+          title: `${item.type === 'CHECK_IN' ? 'Entrada' : item.type === 'BREAK_OUT' ? 'Salida Refrigerio' : item.type === 'BREAK_IN' ? 'Retorno Refrigerio' : 'Salida'} - ${this.employeeName(item.employee)}`,
           start: item.recordedAt,
           end: item.recordedAt,
           status: item.status,
@@ -340,26 +340,58 @@ export class AttendanceOperationsService {
       select: { type: true, recordedAt: true }
     });
 
-    if (input.type === 'CHECK_IN' && lastAttendance?.type === 'CHECK_IN') {
-      throw new AppError(
-        400,
-        'Ya cuenta con una Entrada registrada sin Salida. Debe registrar su Salida antes de volver a ingresar.'
-      );
-    }
+    let lastBreakOutAt: Date | null = null;
 
-    if (input.type === 'CHECK_OUT' && (!lastAttendance || lastAttendance.type === 'CHECK_OUT')) {
-      throw new AppError(
-        400,
-        'No puede registrar una Salida sin contar con un registro de Entrada previo activo.'
-      );
+    if (!lastAttendance || lastAttendance.type === 'CHECK_OUT') {
+      if (input.type !== 'CHECK_IN') {
+        throw new AppError(
+          400,
+          'Primero debe registrar su Entrada antes de cualquier otro movimiento.'
+        );
+      }
+    } else if (lastAttendance.type === 'CHECK_IN') {
+      if (input.type === 'CHECK_IN') {
+        throw new AppError(
+          400,
+          'Ya cuenta con una Entrada registrada. Su siguiente marcación debe ser Salida a Refrigerio.'
+        );
+      }
+      if (input.type === 'BREAK_IN') {
+        throw new AppError(
+          400,
+          'Debe registrar primero su Salida a Refrigerio antes del Retorno.'
+        );
+      }
+      if (input.type === 'CHECK_OUT') {
+        throw new AppError(
+          400,
+          'Debe registrar su período de Refrigerio (Salida y Retorno) antes de marcar su Salida de la jornada.'
+        );
+      }
+    } else if (lastAttendance.type === 'BREAK_OUT') {
+      lastBreakOutAt = lastAttendance.recordedAt;
+      if (input.type !== 'BREAK_IN') {
+        throw new AppError(
+          400,
+          'Se encuentra en tiempo de refrigerio. Su siguiente marcación obligatoria es Retorno de Refrigerio.'
+        );
+      }
+    } else if (lastAttendance.type === 'BREAK_IN') {
+      if (input.type !== 'CHECK_OUT') {
+        throw new AppError(
+          400,
+          'Ya completó su Entrada y Refrigerio. Su siguiente marcación debe ser Salida de la jornada.'
+        );
+      }
     }
 
     const deviceMeta = parseUserAgent(meta.userAgent);
-    const status = determineAttendanceStatus(
+    const evaluation = determineAttendanceStatus(
       input.type,
       employee.schedule,
       input.recordedAt,
-      employee.company.timeZone
+      employee.company.timeZone,
+      lastBreakOutAt
     );
     return prisma.$transaction(async (transaction) => {
       if (input.deviceFingerprint) {
@@ -393,7 +425,8 @@ export class AttendanceOperationsService {
           employeeId: employee.id,
           siteId: site.id,
           type: input.type,
-          status,
+          status: evaluation.status,
+          excessMinutes: evaluation.excessMinutes,
           recordedAt: input.recordedAt,
           latitude: input.latitude,
           longitude: input.longitude,
@@ -433,13 +466,13 @@ export class AttendanceOperationsService {
       ...(filters.departmentId ? { departmentId: filters.departmentId } : {}),
       ...(filters.search
         ? {
-            OR: [
-              { employeeCode: { contains: filters.search } },
-              { user: { is: { firstName: { contains: filters.search } } } },
-              { user: { is: { lastName: { contains: filters.search } } } },
-              { user: { is: { email: { contains: filters.search } } } }
-            ]
-          }
+          OR: [
+            { employeeCode: { contains: filters.search } },
+            { user: { is: { firstName: { contains: filters.search } } } },
+            { user: { is: { lastName: { contains: filters.search } } } },
+            { user: { is: { email: { contains: filters.search } } } }
+          ]
+        }
         : {})
     };
   }

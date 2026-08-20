@@ -50,27 +50,59 @@ export class RegisterAttendance {
       select: { type: true, recordedAt: true }
     });
 
-    if (input.type === 'CHECK_IN' && lastAttendance?.type === 'CHECK_IN') {
-      throw new AppError(
-        400,
-        'Ya cuenta con una Entrada registrada sin Salida. Debe registrar su Salida antes de volver a ingresar.'
-      );
-    }
+    let lastBreakOutAt: Date | null = null;
 
-    if (input.type === 'CHECK_OUT' && (!lastAttendance || lastAttendance.type === 'CHECK_OUT')) {
-      throw new AppError(
-        400,
-        'No puede registrar una Salida sin contar con un registro de Entrada previo activo.'
-      );
+    if (!lastAttendance || lastAttendance.type === 'CHECK_OUT') {
+      if (input.type !== 'CHECK_IN') {
+        throw new AppError(
+          400,
+          'Primero debe registrar su Entrada antes de cualquier otro movimiento.'
+        );
+      }
+    } else if (lastAttendance.type === 'CHECK_IN') {
+      if (input.type === 'CHECK_IN') {
+        throw new AppError(
+          400,
+          'Ya cuenta con una Entrada registrada. Su siguiente marcación debe ser Salida a Refrigerio.'
+        );
+      }
+      if (input.type === 'BREAK_IN') {
+        throw new AppError(
+          400,
+          'Debe registrar primero su Salida a Refrigerio antes del Retorno.'
+        );
+      }
+      if (input.type === 'CHECK_OUT') {
+        throw new AppError(
+          400,
+          'Debe registrar su período de Refrigerio (Salida y Retorno) antes de marcar su Salida de la jornada.'
+        );
+      }
+    } else if (lastAttendance.type === 'BREAK_OUT') {
+      lastBreakOutAt = lastAttendance.recordedAt;
+      if (input.type !== 'BREAK_IN') {
+        throw new AppError(
+          400,
+          'Se encuentra en tiempo de refrigerio. Su siguiente marcación obligatoria es Retorno de Refrigerio.'
+        );
+      }
+    } else if (lastAttendance.type === 'BREAK_IN') {
+      if (input.type !== 'CHECK_OUT') {
+        throw new AppError(
+          400,
+          'Ya completó su Entrada y Refrigerio. Su siguiente marcación debe ser Salida de la jornada.'
+        );
+      }
     }
 
     const recordedAt = new Date();
     const deviceMeta = parseUserAgent(meta.userAgent ?? meta.browser);
-    const status = determineAttendanceStatus(
+    const evaluation = determineAttendanceStatus(
       input.type,
       employee.schedule,
       recordedAt,
-      employee.company.timeZone
+      employee.company.timeZone,
+      lastBreakOutAt
     );
     const attendance = await prisma.$transaction(async (tx) => {
       if (input.deviceFingerprint) {
@@ -99,7 +131,8 @@ export class RegisterAttendance {
           employeeId: employee.id,
           siteId: site.id,
           type: input.type,
-          status,
+          status: evaluation.status,
+          excessMinutes: evaluation.excessMinutes,
           recordedAt,
           latitude: input.latitude,
           longitude: input.longitude,

@@ -87,21 +87,21 @@ export class EmployeeSelfService {
         user,
         company: defaultSite
           ? {
-              id: defaultSite.companyId,
-              name: 'MSA Automotriz',
-              timeZone: 'America/Lima',
-              logoUrl: null
-            }
+            id: defaultSite.companyId,
+            name: 'MSA Automotriz',
+            timeZone: 'America/Lima',
+            logoUrl: null
+          }
           : null,
         site: defaultSite
           ? {
-              id: defaultSite.id,
-              name: defaultSite.name,
-              address: defaultSite.address,
-              latitude: Number(defaultSite.latitude),
-              longitude: Number(defaultSite.longitude),
-              radiusMeters: defaultSite.radiusMeters
-            }
+            id: defaultSite.id,
+            name: defaultSite.name,
+            address: defaultSite.address,
+            latitude: Number(defaultSite.latitude),
+            longitude: Number(defaultSite.longitude),
+            radiusMeters: defaultSite.radiusMeters
+          }
           : null,
         department: null,
         position: null,
@@ -113,10 +113,10 @@ export class EmployeeSelfService {
       ...employee,
       site: employee.site
         ? {
-            ...employee.site,
-            latitude: Number(employee.site.latitude),
-            longitude: Number(employee.site.longitude)
-          }
+          ...employee.site,
+          latitude: Number(employee.site.latitude),
+          longitude: Number(employee.site.longitude)
+        }
         : null
     };
   }
@@ -169,6 +169,7 @@ export class EmployeeSelfService {
         type: true,
         status: true,
         recordedAt: true,
+        excessMinutes: true,
         site: { select: { id: true, name: true } }
       }
     });

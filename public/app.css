@@ -749,6 +749,14 @@ select:focus {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   border: 1px solid var(--line);
 }
+.segmented-control.four-options {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 600px) {
+  .segmented-control.four-options {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
 .segmented-control label {
   display: block;
   position: relative;
@@ -776,6 +784,12 @@ select:focus {
 .segmented-control input:checked + span {
   color: #ffffff;
   background: var(--primary);
+}
+.segmented-control input:disabled + span {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: var(--paper-deep);
+  color: var(--gray);
 }
 .location-readout {
   display: flex;

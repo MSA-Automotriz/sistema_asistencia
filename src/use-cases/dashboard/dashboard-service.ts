@@ -134,16 +134,20 @@ export class DashboardService {
   }
 
   private hoursWorked(attendance: AttendanceEvent[]) {
-    const perEmployee = new Map<string, WorkAccumulator>();
+    const perEmployee = new Map<string, { workedMinutes: number; activeSegmentStart?: Date }>();
     for (const event of attendance) {
       const accumulator = perEmployee.get(event.employeeId) ?? { workedMinutes: 0 };
-      if (event.type === 'CHECK_IN') accumulator.checkInAt = event.recordedAt;
-      if (event.type === 'CHECK_OUT' && accumulator.checkInAt) {
+      if (event.type === 'CHECK_IN' || event.type === 'BREAK_IN') {
+        accumulator.activeSegmentStart = event.recordedAt;
+      } else if (
+        (event.type === 'BREAK_OUT' || event.type === 'CHECK_OUT') &&
+        accumulator.activeSegmentStart
+      ) {
         accumulator.workedMinutes += Math.max(
           0,
-          (event.recordedAt.getTime() - accumulator.checkInAt.getTime()) / 60_000
+          (event.recordedAt.getTime() - accumulator.activeSegmentStart.getTime()) / 60_000
         );
-        accumulator.checkInAt = undefined;
+        accumulator.activeSegmentStart = undefined;
       }
       perEmployee.set(event.employeeId, accumulator);
     }
