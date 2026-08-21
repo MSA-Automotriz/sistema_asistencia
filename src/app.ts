@@ -1,7 +1,9 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import compression from 'compression';
 import cors from 'cors';
 import express from 'express';
-import path from 'node:path';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -24,13 +26,22 @@ app.use(
 app.use(compression());
 app.use(express.json({ limit: '1mb' }));
 
-const rootDir = process.cwd();
-const publicDir = path.resolve(rootDir, 'public');
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const candidatePublicDirs = [
+  path.resolve(process.cwd(), 'public'),
+  path.resolve(currentDir, '..', 'public'),
+  path.resolve(currentDir, 'public')
+];
+const publicDir = candidatePublicDirs.find((dir) => fs.existsSync(dir)) || candidatePublicDirs[0];
 
-app.use(
-  '/vendor/leaflet',
-  express.static(path.resolve(rootDir, 'node_modules', 'leaflet', 'dist'))
-);
+const candidateLeafletDirs = [
+  path.resolve(process.cwd(), 'node_modules', 'leaflet', 'dist'),
+  path.resolve(currentDir, '..', 'node_modules', 'leaflet', 'dist'),
+  path.resolve(publicDir, 'vendor', 'leaflet')
+];
+const leafletDir = candidateLeafletDirs.find((dir) => fs.existsSync(dir)) || candidateLeafletDirs[0];
+
+app.use('/vendor/leaflet', express.static(leafletDir));
 app.use(express.static(publicDir));
 app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
 app.use(
@@ -44,7 +55,8 @@ app.use(
 );
 app.use('/api/v1', apiRouter);
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.get('*', (req, res, next) => {
+app.use((req, res, next) => {
+  if (req.method !== 'GET') return next();
   if (req.path.startsWith('/api')) return next();
   res.sendFile(path.join(publicDir, 'index.html'));
 });
