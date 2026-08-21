@@ -1,0 +1,22 @@
+export declare const env: {
+    PORT: number;
+    NODE_ENV: "development" | "test" | "production";
+    APP_NAME: string;
+    DATABASE_URL: string;
+    JWT_SECRET: string;
+    JWT_REFRESH_SECRET: string;
+    JWT_EXPIRES_IN: string;
+    JWT_REFRESH_EXPIRES_IN: string;
+    JWT_REMEMBER_ME_EXPIRES_IN: string;
+    LOG_LEVEL: string;
+    OFFLINE_ATTENDANCE_EXPIRATION_HOURS: number;
+    GPS_RADIUS_METERS: number;
+    CORS_ORIGIN: string;
+    BACKUP_DIRECTORY: string;
+    SMTP_HOST?: string | undefined;
+    SMTP_PORT?: number | undefined;
+    SMTP_USER?: string | undefined;
+    SMTP_PASSWORD?: string | undefined;
+    SMTP_FROM?: string | undefined;
+    MYSQLDUMP_PATH?: string | undefined;
+};
