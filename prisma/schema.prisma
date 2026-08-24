@@ -164,6 +164,7 @@ model User {
   userPermissions UserPermission[]
   devices Device[]
   offlineAttendanceTokens OfflineAttendanceToken[]
+  pushSubscriptions PushSubscription[]
 }
 
 model UserPermission {
@@ -487,3 +488,16 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([userId, createdAt])
 }
+
+model PushSubscription {
+  id String @id @default(cuid())
+  userId String
+  endpoint String @unique @db.VarChar(500)
+  p256dh String @db.Text
+  auth String @db.VarChar(255)
+  userAgent String? @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}

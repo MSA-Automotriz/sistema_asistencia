@@ -4,7 +4,9 @@ import { AppError } from '../../common/errors/app-error.js';
 import { env } from '../../config/env.js';
 import { prisma } from '../../database/prisma.js';
 import { logger } from '../../utils/logger.js';
+import { PushService } from './push-service.js';
 export class NotificationService {
+    pushService = new PushService();
     async create(input) {
         const notification = await prisma.notification.create({
             data: {
@@ -16,6 +18,14 @@ export class NotificationService {
                 metadata: input.metadata
             }
         });
+        // Envío en segundo plano: Web Push
+        void this.pushService.sendNotification(input.userId, {
+            title: input.title,
+            body: input.body,
+            type: input.type,
+            url: input.metadata?.url || '/'
+        });
+        // Envío en segundo plano: Correo
         if (this.canSendEmail())
             void this.sendEmail(input.userId, input.title, input.body);
         return notification;

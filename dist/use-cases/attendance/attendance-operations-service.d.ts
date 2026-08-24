@@ -59,9 +59,9 @@ export declare class AttendanceOperationsService {
             ipAddress: string | null;
             siteId: string;
             device: string | null;
-            employeeId: string;
             latitude: number;
             longitude: number;
+            employeeId: string;
             recordedAt: Date;
             distanceMeters: number;
             approximateAddress: string | null;
@@ -136,9 +136,9 @@ export declare class AttendanceOperationsService {
         ipAddress: string | null;
         siteId: string;
         device: string | null;
-        employeeId: string;
         latitude: number;
         longitude: number;
+        employeeId: string;
         recordedAt: Date;
         distanceMeters: number;
         approximateAddress: string | null;

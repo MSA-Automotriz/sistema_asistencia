@@ -16,7 +16,8 @@ const createUserSchema = z.object({
         firstName: z.string().trim().min(1).max(100),
         lastName: z.string().trim().min(1).max(100),
         roleId: z.string().min(1),
-        status: z.nativeEnum(UserStatus).optional()
+        status: z.nativeEnum(UserStatus).optional(),
+        siteId: z.string().trim().optional().or(z.literal('')).nullable()
     })
         .strict()
 });
@@ -28,7 +29,8 @@ const updateUserSchema = z.object({
         password: z.string().min(8).max(128).optional().or(z.literal('')),
         firstName: z.string().trim().min(1).max(100).optional(),
         lastName: z.string().trim().min(1).max(100).optional(),
-        roleId: z.string().min(1).optional()
+        roleId: z.string().min(1).optional(),
+        siteId: z.string().trim().optional().or(z.literal('')).nullable()
     })
         .strict()
         .refine((data) => Object.values(data).some((value) => value !== undefined), 'Debe indicar al menos un campo para actualizar')
@@ -52,6 +54,12 @@ usersRouter.get('/users', authorize('users.read'), async (request, response) => 
     return ok(response, 'Usuarios obtenidos correctamente', await users.list(page, limit));
 });
 usersRouter.post('/users', authorize('users.create'), validate(createUserSchema), async (request, response) => ok(response, 'Usuario registrado correctamente', await users.create(request.body), 201));
+usersRouter.get('/users/export/pdf', authorize('users.read'), async (_request, response) => {
+    const exported = await users.exportPdf();
+    response.setHeader('content-type', exported.contentType);
+    response.setHeader('content-disposition', `attachment; filename="${exported.filename}"`);
+    return response.status(200).send(exported.content);
+});
 usersRouter.get('/users/:id', authorize('users.read'), async (request, response) => ok(response, 'Usuario obtenido correctamente', await users.get(String(request.params.id))));
 usersRouter.put('/users/:id', authorize('users.update'), validate(updateUserSchema), async (request, response) => ok(response, 'Usuario actualizado correctamente', await users.update(String(request.params.id), request.body)));
 usersRouter.patch('/users/:id', authorize('users.update'), validate(updateUserSchema), async (request, response) => ok(response, 'Usuario actualizado correctamente', await users.update(String(request.params.id), request.body)));

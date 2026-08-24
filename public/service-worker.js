@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'msa-asistencia-';
-const CACHE_NAME = `${CACHE_PREFIX}v6`;
+const CACHE_NAME = `${CACHE_PREFIX}v7`;
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -100,3 +100,71 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// --- NOTIFICACIONES WEB PUSH API ---
+self.addEventListener('push', (event) => {
+  let data = {
+    title: 'MSA Asistencia',
+    body: 'Tiene una nueva notificación en el sistema.',
+    url: '/',
+    type: 'DEFAULT',
+    tag: `msa-alert-${Date.now()}`
+  };
+
+  if (event.data) {
+    try {
+      const parsed = event.data.json();
+      data = { ...data, ...parsed };
+    } catch {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: '/images/logo_msa_app.png',
+    badge: '/images/logo_msa_app.png',
+    vibrate: [200, 100, 200],
+    data: {
+      url: data.url || '/',
+      type: data.type
+    },
+    tag: data.tag || 'msa-general-alert',
+    renotify: true,
+    actions: [
+      { action: 'open', title: 'Abrir sistema' },
+      { action: 'close', title: 'Cerrar' }
+    ]
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'close') return;
+
+  const targetUrl = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if (client.url && 'focus' in client) {
+            client.postMessage({
+              type: 'PUSH_NOTIFICATION_CLICKED',
+              url: targetUrl,
+              data: event.notification.data
+            });
+            return client.focus();
+          }
+        }
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(targetUrl);
+        }
+      })
+  );
+});
+

@@ -1,7 +1,9 @@
 import { AnnouncementStatus, UserStatus } from '@prisma/client';
 import { AppError } from '../../common/errors/app-error.js';
 import { prisma } from '../../database/prisma.js';
+import { PushService } from '../notifications/push-service.js';
 export class AnnouncementService {
+    pushService = new PushService();
     async create(createdById, input) {
         return prisma.announcement.create({
             data: { ...input, createdById },
@@ -55,8 +57,8 @@ export class AnnouncementService {
         if (announcement.status === AnnouncementStatus.PUBLISHED)
             return announcement;
         const publishedAt = new Date();
-        return prisma.$transaction(async (transaction) => {
-            const published = await transaction.announcement.update({
+        const published = await prisma.$transaction(async (transaction) => {
+            const pub = await transaction.announcement.update({
                 where: { id: announcement.id },
                 data: { status: AnnouncementStatus.PUBLISHED, publishedAt }
             });
@@ -78,8 +80,17 @@ export class AnnouncementService {
                     }))
                 });
             }
-            return published;
+            return { pub, recipientIds: recipients.map((r) => r.id) };
         });
+        if (published.recipientIds.length) {
+            void this.pushService.sendNotificationToMany(published.recipientIds, {
+                title: announcement.title,
+                body: announcement.body,
+                type: 'ANNOUNCEMENT',
+                url: '/#announcements'
+            });
+        }
+        return published.pub;
     }
     async archive(announcementId) {
         const result = await prisma.announcement.updateMany({

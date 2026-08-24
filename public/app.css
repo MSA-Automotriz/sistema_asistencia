@@ -1790,3 +1790,119 @@ tbody tr:hover td {
     grid-template-columns: 1fr;
   }
 }
+
+/* WEB PUSH NOTIFICATIONS UI */
+.notification-push-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--paper-deep);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.push-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.push-status-dot.active {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.push-status-dot.blocked {
+  background: #ef4444;
+}
+
+.push-status-text {
+  flex: 1;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.push-device-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--paper-deep);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+@media (max-width: 600px) {
+  .push-device-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.push-device-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.push-device-info strong {
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.push-device-info small {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.notification-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.notification-item:hover {
+  background: var(--paper-deep);
+}
+
+.notification-item.unread {
+  background: rgba(227, 6, 19, 0.04);
+  border-left: 3px solid var(--primary);
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.notification-header strong {
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.notification-header small {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.notification-body {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+  margin: 0;
+}
+

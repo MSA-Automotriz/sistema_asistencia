@@ -8,6 +8,7 @@ export type CreateNotificationInput = {
     metadata?: Prisma.InputJsonValue;
 };
 export declare class NotificationService {
+    private pushService;
     create(input: CreateNotificationInput): Promise<{
         type: string | null;
         id: string;

@@ -31,7 +31,10 @@ const schema = z.object({
   SMTP_PASSWORD: z.string().min(1).optional(),
   SMTP_FROM: z.string().email().optional(),
   BACKUP_DIRECTORY: z.string().min(1).default('logs/backups'),
-  MYSQLDUMP_PATH: z.string().min(1).optional()
+  MYSQLDUMP_PATH: z.string().min(1).optional(),
+  VAPID_PUBLIC_KEY: z.string().min(1).default('BPnDAzqwjXc8ZcQKDOk3qZT_5QEY9zwp3-r8LUe6bFsP7c1RHk6oxgWDoz-ijYk43DzxJwVo9Z1isT3Hi0x8xwk'),
+  VAPID_PRIVATE_KEY: z.string().min(1).default('d3nM-qTeiLQZRNEOJVNYQL5CmopqiutfNmL-px28Xlk'),
+  VAPID_SUBJECT: z.string().min(1).default('mailto:contacto@msaautomotriz.com')
 });
 
 export const env = schema.parse(process.env);

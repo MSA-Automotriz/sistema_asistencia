@@ -7,6 +7,7 @@ export type CreateUserInput = {
     lastName: string;
     roleId: string;
     status?: UserStatus;
+    siteId?: string | null;
 };
 export type UpdateUserInput = {
     email?: string;
@@ -15,6 +16,7 @@ export type UpdateUserInput = {
     firstName?: string;
     lastName?: string;
     roleId?: string;
+    siteId?: string | null;
 };
 export declare class UserManagementService {
     list(page: number, limit: number): Promise<{
@@ -36,7 +38,12 @@ export declare class UserManagementService {
             };
             employee: {
                 id: string;
+                siteId: string | null;
                 employeeCode: string;
+                site: {
+                    id: string;
+                    name: string;
+                } | null;
             } | null;
             userPermissions: {
                 permission: {
@@ -74,7 +81,12 @@ export declare class UserManagementService {
         };
         employee: {
             id: string;
+            siteId: string | null;
             employeeCode: string;
+            site: {
+                id: string;
+                name: string;
+            } | null;
         } | null;
         userPermissions: {
             permission: {
@@ -106,7 +118,12 @@ export declare class UserManagementService {
         };
         employee: {
             id: string;
+            siteId: string | null;
             employeeCode: string;
+            site: {
+                id: string;
+                name: string;
+            } | null;
         } | null;
         userPermissions: {
             permission: {
@@ -138,7 +155,12 @@ export declare class UserManagementService {
         };
         employee: {
             id: string;
+            siteId: string | null;
             employeeCode: string;
+            site: {
+                id: string;
+                name: string;
+            } | null;
         } | null;
         userPermissions: {
             permission: {
@@ -170,7 +192,12 @@ export declare class UserManagementService {
         };
         employee: {
             id: string;
+            siteId: string | null;
             employeeCode: string;
+            site: {
+                id: string;
+                name: string;
+            } | null;
         } | null;
         userPermissions: {
             permission: {
@@ -204,7 +231,12 @@ export declare class UserManagementService {
         };
         employee: {
             id: string;
+            siteId: string | null;
             employeeCode: string;
+            site: {
+                id: string;
+                name: string;
+            } | null;
         } | null;
         userPermissions: {
             permission: {
@@ -236,7 +268,12 @@ export declare class UserManagementService {
         };
         employee: {
             id: string;
+            siteId: string | null;
             employeeCode: string;
+            site: {
+                id: string;
+                name: string;
+            } | null;
         } | null;
         userPermissions: {
             permission: {
@@ -249,6 +286,11 @@ export declare class UserManagementService {
             sessions: number;
             recoveryQuestions: number;
         };
+    }>;
+    exportPdf(): Promise<{
+        content: Buffer;
+        contentType: string;
+        filename: string;
     }>;
     private ensureRole;
     private ensurePermissions;

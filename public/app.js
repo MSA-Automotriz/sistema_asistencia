@@ -8,6 +8,7 @@ const state = {
   storage: null,
   roles: [],
   permissions: [],
+  sites: [],
   selectedRoleId: null,
   recovery: null,
   attendanceLocation: null,
@@ -756,6 +757,166 @@ async function markAllNotificationsRead() {
     showToast(error.message, 'error');
   }
 }
+
+// --- GESTIÓN DE NOTIFICACIONES WEB PUSH ---
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function getPushSubscription() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    return await registration.pushManager.getSubscription();
+  } catch {
+    return null;
+  }
+}
+
+async function updatePushStatusUI() {
+  const dropdownDot = query('#push-status-dot');
+  const dropdownLabel = query('#push-status-label');
+  const dropdownBtn = query('#push-toggle-btn');
+  const profileStatus = query('#profile-push-status');
+  const profileDetail = query('#profile-push-detail');
+  const profileBtn = query('#profile-push-toggle');
+  const profileTestBtn = query('#profile-push-test');
+
+  if (!('PushManager' in window) || !('serviceWorker' in navigator) || !('Notification' in window)) {
+    if (dropdownLabel) dropdownLabel.textContent = 'Push no compatible';
+    if (dropdownBtn) dropdownBtn.hidden = true;
+    if (profileStatus) profileStatus.textContent = 'No compatible con este navegador';
+    if (profileDetail) profileDetail.textContent = 'Tu navegador no soporta la Web Push API';
+    if (profileBtn) profileBtn.hidden = true;
+    if (profileTestBtn) profileTestBtn.hidden = true;
+    return;
+  }
+
+  const permission = Notification.permission;
+  const subscription = await getPushSubscription();
+
+  if (permission === 'denied') {
+    if (dropdownDot) dropdownDot.className = 'push-status-dot blocked';
+    if (dropdownLabel) dropdownLabel.textContent = 'Push: Permiso bloqueado';
+    if (dropdownBtn) {
+      dropdownBtn.textContent = 'Bloqueado';
+      dropdownBtn.disabled = true;
+    }
+    if (profileStatus) profileStatus.textContent = 'Permiso bloqueado en el navegador';
+    if (profileDetail) profileDetail.textContent = 'Debes habilitar notificaciones en la configuración del sitio de tu navegador';
+    if (profileBtn) {
+      profileBtn.textContent = 'Bloqueado';
+      profileBtn.disabled = true;
+    }
+    if (profileTestBtn) profileTestBtn.hidden = true;
+  } else if (subscription) {
+    if (dropdownDot) dropdownDot.className = 'push-status-dot active';
+    if (dropdownLabel) dropdownLabel.textContent = 'Push: Activo en este equipo';
+    if (dropdownBtn) {
+      dropdownBtn.textContent = 'Desactivar';
+      dropdownBtn.disabled = false;
+    }
+    if (profileStatus) profileStatus.textContent = 'Estado: Activo';
+    if (profileDetail) profileDetail.textContent = 'Este equipo está registrado para recibir alertas nativas';
+    if (profileBtn) {
+      profileBtn.textContent = 'Desactivar en este equipo';
+      profileBtn.disabled = false;
+    }
+    if (profileTestBtn) profileTestBtn.hidden = false;
+  } else {
+    if (dropdownDot) dropdownDot.className = 'push-status-dot';
+    if (dropdownLabel) dropdownLabel.textContent = 'Push: Inactivo';
+    if (dropdownBtn) {
+      dropdownBtn.textContent = 'Activar';
+      dropdownBtn.disabled = false;
+    }
+    if (profileStatus) profileStatus.textContent = 'Estado: Inactivo';
+    if (profileDetail) profileDetail.textContent = 'Pulsa el botón para autorizar y recibir avisos instantáneos';
+    if (profileBtn) {
+      profileBtn.textContent = 'Activar en este equipo';
+      profileBtn.disabled = false;
+    }
+    if (profileTestBtn) profileTestBtn.hidden = true;
+  }
+}
+
+async function togglePushSubscription() {
+  if (!('PushManager' in window) || !('serviceWorker' in navigator) || !('Notification' in window)) {
+    showToast('Las notificaciones Push no están soportadas en este navegador', 'error');
+    return;
+  }
+
+  const dropdownBtn = query('#push-toggle-btn');
+  const profileBtn = query('#profile-push-toggle');
+  if (dropdownBtn) dropdownBtn.disabled = true;
+  if (profileBtn) profileBtn.disabled = true;
+
+  try {
+    const existing = await getPushSubscription();
+    if (existing) {
+      // Desactivar
+      await existing.unsubscribe();
+      await api('/push/unsubscribe', {
+        method: 'POST',
+        body: JSON.stringify({ endpoint: existing.endpoint })
+      }).catch(() => undefined);
+      showToast('Notificaciones Push desactivadas en este equipo');
+    } else {
+      // Solicitar permiso
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        showToast('Permiso de notificaciones denegado', 'error');
+        await updatePushStatusUI();
+        return;
+      }
+      const data = await rawRequest('/push/public-key');
+      const publicKey = data?.publicKey;
+      if (!publicKey) throw new Error('No se pudo obtener la clave VAPID del servidor');
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey)
+      });
+      const subJson = subscription.toJSON();
+      await api('/push/subscribe', {
+        method: 'POST',
+        body: JSON.stringify({
+          endpoint: subJson.endpoint,
+          keys: {
+            p256dh: subJson.keys.p256dh,
+            auth: subJson.keys.auth
+          }
+        })
+      });
+      showToast('¡Notificaciones Push activadas con éxito!');
+    }
+  } catch (error) {
+    showToast(error.message, 'error');
+  } finally {
+    await updatePushStatusUI();
+  }
+}
+
+async function sendTestPushNotification() {
+  const btn = query('#profile-push-test');
+  if (btn) btn.disabled = true;
+  try {
+    await api('/push/test', { method: 'POST' });
+    showToast('Notificación de prueba enviada a este equipo');
+  } catch (error) {
+    showToast(error.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 
 function attendanceStatusLabel(status) {
   return (
@@ -1551,6 +1712,7 @@ async function loadProfile() {
     }
 
     renderMyRequests(requests.items || []);
+    void updatePushStatusUI();
   } catch (error) {
     state.profile = null;
     showToast(error.message, 'error');
@@ -2287,6 +2449,18 @@ async function cancelRequest(button) {
   }
 }
 
+async function loadSites() {
+  if (state.sites && state.sites.length) return state.sites;
+  try {
+    const data = await api('/sites?limit=100');
+    state.sites = data.items || [];
+    return state.sites;
+  } catch (error) {
+    console.error('Error loading sites:', error);
+    return [];
+  }
+}
+
 function renderUsers(items) {
   query('#users-table').innerHTML = items.length
     ? items
@@ -2307,14 +2481,16 @@ function renderUsers(items) {
           ? `ID: ${userCode}${isStandardEmail ? ` (${user.email})` : ''}`
           : user.email || '-';
         const userFullName = fullName(user);
-        return `<tr><td><strong class="row-name">${escapeHtml(userFullName)}</strong><small class="row-meta">${escapeHtml(displayMeta)}</small></td><td>${escapeHtml(user.role?.name || '-')}</td><td><span class="status-pill ${statusClass}">${escapeHtml(user.status)}</span></td><td>${recovery}/2 preguntas</td><td><span class="table-actions"><button class="small-button quiet-button" data-edit-user-id="${user.id}" type="button">Editar</button><button class="small-button" data-user-id="${user.id}" data-user-status="${nextStatus}" type="button">${nextStatus === 'ACTIVE' ? 'Activar' : 'Desactivar'}</button><button class="small-button danger-button" data-delete-user-id="${user.id}" data-user-name="${escapeHtml(userFullName)}" type="button">Eliminar</button></span></td></tr>`;
+        const siteName = user.employee?.site?.name || '-';
+        return `<tr><td><strong class="row-name">${escapeHtml(userFullName)}</strong><small class="row-meta">${escapeHtml(displayMeta)}</small></td><td>${escapeHtml(user.role?.name || '-')}</td><td>${siteName !== '-' ? `<span class="badge-item" style="font-size: 0.82rem; padding: 2px 8px; border-radius: 4px; background: var(--surface-2, rgba(0,0,0,0.05)); font-weight: 500;">📍 ${escapeHtml(siteName)}</span>` : '<span style="color: var(--muted, #888);">-</span>'}</td><td><span class="status-pill ${statusClass}">${escapeHtml(user.status)}</span></td><td>${recovery}/2 preguntas</td><td><span class="table-actions"><button class="small-button quiet-button" data-edit-user-id="${user.id}" type="button">Editar</button><button class="small-button" data-user-id="${user.id}" data-user-status="${nextStatus}" type="button">${nextStatus === 'ACTIVE' ? 'Activar' : 'Desactivar'}</button><button class="small-button danger-button" data-delete-user-id="${user.id}" data-user-name="${escapeHtml(userFullName)}" type="button">Eliminar</button></span></td></tr>`;
       })
       .join('')
-    : '<tr><td colspan="5">No hay usuarios registrados.</td></tr>';
+    : '<tr><td colspan="6">No hay usuarios registrados.</td></tr>';
 }
 
 async function openEditUserDialog(userId) {
   if (!state.roles.length) await loadRolesAndPermissions();
+  await loadSites();
   try {
     const user = await api(`/users/${userId}`);
     query('#edit-user-id').value = user.id;
@@ -2333,6 +2509,15 @@ async function openEditUserDialog(userId) {
           `<option value="${role.id}" ${role.id === user.role?.id ? 'selected' : ''}>${escapeHtml(role.name)}</option>`
       )
       .join('');
+    const currentSiteId = user.employee?.siteId || user.employee?.site?.id || '';
+    query('#edit-user-site').innerHTML =
+      '<option value="">Sin sede / Sin asignar</option>' +
+      state.sites
+        .map(
+          (site) =>
+            `<option value="${site.id}" ${site.id === currentSiteId ? 'selected' : ''}>${escapeHtml(site.name)}</option>`
+        )
+        .join('');
     query('#edit-user-dialog').showModal();
   } catch (error) {
     showToast(error.message, 'error');
@@ -2347,6 +2532,7 @@ async function updateUser() {
   delete values.userId;
   if (values.email !== undefined) values.email = values.email.trim();
   if (values.idUsuario !== undefined) values.idUsuario = values.idUsuario.trim();
+  if (values.siteId !== undefined) values.siteId = values.siteId.trim() || null;
   if (!values.password?.trim()) {
     delete values.password;
   } else {
@@ -2393,6 +2579,41 @@ async function loadUsers() {
     renderUsers(data.items || []);
   } catch (error) {
     showMessage(error.message);
+  }
+}
+
+async function downloadUsersPdf() {
+  const button = query('#download-users-pdf');
+  if (button) button.disabled = true;
+  const request = async () => {
+    const response = await fetch(`${apiRoot}/users/export/pdf`, {
+      headers: { authorization: `Bearer ${state.session?.accessToken || ''}` }
+    });
+    if (response.status === 401 && state.session?.refreshToken) {
+      await refreshSession();
+      return fetch(`${apiRoot}/users/export/pdf`, {
+        headers: { authorization: `Bearer ${state.session?.accessToken || ''}` }
+      });
+    }
+    return response;
+  };
+  try {
+    const response = await request();
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      throw new Error(payload?.message || 'No fue posible exportar la lista de usuarios');
+    }
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'msa-usuarios.pdf';
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast('PDF de usuarios descargado correctamente');
+  } catch (error) {
+    showToast(error.message, 'error');
+  } finally {
+    if (button) button.disabled = false;
   }
 }
 
@@ -2819,9 +3040,16 @@ async function revokeSession(button) {
 
 async function openUserDialog() {
   if (!state.roles.length) await loadRolesAndPermissions();
+  await loadSites();
   query('#new-user-role').innerHTML = state.roles
     .map((role) => `<option value="${role.id}">${escapeHtml(role.name)}</option>`)
     .join('');
+  query('#new-user-site').innerHTML =
+    '<option value="">Sin sede / Sin asignar</option>' +
+    state.sites
+      .filter((site) => site.active !== false)
+      .map((site) => `<option value="${site.id}">${escapeHtml(site.name)}</option>`)
+      .join('');
   query('#user-dialog').showModal();
 }
 
@@ -2829,6 +3057,9 @@ async function createUser() {
   const form = query('#create-user-form');
   if (!form.reportValidity()) return;
   const values = Object.fromEntries(new FormData(form));
+  if (values.email !== undefined) values.email = values.email.trim();
+  if (values.idUsuario !== undefined) values.idUsuario = values.idUsuario.trim();
+  if (values.siteId !== undefined) values.siteId = values.siteId.trim() || null;
   const button = query('#submit-user-form');
   button.disabled = true;
   try {
@@ -2995,9 +3226,15 @@ function bindEvents() {
   query('#notification-button').addEventListener('click', () => {
     const menu = query('#notification-menu');
     menu.hidden = !menu.hidden;
-    if (!menu.hidden) loadNotifications();
+    if (!menu.hidden) {
+      loadNotifications();
+      void updatePushStatusUI();
+    }
   });
   query('#mark-notifications-read').addEventListener('click', markAllNotificationsRead);
+  query('#push-toggle-btn')?.addEventListener('click', togglePushSubscription);
+  query('#profile-push-toggle')?.addEventListener('click', togglePushSubscription);
+  query('#profile-push-test')?.addEventListener('click', sendTestPushNotification);
   query('#open-request-dialog').addEventListener('click', openRequestDialog);
   query('#request-type').addEventListener('change', setRequestFormType);
   query('#submit-request-form').addEventListener('click', submitRequestForm);
@@ -3006,6 +3243,7 @@ function bindEvents() {
   query('#close-roster').addEventListener('click', () => {
     query('#roster-panel').hidden = true;
   });
+  query('#download-users-pdf')?.addEventListener('click', downloadUsersPdf);
   query('#open-user-dialog').addEventListener('click', openUserDialog);
   query('#submit-user-form').addEventListener('click', createUser);
   query('#submit-edit-user-form')?.addEventListener('click', updateUser);
@@ -3092,8 +3330,15 @@ function initialize() {
   window.setInterval(updateClock, 15_000);
   bindEvents();
   if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'PUSH_NOTIFICATION_CLICKED') {
+        void loadNotifications();
+      }
+    });
     window.addEventListener('load', () => {
-      void navigator.serviceWorker.register('/service-worker.js').catch(() => undefined);
+      void navigator.serviceWorker.register('/service-worker.js').then(() => {
+        void updatePushStatusUI();
+      }).catch(() => undefined);
     });
   }
   const saved = getSavedSession();
@@ -3101,6 +3346,7 @@ function initialize() {
     state.session = saved.data;
     state.storage = saved.storage;
     showApp();
+    void updatePushStatusUI();
   }
 }
 

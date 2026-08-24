@@ -7,6 +7,7 @@ export type AnnouncementInput = {
     expiresAt?: Date | null;
 };
 export declare class AnnouncementService {
+    private pushService;
     create(createdById: string, input: AnnouncementInput): Promise<{
         company: {
             id: string;

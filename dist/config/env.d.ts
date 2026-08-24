@@ -13,6 +13,9 @@ export declare const env: {
     GPS_RADIUS_METERS: number;
     CORS_ORIGIN: string;
     BACKUP_DIRECTORY: string;
+    VAPID_PUBLIC_KEY: string;
+    VAPID_PRIVATE_KEY: string;
+    VAPID_SUBJECT: string;
     SMTP_HOST?: string | undefined;
     SMTP_PORT?: number | undefined;
     SMTP_USER?: string | undefined;

@@ -5,6 +5,8 @@ import { env } from '../../config/env.js';
 import { prisma } from '../../database/prisma.js';
 import { logger } from '../../utils/logger.js';
 
+import { PushService } from './push-service.js';
+
 export type CreateNotificationInput = {
   userId: string;
   title: string;
@@ -15,6 +17,8 @@ export type CreateNotificationInput = {
 };
 
 export class NotificationService {
+  private pushService = new PushService();
+
   async create(input: CreateNotificationInput) {
     const notification = await prisma.notification.create({
       data: {
@@ -26,6 +30,14 @@ export class NotificationService {
         metadata: input.metadata
       }
     });
+    // Envío en segundo plano: Web Push
+    void this.pushService.sendNotification(input.userId, {
+      title: input.title,
+      body: input.body,
+      type: input.type,
+      url: (input.metadata as { url?: string } | undefined)?.url || '/'
+    });
+    // Envío en segundo plano: Correo
     if (this.canSendEmail()) void this.sendEmail(input.userId, input.title, input.body);
     return notification;
   }

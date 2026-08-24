@@ -16,9 +16,11 @@ import { companiesRouter } from './companies.routes.js';
 import { backupsRouter } from './backups.routes.js';
 import { systemRouter } from './system.routes.js';
 import { crudRouter } from './crud.routes.js';
+import { pushRouter } from './push.routes.js';
 export const apiRouter = Router();
 // Rutas públicas y de autenticación base
 apiRouter.use(authRouter);
+apiRouter.use(pushRouter);
 // Middleware global de autenticación para todas las operaciones internas
 apiRouter.use(authenticate);
 // Módulos funcionales

@@ -1,7 +1,7 @@
 import { prisma } from '../../database/prisma.js';
 
 type AttendanceEvent = { employeeId: string; type: string; status: string; recordedAt: Date };
-type WorkAccumulator = { workedMinutes: number; checkInAt?: Date };
+
 
 const employeeDetails = {
   id: true,

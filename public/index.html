@@ -155,6 +155,11 @@
                   Marcar leídas
                 </button>
               </div>
+              <div class="notification-push-banner" id="push-dropdown-banner">
+                <span class="push-status-dot" id="push-status-dot"></span>
+                <span id="push-status-label" class="push-status-text">Notificaciones Push</span>
+                <button class="small-button text-button" id="push-toggle-btn" type="button">Activar</button>
+              </div>
               <div id="notification-list" class="notification-list"></div>
             </section>
           </div>
@@ -375,9 +380,14 @@
             <p class="eyebrow">Accesos</p>
             <h2>Usuarios</h2>
           </div>
-          <button id="open-user-dialog" class="primary-button" type="button">
-            Crear usuario
-          </button>
+          <div class="inline-actions">
+            <button id="download-users-pdf" class="quiet-button" type="button">
+              Descargar PDF
+            </button>
+            <button id="open-user-dialog" class="primary-button" type="button">
+              Crear usuario
+            </button>
+          </div>
         </div>
         <section class="data-panel table-panel">
           <div class="table-wrap">
@@ -386,6 +396,7 @@
                 <tr>
                   <th>Usuario</th>
                   <th>Rol</th>
+                  <th>Sede</th>
                   <th>Estado</th>
                   <th>Recuperación</th>
                   <th></th>
@@ -963,6 +974,28 @@
               <section class="data-panel">
                 <div class="panel-heading">
                   <div>
+                    <p class="eyebrow">Alertas en tiempo real</p>
+                    <h3>Notificaciones Push</h3>
+                  </div>
+                </div>
+                <div class="form-stack compact-form">
+                  <p class="field-help-text">Recibe avisos inmediatos en tu smartphone o computadora cuando se aprueben o rechacen tus solicitudes y cuando se publiquen anuncios urgentes.</p>
+                  <div class="push-device-card">
+                    <div class="push-device-info">
+                      <strong id="profile-push-status">Estado: Verificando...</strong>
+                      <small id="profile-push-detail">Comprobando permisos del navegador</small>
+                    </div>
+                    <div class="inline-actions">
+                      <button class="small-button" id="profile-push-toggle" type="button">Activar en este equipo</button>
+                      <button class="quiet-button" id="profile-push-test" type="button" hidden>Enviar prueba</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="data-panel">
+                <div class="panel-heading">
+                  <div>
                     <p class="eyebrow">Sesiones activas</p>
                     <h3>Mis dispositivos</h3>
                   </div>
@@ -995,6 +1028,9 @@
         <label>Contraseña<input name="password" type="password" autocomplete="new-password" minlength="8"
             required /></label>
         <label>Rol<select id="new-user-role" name="roleId" required></select></label>
+        <label>Sede<select id="new-user-site" name="siteId">
+            <option value="">Sin sede / Sin asignar</option>
+          </select></label>
         <label>Estado<select name="status">
             <option value="PENDING">Pendiente</option>
             <option value="ACTIVE">Activo</option>
@@ -1026,6 +1062,9 @@
         <label>Nombre<input id="edit-user-first-name" name="firstName" type="text" maxlength="100" required /></label>
         <label>Apellido<input id="edit-user-last-name" name="lastName" type="text" maxlength="100" required /></label>
         <label>Rol<select id="edit-user-role" name="roleId" required></select></label>
+        <label>Sede<select id="edit-user-site" name="siteId">
+            <option value="">Sin sede / Sin asignar</option>
+          </select></label>
         <label>Nueva contraseña (Opcional)<input id="edit-user-password" name="password" type="password"
             autocomplete="new-password" minlength="8" placeholder="En blanco para no cambiar" /></label>
       </div>
