@@ -1,0 +1,32 @@
+<dialog id="edit-user-dialog" class="dialog">
+    <form id="edit-user-form" class="dialog-content" method="dialog">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">Modificar accesos</p>
+          <h2>Editar usuario</h2>
+        </div>
+        <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+      </div>
+      <input type="hidden" id="edit-user-id" name="userId" />
+      <div class="dialog-grid">
+        <label>ID de Usuario (DNI)<input id="edit-user-id-input" name="idUsuario" type="text" maxlength="50"
+            placeholder="Ej: 74839201" /></label>
+        <label>Correo electrónico (Opcional)<input id="edit-user-email" name="email" type="email" autocomplete="email"
+            placeholder="correo@ejemplo.com (opcional)" /></label>
+        <label>Nombre<input id="edit-user-first-name" name="firstName" type="text" maxlength="100" required /></label>
+        <label>Apellido<input id="edit-user-last-name" name="lastName" type="text" maxlength="100" required /></label>
+        <label>Rol<select id="edit-user-role" name="roleId" required></select></label>
+        <label>Sede<select id="edit-user-site" name="siteId">
+            <option value="">Sin sede / Sin asignar</option>
+          </select></label>
+        <label>Nueva contraseña (Opcional)<input id="edit-user-password" name="password" type="password"
+            autocomplete="new-password" minlength="8" placeholder="En blanco para no cambiar" /></label>
+      </div>
+      <div class="dialog-actions">
+        <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+        <button class="primary-button" type="button" id="submit-edit-user-form">
+          Guardar cambios
+        </button>
+      </div>
+    </form>
+  </dialog>

@@ -1,0 +1,147 @@
+<div class="view-heading">
+          <div>
+            <p class="eyebrow" id="dashboard-welcome">Bienvenido</p>
+            <h2 id="dashboard-date">-</h2>
+          </div>
+          <button id="refresh-dashboard" class="quiet-button" type="button">Actualizar</button>
+        </div>
+
+        <!-- PANELES SEPARADOS SEGÚN EL ROL -->
+
+        <!-- 1. VISTA ADMINISTRATIVA / RRHH / GESTIÓN -->
+        <div id="admin-dashboard-view">
+          <div class="metrics-grid">
+            <button class="metric-card metric-teal" data-roster="present" type="button">
+              <span>Personal presente</span>
+              <strong id="metric-present">-</strong>
+              <small id="metric-attendance">-</small>
+            </button>
+            <button class="metric-card metric-coral" data-roster="absent" type="button">
+              <span>Personal ausente</span>
+              <strong id="metric-absent">-</strong>
+              <small>Sin entrada registrada</small>
+            </button>
+            <button class="metric-card metric-amber" data-roster="late" type="button">
+              <span>Tardanzas</span>
+              <strong id="metric-late">-</strong>
+              <small>Entradas del día</small>
+            </button>
+            <article class="metric-card metric-charcoal">
+              <span>Horas trabajadas</span>
+              <strong id="metric-hours">-</strong>
+              <small id="metric-average-hours">-</small>
+            </article>
+            <article class="metric-card metric-sand">
+              <span>Horas extra</span>
+              <strong id="metric-overtime">-</strong>
+              <small>Autorizadas hoy</small>
+            </article>
+            <article class="metric-card metric-ink">
+              <span>Permisos pendientes</span>
+              <strong id="metric-permissions">-</strong>
+              <small>Por revisar</small>
+            </article>
+          </div>
+
+          <!-- Sección de Anuncios en Vista Admin -->
+          <section class="data-panel announcement-dashboard-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Comunicación corporativa</p>
+                <h3>Anuncios publicados</h3>
+              </div>
+              <button class="small-button primary-button" id="quick-create-announcement" type="button">
+                Lanzar Anuncio
+              </button>
+            </div>
+            <div id="admin-announcements-list" class="dashboard-announcements-grid"></div>
+          </section>
+
+          <div class="dashboard-layout">
+            <section class="data-panel chart-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Últimos 7 días</p>
+                  <h3>Ritmo de asistencia</h3>
+                </div>
+                <div class="chart-legend">
+                  <span class="legend-entry entry-teal">Entradas</span><span
+                    class="legend-entry entry-amber">Tardanzas</span>
+                </div>
+              </div>
+              <div id="attendance-chart" class="attendance-chart" aria-label="Gráfico de asistencia"></div>
+            </section>
+
+            <section class="data-panel activity-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">En vivo</p>
+                  <h3>Actividad reciente</h3>
+                </div>
+              </div>
+              <div id="activity-list" class="activity-list"></div>
+            </section>
+          </div>
+
+          <section id="roster-panel" class="data-panel roster-panel" hidden>
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Detalle</p>
+                <h3 id="roster-title">Personal</h3>
+              </div>
+              <button id="close-roster" class="quiet-button" type="button">Cerrar</button>
+            </div>
+            <div id="roster-list" class="roster-list"></div>
+          </section>
+        </div>
+
+        <!-- 2. VISTA PORTAL DEL EMPLEADO / TRABAJADOR -->
+        <div id="employee-dashboard-view" hidden>
+          <div class="employee-dashboard-grid">
+            <!-- Bloque principal de Anuncios lanzados por la empresa -->
+            <section class="data-panel announcement-hero-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Noticias y comunicados</p>
+                  <h3>Anuncios de la Empresa</h3>
+                </div>
+              </div>
+              <div id="employee-announcements-list" class="dashboard-announcements-grid"></div>
+            </section>
+
+            <!-- Tarjetas laterales: Marcación rápida y accesos -->
+            <div class="employee-sidebar-grid">
+              <section class="data-panel quick-check-panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Mi jornada</p>
+                    <h3>Marcación rápida</h3>
+                  </div>
+                </div>
+                <div class="quick-check-content">
+                  <p class="quick-check-status" id="quick-check-status-text">
+                    Consulte o registre su asistencia del día.
+                  </p>
+                  <div class="quick-check-actions">
+                    <button id="quick-go-attendance" class="primary-button full-width" type="button">
+                      Ir a Marcar Asistencia
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="data-panel quick-requests-panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Mis trámites</p>
+                    <h3>Solicitudes recientes</h3>
+                  </div>
+                  <button id="quick-go-requests" class="quiet-button" type="button">
+                    Ver todas
+                  </button>
+                </div>
+                <div id="employee-quick-requests-list" class="activity-list"></div>
+              </section>
+            </div>
+          </div>
+        </div>

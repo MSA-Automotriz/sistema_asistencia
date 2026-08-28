@@ -1,0 +1,32 @@
+<dialog id="request-dialog" class="dialog">
+    <form id="request-form" class="dialog-content" method="dialog">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">Autoservicio</p>
+          <h2>Nueva solicitud</h2>
+        </div>
+        <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+      </div>
+      <div class="dialog-grid">
+        <label class="dialog-wide">Tipo de solicitud<select id="request-type" name="requestType" required>
+            <option value="WORK_PERMISSION">Permiso laboral</option>
+            <option value="OVERTIME">Horas extra</option>
+            <option value="VACATION">Vacaciones</option>
+            <option value="LICENSE">Licencia</option>
+          </select></label>
+        <label id="request-start-date-field">Fecha inicial<input name="startDate" type="date" required /></label>
+        <label id="request-end-date-field">Fecha final<input name="endDate" type="date" required /></label>
+        <label id="request-date-field" hidden>Fecha<input name="date" type="date" /></label>
+        <label id="request-minutes-field" hidden>Minutos solicitados<input name="requestedMinutes" type="number" min="1"
+            max="720" /></label>
+        <label id="request-license-type-field" hidden>Tipo de licencia<input name="licenseType"
+            maxlength="100" /></label>
+        <label class="dialog-wide">Motivo<textarea name="reason" maxlength="1000" required></textarea>
+        </label>
+      </div>
+      <div class="dialog-actions">
+        <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+        <button id="submit-request-form" class="primary-button" type="button">Enviar</button>
+      </div>
+    </form>
+  </dialog>

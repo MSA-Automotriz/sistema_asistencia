@@ -86,3 +86,5 @@ msa_asistencia/
 │   └── server.ts                  # Punto de entrada y arranque del servidor
 └── tests/                         # Suite de pruebas automatizadas (Vitest)
 ```
+
+ 

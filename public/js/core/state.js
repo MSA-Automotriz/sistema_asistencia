@@ -1,0 +1,23 @@
+export const state = {
+  session: null,
+  storage: null,
+  roles: [],
+  permissions: [],
+  sites: [],
+  selectedRoleId: null,
+  recovery: null,
+  attendanceLocation: null,
+  organizationEntity: 'companies',
+  organizationEditingId: null,
+  organizationItems: [],
+  reportType: 'ATTENDANCE',
+  companies: [],
+  profile: null,
+  organizationReferences: {},
+  geofenceMap: null,
+  geofenceSiteMarker: null,
+  geofenceCircle: null,
+  geofenceLocationMarker: null,
+  installPrompt: null,
+  appInstalled: false
+};

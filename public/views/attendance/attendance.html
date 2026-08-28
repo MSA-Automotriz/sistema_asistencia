@@ -1,0 +1,61 @@
+<div class="view-heading">
+          <div>
+            <p class="eyebrow">Registro seguro</p>
+            <h2>Asistencia</h2>
+          </div>
+          <button id="refresh-offline-permit" class="quiet-button" type="button">
+            Preparar modo offline
+          </button>
+        </div>
+        <div class="operational-grid">
+          <section class="data-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Geocerca GPS</p>
+                <h3>Registrar movimiento</h3>
+              </div>
+              <span id="attendance-location-state" class="status-pill status-pending">Ubicación pendiente</span>
+            </div>
+            <form id="attendance-form" class="form-stack compact-form">
+              <div id="attendance-check-status-text" class="support-copy" style="margin: 0 0 12px 0;"></div>
+              <div class="segmented-control four-options" role="radiogroup" aria-label="Tipo de asistencia">
+                <label><input name="type" type="radio" value="CHECK_IN" checked /><span>Entrada</span></label>
+                <label><input name="type" type="radio" value="BREAK_OUT" /><span>Salida Refrigerio</span></label>
+                <label><input name="type" type="radio" value="BREAK_IN" /><span>Retorno Refrigerio</span></label>
+                <label><input name="type" type="radio" value="CHECK_OUT" /><span>Salida</span></label>
+              </div>
+              <div class="location-readout">
+                <span id="attendance-coordinates">Aún no se obtuvo la ubicación.</span>
+                <button id="capture-location" class="small-button" type="button">
+                  Actualizar GPS
+                </button>
+              </div>
+              <button id="submit-attendance" class="primary-button" type="submit">
+                Registrar asistencia
+              </button>
+            </form>
+          </section>
+          <section class="data-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Sin conexión</p>
+                <h3>Cola de sincronización</h3>
+              </div>
+              <span id="offline-queue-count" class="count-badge">0</span>
+            </div>
+            <p id="offline-permit-state" class="support-copy">
+              Prepare un permiso mientras tenga conexión para registrar una asistencia pendiente.
+            </p>
+            <div id="offline-queue-list" class="request-list"></div>
+          </section>
+        </div>
+        <section class="data-panel map-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Ubicación autorizada</p>
+              <h3>Geocerca de la sede</h3>
+            </div>
+            <span id="geofence-map-state" class="status-pill status-pending">Preparando</span>
+          </div>
+          <div id="geofence-map" class="geofence-map" aria-label="Mapa de geocerca"></div>
+        </section>

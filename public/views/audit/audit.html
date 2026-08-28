@@ -1,0 +1,33 @@
+<div class="view-heading">
+          <div>
+            <p class="eyebrow">Mantenimiento</p>
+            <h2>Auditoría y logs</h2>
+          </div>
+          <div class="inline-actions">
+            <button id="refresh-audit" class="quiet-button" type="button">Actualizar</button>
+            <button id="analyze-database" class="small-button" type="button">Analizar BD</button>
+            <button id="clean-system-data" class="small-button" type="button">
+              Limpiar vencidos
+            </button>
+          </div>
+        </div>
+        <div class="settings-layout audit-layout">
+          <section class="data-panel">
+            <div class="panel-heading">
+              <h3>Estado del sistema</h3>
+            </div>
+            <div id="system-status" class="system-status"></div>
+          </section>
+          <section class="data-panel">
+            <div class="panel-heading">
+              <h3>Auditoría reciente</h3>
+            </div>
+            <div id="audit-list" class="request-list"></div>
+          </section>
+          <section class="data-panel">
+            <div class="panel-heading">
+              <h3>Eventos del sistema</h3>
+            </div>
+            <div id="system-log-list" class="system-log-list"></div>
+          </section>
+        </div>

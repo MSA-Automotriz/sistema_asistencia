@@ -1,0 +1,35 @@
+<div class="view-heading">
+          <div>
+            <p class="eyebrow">Indicadores</p>
+            <h2>Estadísticas</h2>
+          </div>
+          <button id="refresh-statistics" class="quiet-button" type="button">Actualizar</button>
+        </div>
+        <form id="statistics-filter-form" class="filter-bar data-panel">
+          <label>Desde<input id="statistics-start-date" name="startDate" type="date" /></label>
+          <label>Hasta<input id="statistics-end-date" name="endDate" type="date" /></label>
+          <button class="primary-button" type="submit">Aplicar período</button>
+        </form>
+        <div class="metrics-grid compact-metrics">
+          <article class="metric-card metric-teal">
+            <span>Asistencia</span><strong id="stat-attendance-rate">-</strong><small>Promedio del período</small>
+          </article>
+          <article class="metric-card metric-amber">
+            <span>Puntualidad</span><strong id="stat-punctuality-rate">-</strong><small>Entradas a tiempo</small>
+          </article>
+          <article class="metric-card metric-charcoal">
+            <span>Horas trabajadas</span><strong id="stat-worked-hours">-</strong><small>Registros pareados</small>
+          </article>
+          <article class="metric-card metric-coral">
+            <span>Ausencias</span><strong id="stat-absences">-</strong><small>Estimadas</small>
+          </article>
+        </div>
+        <section class="data-panel chart-panel statistics-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Tendencia</p>
+              <h3>Entradas, salidas y tardanzas</h3>
+            </div>
+          </div>
+          <div id="statistics-chart" class="attendance-chart"></div>
+        </section>

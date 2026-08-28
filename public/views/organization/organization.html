@@ -1,0 +1,54 @@
+<div class="view-heading">
+          <div>
+            <p class="eyebrow">Estructura</p>
+            <h2>Organización</h2>
+          </div>
+          <div class="inline-actions">
+            <button id="open-employee-import" class="quiet-button" type="button" hidden>
+              Importar Excel
+            </button>
+            <button id="open-organization-dialog" class="primary-button" type="button">
+              Crear registro
+            </button>
+          </div>
+        </div>
+        <div class="section-tabs" role="tablist" aria-label="Módulos organizacionales">
+          <button class="section-tab active" data-organization-entity="companies" type="button">
+            Empresas
+          </button>
+          <button class="section-tab" data-organization-entity="sites" type="button">
+            Sedes
+          </button>
+          <button class="section-tab" data-organization-entity="departments" type="button">
+            Áreas
+          </button>
+          <button class="section-tab" data-organization-entity="positions" type="button">
+            Cargos
+          </button>
+          <button class="section-tab" data-organization-entity="schedules" type="button">
+            Horarios
+          </button>
+          <button class="section-tab" data-organization-entity="employees" type="button">
+            Empleados
+          </button>
+          <button class="section-tab" data-organization-entity="site-schedules" type="button">
+            Horarios por sede
+          </button>
+        </div>
+        <section class="data-panel table-panel">
+          <div class="panel-heading table-heading">
+            <div>
+              <p class="eyebrow">Listado</p>
+              <h3 id="organization-title">Empresas</h3>
+            </div>
+            <button id="refresh-organization" class="quiet-button" type="button">
+              Actualizar
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead id="organization-table-head"></thead>
+              <tbody id="organization-table"></tbody>
+            </table>
+          </div>
+        </section>

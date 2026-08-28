@@ -1,0 +1,67 @@
+<div class="view-heading">
+          <div>
+            <p class="eyebrow">Empresa y continuidad</p>
+            <h2>Configuración</h2>
+          </div>
+          <select id="settings-company" aria-label="Empresa"></select>
+        </div>
+        <div class="settings-layout">
+          <section class="data-panel">
+            <div class="panel-heading">
+              <h3>Identidad de empresa</h3>
+            </div>
+            <form id="company-identity-form" class="form-stack compact-form">
+              <label>Nombre<input name="name" required /></label>
+              <label>Zona horaria<input name="timeZone" value="America/Lima" required /></label>
+              <label>Correo<input name="email" type="email" /></label>
+              <label>Logo URL<input name="logoUrl" type="url" /></label>
+              <button class="primary-button" type="submit">Guardar identidad</button>
+            </form>
+          </section>
+          <section class="data-panel">
+            <div class="panel-heading">
+              <h3>Reglas operativas</h3>
+            </div>
+            <form id="company-settings-form" class="form-stack compact-form">
+              <label>Radio GPS predeterminado (metros)<input name="gpsRadius" type="number" min="1"
+                  max="10000" /></label>
+              <button class="primary-button" type="submit">Guardar reglas</button>
+            </form>
+          </section>
+          <section class="data-panel">
+            <div class="panel-heading">
+              <h3>Respaldos</h3>
+            </div>
+            <div class="inline-actions">
+              <button class="small-button" data-backup-type="DATABASE" type="button">
+                Respaldar base de datos
+              </button>
+              <button class="small-button" data-backup-type="FILES" type="button">
+                Respaldar archivos
+              </button>
+            </div>
+            <form id="backup-schedule-form" class="form-stack compact-form">
+              <label class="check-label"><input name="enabled" type="checkbox" /><span>Programación
+                  activa</span></label>
+              <label>Frecuencia<select name="frequency">
+                  <option value="DAILY">Diaria</option>
+                  <option value="WEEKLY">Semanal</option>
+                </select></label>
+              <label id="backup-day-of-week-field" hidden>Día semanal<select name="dayOfWeek">
+                  <option value="1">Lunes</option>
+                  <option value="2">Martes</option>
+                  <option value="3">Miércoles</option>
+                  <option value="4">Jueves</option>
+                  <option value="5">Viernes</option>
+                  <option value="6">Sábado</option>
+                  <option value="0">Domingo</option>
+                </select></label>
+              <div class="form-pair">
+                <label>Hora<input name="hour" type="number" min="0" max="23" value="2" /></label><label>Minuto<input
+                    name="minute" type="number" min="0" max="59" value="0" /></label>
+              </div>
+              <button class="small-button" type="submit">Guardar programación</button>
+            </form>
+            <div id="backup-list" class="request-list"></div>
+          </section>
+        </div>

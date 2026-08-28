@@ -1,0 +1,34 @@
+<dialog id="user-dialog" class="dialog">
+    <form id="create-user-form" class="dialog-content" method="dialog">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">Nuevo acceso</p>
+          <h2>Crear usuario</h2>
+        </div>
+        <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+      </div>
+      <div class="dialog-grid">
+        <label>ID de Usuario (DNI)<input name="idUsuario" type="text" maxlength="50" placeholder="Ej: 74839201"
+            required /></label>
+        <label>Correo electrónico (Opcional)<input name="email" type="email" autocomplete="email"
+            placeholder="correo@ejemplo.com (opcional)" /></label>
+        <label>Nombre<input name="firstName" type="text" maxlength="100" required /></label>
+        <label>Apellido<input name="lastName" type="text" maxlength="100" required /></label>
+        <label>Contraseña<input name="password" type="password" autocomplete="new-password" minlength="8"
+            required /></label>
+        <label>Rol<select id="new-user-role" name="roleId" required></select></label>
+        <label>Sede<select id="new-user-site" name="siteId">
+            <option value="">Sin sede / Sin asignar</option>
+          </select></label>
+        <label>Estado<select name="status">
+            <option value="PENDING">Pendiente</option>
+            <option value="ACTIVE">Activo</option>
+            <option value="INACTIVE">Inactivo</option>
+          </select></label>
+      </div>
+      <div class="dialog-actions">
+        <button class="quiet-button" value="cancel" type="submit">Cancelar</button><button class="primary-button"
+          type="button" id="submit-user-form">Crear usuario</button>
+      </div>
+    </form>
+  </dialog>

@@ -1,0 +1,25 @@
+<dialog id="announcement-dialog" class="dialog">
+    <form id="announcement-form" class="dialog-content" method="dialog">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">Comunicación interna</p>
+          <h2>Crear anuncio</h2>
+        </div>
+        <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+      </div>
+      <div class="dialog-grid">
+        <label>Empresa<select id="announcement-company" name="companyId" required></select></label>
+        <label>Rol destino<select id="announcement-role" name="audienceRoleId">
+            <option value="">Todo el personal</option>
+          </select></label>
+        <label class="dialog-wide">Título<input name="title" maxlength="191" required /></label>
+        <label class="dialog-wide">Mensaje<textarea name="body" maxlength="5000" required></textarea>
+        </label>
+        <label>Vence el<input name="expiresAt" type="date" /></label>
+      </div>
+      <div class="dialog-actions">
+        <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+        <button id="submit-announcement-form" class="primary-button" type="button">Crear</button>
+      </div>
+    </form>
+  </dialog>

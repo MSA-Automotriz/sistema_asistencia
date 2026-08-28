@@ -1,0 +1,34 @@
+<div class="view-heading">
+          <div>
+            <p class="eyebrow">Control de acceso</p>
+            <h2>Roles y permisos</h2>
+          </div>
+          <div class="inline-actions">
+            <button id="open-role-dialog" class="primary-button" type="button">Crear rol</button>
+            <button id="save-role-permissions" class="primary-button" type="button" disabled>
+              Guardar permisos
+            </button>
+          </div>
+        </div>
+        <div class="roles-layout">
+          <section class="data-panel role-list-panel">
+            <div id="roles-list" class="role-list"></div>
+          </section>
+          <section class="data-panel permissions-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Rol seleccionado</p>
+                <h3 id="selected-role-name">Elige un rol</h3>
+              </div>
+              <div class="inline-actions">
+                <button id="select-all-permissions" class="quiet-button" type="button">
+                  Marcar todos
+                </button>
+                <button id="unselect-all-permissions" class="quiet-button" type="button">
+                  Desmarcar todos
+                </button>
+              </div>
+            </div>
+            <div id="permissions-list" class="permissions-list"></div>
+          </section>
+        </div>

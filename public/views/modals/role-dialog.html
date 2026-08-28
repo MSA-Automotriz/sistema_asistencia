@@ -1,0 +1,21 @@
+<dialog id="role-dialog" class="dialog">
+    <form id="create-role-form" class="dialog-content" method="dialog">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">Nuevo perfil de acceso</p>
+          <h2>Crear rol</h2>
+        </div>
+        <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+      </div>
+      <div class="dialog-grid">
+        <label class="dialog-wide">Nombre del rol<input name="name" type="text" maxlength="50"
+            placeholder="Ej: Supervisor de Taller, Auditor, etc." required /></label>
+        <label class="dialog-wide">Descripción (Opcional)<input name="description" type="text" maxlength="200"
+            placeholder="Ej: Acceso a reportes y gestión de asistencia" /></label>
+      </div>
+      <div class="dialog-actions">
+        <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+        <button class="primary-button" type="button" id="submit-role-form">Crear rol</button>
+      </div>
+    </form>
+  </dialog>
