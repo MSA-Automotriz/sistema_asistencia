@@ -1,0 +1,60 @@
+/* ==========================================================================
+   RESET & GLOBAL DEFAULTS
+   ========================================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--paper);
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(rgba(17, 17, 17, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, 0.025) 1px, transparent 1px);
+  background-size: 28px 28px;
+  font-family: var(--font);
+  letter-spacing: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+a {
+  color: inherit;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

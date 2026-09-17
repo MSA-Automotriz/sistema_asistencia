@@ -1,0 +1,143 @@
+/* ==========================================================================
+   DIALOGS & MODAL WINDOWS
+   ========================================================================== */
+
+.dialog {
+  width: min(670px, calc(100% - 28px));
+  border: 0;
+  border-radius: 6px;
+  padding: 0;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: 0 24px 70px rgba(17, 17, 17, 0.27);
+}
+
+.compact-dialog {
+  width: min(440px, calc(100% - 28px));
+}
+
+.dialog::backdrop {
+  background: rgba(17, 17, 17, 0.55);
+}
+
+.dialog-content {
+  display: grid;
+  gap: 24px;
+  padding: clamp(22px, 4vw, 36px);
+}
+
+.dialog-heading h2 {
+  margin: 0;
+  font-size: 1.55rem;
+}
+
+.dialog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.dialog-wide {
+  grid-column: 1 / -1;
+}
+
+.dialog-actions {
+  justify-content: flex-end;
+}
+
+.qr-display {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.qr-display img {
+  width: min(260px, 100%);
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  padding: 10px;
+  background: #ffffff;
+}
+
+.qr-display .support-copy {
+  margin: 0;
+}
+
+.qr-token {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--line);
+  padding: 8px;
+  color: var(--ink-soft);
+  background: var(--paper-deep);
+  font-size: 0.72rem;
+}
+
+.import-result {
+  border-left: 4px solid var(--info);
+  padding: 10px 12px;
+  color: #1d4ed8;
+  background: #dbeafe;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+/* QR Scanner Styles */
+.qr-input-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.qr-input-wrapper input {
+  flex: 1;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+}
+
+.qr-input-wrapper input:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(227, 6, 19, 0.1);
+}
+
+#qr-reader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 100%;
+  min-height: 280px;
+  background: #000000;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+#qr-reader video {
+  max-width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+}
+
+#qr-reader canvas {
+  display: none;
+}
+
+@media (max-width: 620px) {
+  .dialog-grid {
+    grid-template-columns: 1fr;
+  }
+  .dialog-wide {
+    grid-column: auto;
+  }
+  .dialog-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+  .dialog-actions button {
+    width: 100%;
+  }
+}

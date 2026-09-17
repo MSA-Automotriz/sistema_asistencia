@@ -86,5 +86,12 @@ msa_asistencia/
 │   └── server.ts                  # Punto de entrada y arranque del servidor
 └── tests/                         # Suite de pruebas automatizadas (Vitest)
 ```
+## Resumen del proyecto(Funciones y puntos clave)
+´´´
+El sistema actual, cuenta con las siguientes funciones:
+1. Permitir que el personal pueda maracr su asistencia de manera digital
+2. Permite el uso de multi empresa y multisede desde un mismo panel
+3. Permite al uasurio poder tramitar sus permisos directamente desde el boton solicitudes, ubicado en la parte lateral isquierda del Dashboard
+4. Permite descargar los reportes de asistencia de 
 
- 
+´´´

@@ -21,6 +21,7 @@ export type RegisterDeviceInput = {
 export declare class EmployeeSelfService {
     getProfile(userId: string): Promise<{
         id: string;
+        companyId: string;
         employeeCode: string;
         profilePhotoUrl: null;
         hiredAt: Date;
@@ -46,6 +47,14 @@ export declare class EmployeeSelfService {
             longitude: number;
             radiusMeters: number;
         } | null;
+        sites: {
+            id: string;
+            name: string;
+            address: string;
+            latitude: number;
+            longitude: number;
+            radiusMeters: number;
+        }[];
         department: null;
         position: null;
         schedule: null;
@@ -59,6 +68,14 @@ export declare class EmployeeSelfService {
             address: string;
             radiusMeters: number;
         } | null;
+        sites: {
+            id: string;
+            name: string;
+            address: string;
+            latitude: number;
+            longitude: number;
+            radiusMeters: number;
+        }[];
         id: string;
         user: {
             status: import("@prisma/client").$Enums.UserStatus;
@@ -67,6 +84,7 @@ export declare class EmployeeSelfService {
             firstName: string;
             lastName: string;
         };
+        companyId: string;
         employeeCode: string;
         profilePhotoUrl: string | null;
         hiredAt: Date;
@@ -116,6 +134,7 @@ export declare class EmployeeSelfService {
             firstName: string;
             lastName: string;
         };
+        companyId: string;
         employeeCode: string;
         profilePhotoUrl: string | null;
         hiredAt: Date;

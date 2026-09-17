@@ -1,0 +1,41 @@
+/* ==========================================================================
+   VIEW: ORGANIZATION (COMPANIES, SITES, DEPTS, POSITIONS, SCHEDULES)
+   ========================================================================== */
+
+.section-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+  padding-bottom: 2px;
+}
+
+.section-tab {
+  min-height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 6px 10px;
+  color: var(--ink-soft);
+  background: var(--surface);
+  font-size: 0.73rem;
+  font-weight: 800;
+}
+
+.section-tab.active,
+.section-tab:hover {
+  border-color: var(--primary);
+  color: #ffffff;
+  background: var(--primary);
+}
+
+@media (max-width: 620px) {
+  .section-tabs {
+    margin-right: -2px;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+  .section-tabs::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -14,6 +14,7 @@ export const state = {
   companies: [],
   profile: null,
   organizationReferences: {},
+  organizationSearchTerm: '',
   geofenceMap: null,
   geofenceSiteMarker: null,
   geofenceCircle: null,

@@ -1,0 +1,199 @@
+/* ==========================================================================
+   FORMS & INPUT CONTROLS
+   ========================================================================== */
+
+.form-stack {
+  display: grid;
+  gap: 18px;
+  margin-top: 36px;
+}
+
+.compact-stack {
+  margin-top: 0;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  outline: none;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: var(--surface);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(227, 6, 19, 0.15);
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.check-label {
+  display: inline-flex;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+
+.check-label input {
+  width: 16px;
+  min-height: 16px;
+  accent-color: var(--teal);
+}
+
+textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: var(--surface);
+}
+
+textarea:focus {
+  border-color: var(--teal);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(227, 6, 19, 0.15);
+}
+
+.form-row-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.compact-form {
+  margin-top: 20px;
+}
+
+.support-copy {
+  margin: 18px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.segmented-control {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--line);
+}
+
+.segmented-control.four-options {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 600px) {
+  .segmented-control.four-options {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.segmented-control label {
+  display: block;
+  position: relative;
+  cursor: pointer;
+}
+
+.segmented-control input {
+  position: absolute;
+  width: 1px;
+  min-height: 1px;
+  opacity: 0;
+}
+
+.segmented-control span {
+  display: block;
+  min-height: 42px;
+  padding: 11px 10px;
+  color: var(--ink-soft);
+  background: var(--surface);
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.segmented-control label + label span {
+  border-left: 1px solid var(--line);
+}
+
+.segmented-control input:checked + span {
+  color: #ffffff;
+  background: var(--primary);
+}
+
+.segmented-control input:disabled + span {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: var(--paper-deep);
+  color: var(--gray);
+}
+
+.filter-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(130px, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px;
+}
+
+.filter-bar .primary-button {
+  min-height: 44px;
+}
+
+.form-pair {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.form-pair > label {
+  flex: 1 1 100px;
+}
+
+.inline-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .form-row-grid {
+    grid-template-columns: 1fr;
+  }
+  .filter-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .filter-bar {
+    grid-template-columns: 1fr;
+  }
+}

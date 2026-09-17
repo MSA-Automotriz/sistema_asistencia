@@ -3,6 +3,7 @@ import { AppError } from '../../common/errors/app-error.js';
 import { prisma } from '../../database/prisma.js';
 const profileSelect = {
     id: true,
+    companyId: true,
     employeeCode: true,
     profilePhotoUrl: true,
     hiredAt: true,
@@ -53,9 +54,11 @@ export class EmployeeSelfService {
             });
             if (!user)
                 throw new AppError(404, 'Usuario no encontrado');
-            const defaultSite = await prisma.site.findFirst({ where: { active: true } });
+            const defaultSites = await prisma.site.findMany({ where: { active: true } });
+            const defaultSite = defaultSites[0] || null;
             return {
                 id: `temp-${user.id}`,
+                companyId: defaultSite?.companyId ?? '',
                 employeeCode: 'N/A',
                 profilePhotoUrl: null,
                 hiredAt: new Date(),
@@ -79,12 +82,35 @@ export class EmployeeSelfService {
                         radiusMeters: defaultSite.radiusMeters
                     }
                     : null,
+                sites: defaultSites.map((s) => ({
+                    id: s.id,
+                    name: s.name,
+                    address: s.address,
+                    latitude: Number(s.latitude),
+                    longitude: Number(s.longitude),
+                    radiusMeters: s.radiusMeters
+                })),
                 department: null,
                 position: null,
                 schedule: null,
                 supervisor: null
             };
         }
+        const companySites = employee.companyId
+            ? await prisma.site.findMany({
+                where: { companyId: employee.companyId, active: true },
+                select: {
+                    id: true,
+                    name: true,
+                    address: true,
+                    latitude: true,
+                    longitude: true,
+                    radiusMeters: true
+                }
+            })
+            : employee.site
+                ? [employee.site]
+                : [];
         return {
             ...employee,
             site: employee.site
@@ -93,7 +119,21 @@ export class EmployeeSelfService {
                     latitude: Number(employee.site.latitude),
                     longitude: Number(employee.site.longitude)
                 }
-                : null
+                : companySites.length > 0
+                    ? {
+                        ...companySites[0],
+                        latitude: Number(companySites[0].latitude),
+                        longitude: Number(companySites[0].longitude)
+                    }
+                    : null,
+            sites: companySites.map((s) => ({
+                id: s.id,
+                name: s.name,
+                address: s.address,
+                latitude: Number(s.latitude),
+                longitude: Number(s.longitude),
+                radiusMeters: s.radiusMeters
+            }))
         };
     }
     async updateProfile(userId, input) {

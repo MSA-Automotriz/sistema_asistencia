@@ -7,16 +7,37 @@ export class RegisterAttendance {
     async execute(userId, input, meta) {
         const employee = await prisma.employee.findUnique({
             where: { userId },
-            include: { site: true, schedule: true, company: { select: { timeZone: true } } }
+            include: { site: true, schedule: true, company: { select: { id: true, timeZone: true } } }
         });
-        if (!employee?.site || !employee.active)
-            throw new AppError(403, 'Empleado sin sede activa asignada');
-        const site = employee.site;
-        const distanceMeters = haversineMeters(input.latitude, input.longitude, site.latitude, site.longitude);
-        const toleranceMeters = site.radiusMeters;
-        if (distanceMeters > toleranceMeters) {
-            throw new AppError(403, `No se encuentra dentro del área autorizada (${Math.round(distanceMeters)} m calculados, máximo permitido ${toleranceMeters} m).`);
+        if (!employee || !employee.active)
+            throw new AppError(403, 'Empleado sin sede activa o inactivo');
+        const activeSites = await prisma.site.findMany({
+            where: {
+                companyId: employee.companyId,
+                active: true
+            }
+        });
+        const candidateSites = activeSites.length > 0 ? activeSites : employee.site?.active ? [employee.site] : [];
+        if (candidateSites.length === 0) {
+            throw new AppError(403, 'No hay sedes activas autorizadas para registrar asistencia.');
         }
+        const evaluatedSites = candidateSites.map((candidate) => {
+            const dist = haversineMeters(input.latitude, input.longitude, Number(candidate.latitude), Number(candidate.longitude));
+            return {
+                site: candidate,
+                distanceMeters: dist,
+                isInside: dist <= candidate.radiusMeters
+            };
+        });
+        evaluatedSites.sort((a, b) => a.distanceMeters - b.distanceMeters);
+        const matched = evaluatedSites.find((item) => item.isInside);
+        if (!matched) {
+            const nearest = evaluatedSites[0];
+            const distRounded = Math.round(nearest.distanceMeters);
+            throw new AppError(403, `No se encuentra dentro del área autorizada de ninguna sede activa (${distRounded} m calculados a "${nearest.site.name}", máximo permitido ${nearest.site.radiusMeters} m).`);
+        }
+        const matchedSite = matched.site;
+        const distanceMeters = matched.distanceMeters;
         const lastAttendance = await prisma.attendance.findFirst({
             where: { employeeId: employee.id },
             orderBy: { recordedAt: 'desc' },
@@ -78,7 +99,7 @@ export class RegisterAttendance {
             return tx.attendance.create({
                 data: {
                     employeeId: employee.id,
-                    siteId: site.id,
+                    siteId: matchedSite.id,
                     type: input.type,
                     status: evaluation.status,
                     excessMinutes: evaluation.excessMinutes,

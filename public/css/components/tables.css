@@ -1,0 +1,153 @@
+/* ==========================================================================
+   TABLES & SEARCH TOOLBARS
+   ========================================================================== */
+
+.table-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.table-panel .table-heading + .table-wrap {
+  margin-top: 16px;
+}
+
+.table-heading {
+  padding: clamp(16px, 2.2vw, 26px) clamp(16px, 2.2vw, 26px) 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.table-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 260px;
+}
+
+.table-search-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 36px 8px 38px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 500;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.table-search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(227, 6, 19, 0.12);
+}
+
+.table-search-icon {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: var(--gray);
+  pointer-events: none;
+}
+
+.table-search-clear {
+  position: absolute;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: rgba(0, 0, 0, 0.07);
+  color: var(--dark-gray);
+  border-radius: 50%;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.table-search-clear:hover {
+  background: rgba(227, 6, 19, 0.12);
+  color: var(--primary);
+}
+
+.table-empty-search {
+  padding: 36px 18px !important;
+  text-align: center;
+}
+
+.table-empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ink-soft);
+}
+
+.table-empty-content p {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.table-empty-content strong {
+  color: var(--primary);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 650px;
+}
+
+th,
+td {
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+th {
+  color: var(--ink-soft);
+  background: var(--paper-deep);
+  font-size: 0.7rem;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+td {
+  font-size: 0.82rem;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+tbody tr:hover td {
+  background: var(--paper);
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: flex-end;
+}

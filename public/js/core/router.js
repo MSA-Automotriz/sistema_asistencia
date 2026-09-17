@@ -24,6 +24,9 @@ export function renderSidebarNavigation() {
   const has = (permission) => userPermissions.includes(permission);
   const hasAny = (permissions) => permissions.some((p) => userPermissions.includes(p));
 
+  const userRole = state.session?.user?.role;
+  const isSistemas = userRole === 'Sistemas';
+
   const viewPermissions = {
     dashboard: true,
     attendance: true,
@@ -42,7 +45,7 @@ export function renderSidebarNavigation() {
     announcements: hasAny(['announcements.read', 'announcements.create']),
     devices: has('devices.read'),
     settings: has('settings.read'),
-    audit: has('audit-logs.read'),
+    audit: isSistemas,
     profile: true,
     users: has('users.read'),
     roles: has('roles.read'),

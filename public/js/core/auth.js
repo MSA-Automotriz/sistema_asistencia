@@ -8,7 +8,6 @@ import { loadModals, preloadAllViews } from './view-loader.js';
 import { loadNotifications } from '../modules/notifications/notifications.js';
 import { registerKnownDevice } from '../modules/attendance/attendance.js';
 import { synchronizeOfflineQueue } from '../modules/attendance/offline-sync.js';
-import { updatePushStatusUI } from '../modules/notifications/notifications.js';
 
 export function getSavedSession() {
   for (const storage of [localStorage, sessionStorage]) {

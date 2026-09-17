@@ -65,18 +65,51 @@
                   <h3>Ritmo de asistencia</h3>
                 </div>
                 <div class="chart-legend">
-                  <span class="legend-entry entry-teal">Entradas</span><span
-                    class="legend-entry entry-amber">Tardanzas</span>
+                  <span class="legend-entry entry-teal">Entradas</span>
+                  <span class="legend-entry entry-amber">Tardanzas</span>
                 </div>
               </div>
               <div id="attendance-chart" class="attendance-chart" aria-label="Gráfico de asistencia"></div>
+              <div class="chart-summary-grid">
+                <div class="chart-summary-card">
+                  <span class="summary-label">Total Entradas</span>
+                  <strong id="chart-summary-entries" class="summary-value">-</strong>
+                </div>
+                <div class="chart-summary-card">
+                  <span class="summary-label">Tardanzas</span>
+                  <strong id="chart-summary-late" class="summary-value text-amber">-</strong>
+                </div>
+                <div class="chart-summary-card">
+                  <span class="summary-label">Puntualidad</span>
+                  <strong id="chart-summary-rate" class="summary-value text-teal">-</strong>
+                </div>
+              </div>
             </section>
 
             <section class="data-panel activity-panel">
-              <div class="panel-heading">
+              <div class="panel-heading activity-panel-heading">
                 <div>
                   <p class="eyebrow">En vivo</p>
-                  <h3>Actividad reciente</h3>
+                  <div class="activity-title-row">
+                    <h3>Actividad reciente</h3>
+                    <span id="activity-count" class="count-badge">0 hoy</span>
+                  </div>
+                </div>
+              </div>
+              <div class="activity-toolbar">
+                <div class="table-search-wrap activity-search-wrap">
+                  <svg class="table-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input id="activity-search" class="table-search-input" type="search" placeholder="Buscar empleado o marcación..." autocomplete="off" />
+                  <button id="activity-search-clear" class="table-search-clear" type="button" title="Limpiar búsqueda" hidden>&times;</button>
+                </div>
+                <div class="activity-filter-pills" id="activity-filter-group">
+                  <button class="activity-filter-btn active" data-filter="ALL" type="button">Todos</button>
+                  <button class="activity-filter-btn" data-filter="CHECK_IN" type="button">Entradas</button>
+                  <button class="activity-filter-btn" data-filter="CHECK_OUT" type="button">Salidas</button>
+                  <button class="activity-filter-btn" data-filter="LUNCH" type="button">Refrigerio</button>
                 </div>
               </div>
               <div id="activity-list" class="activity-list"></div>
@@ -87,9 +120,17 @@
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">Detalle</p>
-                <h3 id="roster-title">Personal</h3>
+                <div class="activity-title-row">
+                  <h3 id="roster-title">Personal</h3>
+                  <span id="roster-count" class="count-badge">0</span>
+                </div>
               </div>
-              <button id="close-roster" class="quiet-button" type="button">Cerrar</button>
+              <div class="inline-actions">
+                <div class="table-search-wrap roster-search-wrap">
+                  <input id="roster-search" class="table-search-input" type="search" placeholder="Filtrar personal..." autocomplete="off" />
+                </div>
+                <button id="close-roster" class="quiet-button" type="button">Cerrar</button>
+              </div>
             </div>
             <div id="roster-list" class="roster-list"></div>
           </section>

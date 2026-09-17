@@ -41,9 +41,19 @@
               <p class="eyebrow">Listado</p>
               <h3 id="organization-title">Empresas</h3>
             </div>
-            <button id="refresh-organization" class="quiet-button" type="button">
-              Actualizar
-            </button>
+            <div class="table-toolbar">
+              <div class="table-search-wrap">
+                <svg class="table-search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input id="organization-search" class="table-search-input" type="search" placeholder="Buscar..." autocomplete="off" />
+                <button id="clear-organization-search" class="table-search-clear" type="button" title="Limpiar búsqueda" hidden>&times;</button>
+              </div>
+              <button id="refresh-organization" class="quiet-button" type="button">
+                Actualizar
+              </button>
+            </div>
           </div>
           <div class="table-wrap">
             <table>

@@ -1,6 +1,10 @@
+import { state } from '../../core/state.js';
+import { fullName } from '../../core/utils.js';
+
 export const organizationDefinitions = {
   companies: {
     label: 'Empresas',
+    searchPlaceholder: 'Buscar empresa por nombre, RUC...',
     endpoint: '/companies',
     columns: [
       ['Nombre', (item) => item.name],
@@ -20,10 +24,16 @@ export const organizationDefinitions = {
   },
   sites: {
     label: 'Sedes',
+    searchPlaceholder: 'Buscar sede por nombre, dirección...',
     endpoint: '/sites',
     columns: [
       ['Nombre', (item) => item.name],
-      ['Empresa', (item) => item.companyId],
+      [
+        'Empresa',
+        (item) =>
+          state.organizationReferences?.companies?.find((c) => c.id === item.companyId)?.name ||
+          item.companyId
+      ],
       ['Dirección', (item) => item.address],
       ['Radio', (item) => `${item.radiusMeters} m`],
       ['Estado', (item) => (item.active ? 'Activa' : 'Inactiva')]
@@ -46,10 +56,16 @@ export const organizationDefinitions = {
   },
   departments: {
     label: 'Áreas',
+    searchPlaceholder: 'Buscar área por nombre...',
     endpoint: '/departments',
     columns: [
       ['Área', (item) => item.name],
-      ['Empresa', (item) => item.companyId],
+      [
+        'Empresa',
+        (item) =>
+          state.organizationReferences?.companies?.find((c) => c.id === item.companyId)?.name ||
+          item.companyId
+      ],
       ['Descripción', (item) => item.description || '-']
     ],
     fields: [
@@ -60,10 +76,16 @@ export const organizationDefinitions = {
   },
   positions: {
     label: 'Cargos',
+    searchPlaceholder: 'Buscar cargo por nombre...',
     endpoint: '/positions',
     columns: [
       ['Cargo', (item) => item.name],
-      ['Empresa', (item) => item.companyId],
+      [
+        'Empresa',
+        (item) =>
+          state.organizationReferences?.companies?.find((c) => c.id === item.companyId)?.name ||
+          item.companyId
+      ],
       ['Descripción', (item) => item.description || '-']
     ],
     fields: [
@@ -74,6 +96,7 @@ export const organizationDefinitions = {
   },
   schedules: {
     label: 'Horarios',
+    searchPlaceholder: 'Buscar horario por nombre o tipo...',
     endpoint: '/schedules',
     columns: [
       ['Horario', (item) => item.name],
@@ -115,15 +138,41 @@ export const organizationDefinitions = {
   },
   employees: {
     label: 'Empleados',
+    searchPlaceholder: 'Buscar empleado por código, nombre, área, horario...',
     endpoint: '/employees',
     createEndpoint: '/employees/provision',
     updateEndpoint: '/employees/:id/assignments',
     columns: [
       ['Código', (item) => item.employeeCode],
-      ['Usuario', (item) => item.userId],
-      ['Empresa', (item) => item.companyId],
-      ['Área', (item) => item.departmentId || '-'],
-      ['Horario', (item) => item.scheduleId || '-'],
+      [
+        'Usuario',
+        (item) => {
+          const user = state.organizationReferences?.users?.find((u) => u.id === item.userId);
+          if (!user) return item.userId;
+          const name = fullName(user);
+          return user.email && !user.email.endsWith('@msa.local')
+            ? `${name} (${user.email})`
+            : name;
+        }
+      ],
+      [
+        'Empresa',
+        (item) =>
+          state.organizationReferences?.companies?.find((c) => c.id === item.companyId)?.name ||
+          item.companyId
+      ],
+      [
+        'Área',
+        (item) =>
+          state.organizationReferences?.departments?.find((d) => d.id === item.departmentId)?.name ||
+          '-'
+      ],
+      [
+        'Horario',
+        (item) =>
+          state.organizationReferences?.schedules?.find((s) => s.id === item.scheduleId)?.name ||
+          '-'
+      ],
       ['Estado', (item) => (item.active ? 'Activo' : 'Inactivo')]
     ],
     fields: [
@@ -166,10 +215,21 @@ export const organizationDefinitions = {
   },
   'site-schedules': {
     label: 'Horarios por sede',
+    searchPlaceholder: 'Buscar horario por sede...',
     endpoint: '/site-schedules',
     columns: [
-      ['Sede', (item) => item.siteId],
-      ['Horario', (item) => item.scheduleId],
+      [
+        'Sede',
+        (item) =>
+          state.organizationReferences?.sites?.find((s) => s.id === item.siteId)?.name ||
+          item.siteId
+      ],
+      [
+        'Horario',
+        (item) =>
+          state.organizationReferences?.schedules?.find((s) => s.id === item.scheduleId)?.name ||
+          item.scheduleId
+      ],
       ['Estado', (item) => (item.active ? 'Activo' : 'Inactivo')]
     ],
     fields: [

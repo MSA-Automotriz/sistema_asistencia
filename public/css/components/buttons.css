@@ -1,0 +1,131 @@
+/* ==========================================================================
+   BUTTONS
+   ========================================================================== */
+
+.primary-button,
+.quiet-button,
+.install-app-button,
+.text-button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 4px;
+  padding: 9px 14px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.primary-button {
+  color: #ffffff;
+  background: var(--primary);
+  box-shadow: 0 8px 14px rgba(227, 6, 19, 0.2);
+}
+
+.primary-button:hover {
+  background: var(--primary-hover);
+}
+
+.quiet-button {
+  color: #ffffff;
+  background: var(--secondary);
+}
+
+.quiet-button:hover {
+  background: #2a2a2a;
+}
+
+.install-app-button {
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  background: #ffffff;
+}
+
+.install-app-button:hover {
+  color: #ffffff;
+  background: var(--primary);
+}
+
+.auth-install-button {
+  width: max-content;
+  margin: 16px 0 4px;
+}
+
+.compact-install-button {
+  min-height: 34px;
+  padding: 6px 9px;
+  font-size: 0.75rem;
+}
+
+.text-button {
+  min-height: auto;
+  padding: 2px;
+  color: var(--teal);
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.align-start {
+  justify-self: start;
+}
+
+.small-button {
+  min-height: 31px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 5px 8px;
+  color: var(--ink);
+  background: transparent;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.small-button:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.icon-button {
+  min-height: 40px;
+  min-width: 40px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px;
+  color: var(--ink);
+  background: transparent;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.icon-button:hover {
+  border-color: var(--teal);
+  background: rgba(227, 6, 19, 0.05);
+  color: var(--teal);
+}
+
+.icon-button:active {
+  background: rgba(227, 6, 19, 0.1);
+}
+
+.full-width {
+  width: 100%;
+  justify-content: center;
+  min-height: 44px;
+  font-size: 0.9rem;
+}
+
+.approve-button {
+  border-color: var(--success);
+  color: #15803d;
+}
+
+.reject-button {
+  border-color: var(--danger);
+  color: #b91c1c;
+}
+
+@media (max-width: 620px) {
+  .quiet-button {
+    padding-inline: 9px;
+  }
+}

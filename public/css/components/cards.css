@@ -1,0 +1,124 @@
+/* ==========================================================================
+   CARDS & DATA PANELS
+   ========================================================================== */
+
+.data-panel {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: clamp(16px, 2.2vw, 26px);
+  background: var(--surface);
+  box-shadow: 0 10px 28px rgba(17, 17, 17, 0.04);
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.compact-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.statistics-panel {
+  margin-top: 0;
+}
+
+.metric-card {
+  display: flex;
+  min-height: 142px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  border: 0;
+  border-radius: 6px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+.metric-card span {
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.metric-card strong {
+  font-size: clamp(1.72rem, 2.5vw, 2.35rem);
+  line-height: 1;
+}
+
+.metric-card small {
+  font-size: 0.72rem;
+}
+
+.metric-card:not(article):hover {
+  transform: translateY(-2px);
+  transition: transform 160ms ease;
+}
+
+.metric-teal {
+  color: #166534;
+  background: var(--teal-soft);
+}
+
+.metric-coral {
+  color: #991b1b;
+  background: var(--coral-soft);
+}
+
+.metric-amber {
+  color: #92400e;
+  background: var(--amber-soft);
+}
+
+.metric-charcoal {
+  color: #ffffff;
+  background: var(--charcoal);
+}
+
+.metric-sand {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.metric-ink {
+  color: #ffffff;
+  background: var(--dark-gray);
+}
+
+.empty-state {
+  margin: 10px 0;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+@media (max-width: 1180px) {
+  .metrics-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .metric-card {
+    min-height: 126px;
+  }
+}
+
+@media (max-width: 620px) {
+  .data-panel {
+    padding: 14px;
+  }
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+  .compact-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .metric-card {
+    min-height: 116px;
+    padding: 14px;
+  }
+  .metric-card strong {
+    font-size: 1.65rem;
+  }
+}

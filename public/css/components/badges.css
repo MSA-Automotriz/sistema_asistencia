@@ -1,0 +1,65 @@
+/* ==========================================================================
+   BADGES, PILLS & STATUS TAGS
+   ========================================================================== */
+
+.event-pill,
+.status-pill,
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  border-radius: 3px;
+  padding: 3px 7px;
+  font-size: 0.68rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.event-pill,
+.status-active {
+  color: #166534;
+  background: var(--teal-soft);
+}
+
+.event-pill {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.status-pending {
+  color: #76520c;
+  background: var(--amber-soft);
+}
+
+.status-inactive,
+.status-rejected {
+  color: #82352d;
+  background: var(--coral-soft);
+}
+
+.status-approved {
+  color: #166534;
+  background: var(--teal-soft);
+}
+
+.count-badge {
+  color: #ffffff;
+  background: var(--charcoal);
+}
+
+.badge-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.badge-item strong {
+  color: var(--ink);
+}

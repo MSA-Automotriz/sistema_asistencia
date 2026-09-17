@@ -16,7 +16,7 @@ import {
   resetPassword
 } from './core/auth.js';
 import { setView } from './core/router.js';
-import { preloadAllViews, loadModals } from './core/view-loader.js';
+import { loadModals } from './core/view-loader.js';
 import { showToast } from './components/toast.js';
 import { updateClock } from './components/clock.js';
 import { initTheme, toggleTheme } from './components/theme.js';
@@ -49,14 +49,14 @@ import {
   loadOrganization,
   openOrganizationDialog,
   submitOrganizationForm,
-  deleteOrganizationItem
+  deleteOrganizationItem,
+  handleOrganizationSearch
 } from './modules/organization/organization.js';
 import {
   openEmployeeImportDialog,
   uploadEmployeeWorkbook
 } from './modules/organization/employee-import.js';
 import {
-  loadUsers,
   openUserDialog,
   createUser,
   openEditUserDialog,
@@ -66,7 +66,6 @@ import {
   downloadUsersPdf
 } from './modules/users/users.js';
 import {
-  loadRolesAndPermissions,
   openRoleDialog,
   createRole,
   selectRole,
@@ -77,7 +76,6 @@ import {
   revokeSession
 } from './modules/users/sessions.js';
 import {
-  loadAnnouncements,
   openAnnouncementDialog,
   createAnnouncement,
   publishAnnouncement,
@@ -92,7 +90,6 @@ import {
   downloadReport
 } from './modules/reports/reports.js';
 import {
-  loadSettings,
   loadCompanySettings,
   saveCompanyIdentity,
   saveCompanySettings,
@@ -102,7 +99,10 @@ import {
   loadAudit,
   analyzeDatabase,
   cleanSystemData,
-  updateBackupFrequencyFields
+  updateBackupFrequencyFields,
+  handleAuditFilter,
+  handleLogKindChange,
+  copySystemLogs
 } from './modules/audit/audit.js';
 import {
   loadNotifications,
@@ -284,6 +284,13 @@ function bindGlobalEvents() {
       uploadEmployeeWorkbook();
     } else if (id === 'refresh-organization') {
       loadOrganization();
+    } else if (id === 'clear-organization-search' || id === 'clear-search-link') {
+      const searchInput = query('#organization-search');
+      if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+      }
+      handleOrganizationSearch('');
     } else if (id === 'refresh-statistics') {
       loadStatistics();
     } else if (id === 'open-announcement-dialog') {
@@ -298,6 +305,8 @@ function bindGlobalEvents() {
       analyzeDatabase();
     } else if (id === 'clean-system-data') {
       cleanSystemData();
+    } else if (id === 'copy-logs-btn') {
+      copySystemLogs();
     } else if (id === 'refresh-profile') {
       loadProfile();
     } else if (id === 'notification-button') {
@@ -352,6 +361,13 @@ function bindGlobalEvents() {
       queryAll('[data-organization-entity]').forEach((item) =>
         item.classList.toggle('active', item === button)
       );
+      const searchInput = query('#organization-search');
+      if (searchInput) {
+        searchInput.value = '';
+      }
+      state.organizationSearchTerm = '';
+      const clearBtn = query('#clear-organization-search');
+      if (clearBtn) clearBtn.hidden = true;
       loadOrganization();
       return;
     }
@@ -398,6 +414,7 @@ function bindGlobalEvents() {
       setDeviceStatus(button.dataset.deviceId, button.dataset.deviceStatus);
     if (button.dataset.backupRestore) restoreBackup(button.dataset.backupRestore);
     if (button.dataset.ownDeviceDelete) deleteOwnDevice(button.dataset.ownDeviceDelete);
+    if (button.dataset.logKind) handleLogKindChange(button.dataset.logKind);
   });
 
   // 3. Cambios en selects / inputs (change)
@@ -413,6 +430,16 @@ function bindGlobalEvents() {
       setRequestFormType();
     } else if (target.name === 'frequency' && target.closest('#backup-schedule-form')) {
       updateBackupFrequencyFields();
+    }
+  });
+
+  // 4. Búsqueda y filtrado en tiempo real (input)
+  document.addEventListener('input', (event) => {
+    const target = event.target;
+    if (target && target.id === 'organization-search') {
+      handleOrganizationSearch(target.value);
+    } else if (target && target.id === 'audit-filter-input') {
+      handleAuditFilter(target.value);
     }
   });
 

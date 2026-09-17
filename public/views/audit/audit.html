@@ -1,33 +1,68 @@
 <div class="view-heading">
-          <div>
-            <p class="eyebrow">Mantenimiento</p>
-            <h2>Auditoría y logs</h2>
-          </div>
-          <div class="inline-actions">
-            <button id="refresh-audit" class="quiet-button" type="button">Actualizar</button>
-            <button id="analyze-database" class="small-button" type="button">Analizar BD</button>
-            <button id="clean-system-data" class="small-button" type="button">
-              Limpiar vencidos
-            </button>
-          </div>
+  <div>
+    <p class="eyebrow">TI &amp; Seguridad</p>
+    <h2>Centro de Operaciones y Auditoría</h2>
+  </div>
+  <div class="inline-actions">
+    <button id="refresh-audit" class="quiet-button" type="button" title="Refrescar métricas y registros">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+      Actualizar
+    </button>
+    <button id="analyze-database" class="small-button" type="button" title="Optimizar índices y verificar tablas">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+      Diagnóstico BD
+    </button>
+    <button id="clean-system-data" class="small-button reject-button" type="button" title="Purgar tokens expirados y auditoría antigua (+90 días)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      Purgar Vencidos
+    </button>
+  </div>
+</div>
+
+<!-- 1. Tarjetas de Estado y Salud del Sistema -->
+<div id="system-status" class="audit-metrics-grid">
+  <!-- Renderizado dinámicamente -->
+</div>
+
+<!-- 2. Columnas principales: Auditoría de Seguridad y Terminal de Logs -->
+<div class="audit-main-grid">
+  <!-- Panel de Auditoría -->
+  <section class="data-panel audit-panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Trazabilidad</p>
+        <h3>Registro de Auditoría</h3>
+      </div>
+      <div class="audit-filter-wrap">
+        <input id="audit-filter-input" type="search" placeholder="Filtrar por usuario, acción, IP..." class="audit-search-input" />
+      </div>
+    </div>
+    <div id="audit-list" class="audit-timeline"></div>
+  </section>
+
+  <!-- Panel de Logs del Servidor -->
+  <section class="data-panel log-panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Backend</p>
+        <h3>Logs del Servidor</h3>
+      </div>
+      <div class="log-filter-buttons">
+        <button class="log-tab active" data-log-kind="combined" type="button">General</button>
+        <button class="log-tab" data-log-kind="error" type="button">Solo Errores</button>
+      </div>
+    </div>
+    <div class="terminal-window">
+      <div class="terminal-header">
+        <div class="terminal-dots">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-yellow"></span>
+          <span class="dot dot-green"></span>
         </div>
-        <div class="settings-layout audit-layout">
-          <section class="data-panel">
-            <div class="panel-heading">
-              <h3>Estado del sistema</h3>
-            </div>
-            <div id="system-status" class="system-status"></div>
-          </section>
-          <section class="data-panel">
-            <div class="panel-heading">
-              <h3>Auditoría reciente</h3>
-            </div>
-            <div id="audit-list" class="request-list"></div>
-          </section>
-          <section class="data-panel">
-            <div class="panel-heading">
-              <h3>Eventos del sistema</h3>
-            </div>
-            <div id="system-log-list" class="system-log-list"></div>
-          </section>
-        </div>
+        <span class="terminal-title">msa-asistencia.log</span>
+        <button id="copy-logs-btn" class="terminal-copy-btn" type="button" title="Copiar logs">Copiar</button>
+      </div>
+      <div id="system-log-list" class="terminal-body"></div>
+    </div>
+  </section>
+</div>

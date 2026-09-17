@@ -224,13 +224,41 @@ export const PERMISSION_LABELS = {
     title: 'Modificar Configuración de Empresa',
     category: 'Configuración y Auditoría'
   },
+  'backups.read': {
+    title: 'Ver Respaldos de Base de Datos',
+    category: 'Configuración y Auditoría'
+  },
   'backups.create': {
     title: 'Generar Respaldos de Base de Datos',
     category: 'Configuración y Auditoría'
   },
-  'audit-logs.read': {
-    title: 'Ver Registros de Auditoría y Seguridad',
+  'backups.update': {
+    title: 'Restaurar Respaldos de Base de Datos',
     category: 'Configuración y Auditoría'
+  },
+  'backups.delete': {
+    title: 'Eliminar Respaldos de Base de Datos',
+    category: 'Configuración y Auditoría'
+  },
+  'audit-logs.read': {
+    title: 'Ver Registros de Auditoría y Trazabilidad',
+    category: 'Mantenimiento y Logs'
+  },
+  'maintenance.read': {
+    title: 'Ver Estado y Métricas del Servidor',
+    category: 'Mantenimiento y Logs'
+  },
+  'maintenance.update': {
+    title: 'Ejecutar Análisis y Limpieza de BD',
+    category: 'Mantenimiento y Logs'
+  },
+  'system-logs.read': {
+    title: 'Ver Eventos y Logs Técnicos del Sistema',
+    category: 'Mantenimiento y Logs'
+  },
+  'system-logs.delete': {
+    title: 'Depurar Logs del Sistema',
+    category: 'Mantenimiento y Logs'
   }
 };
 

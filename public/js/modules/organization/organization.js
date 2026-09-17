@@ -4,6 +4,14 @@ import { api } from '../../core/api.js';
 import { showToast, showMessage } from '../../components/toast.js';
 import { organizationDefinitions } from './definitions.js';
 
+function normalizeText(text) {
+  return String(text ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
 export async function loadOrganizationReferences() {
   const [companies, users, sites, departments, positions, schedules, employees] = await Promise.all(
     [
@@ -127,7 +135,57 @@ export async function submitOrganizationForm() {
   }
 }
 
-export function renderOrganization(items) {
+export function filterOrganizationItems(items, term) {
+  if (!term || !term.trim()) return items;
+  const clean = normalizeText(term);
+  const config = organizationDefinitions[state.organizationEntity];
+
+  return items.filter((item) => {
+    // 1. Comparar con las columnas configuradas
+    const columnMatches = config.columns.some(([, getter]) => {
+      try {
+        const val = getter(item);
+        return normalizeText(val).includes(clean);
+      } catch {
+        return false;
+      }
+    });
+    if (columnMatches) return true;
+
+    // 2. Para empleados, buscar por nombre, apellido, correo, código, etc.
+    if (state.organizationEntity === 'employees') {
+      const user = state.organizationReferences?.users?.find((u) => u.id === item.userId);
+      if (user) {
+        if (normalizeText(user.firstName).includes(clean)) return true;
+        if (normalizeText(user.lastName).includes(clean)) return true;
+        if (normalizeText(`${user.firstName} ${user.lastName}`).includes(clean)) return true;
+        if (normalizeText(user.email).includes(clean)) return true;
+        if (user.documentNumber && normalizeText(user.documentNumber).includes(clean)) return true;
+      }
+      if (normalizeText(item.employeeCode).includes(clean)) return true;
+    }
+
+    // 3. Atributos generales
+    if (item.name && normalizeText(item.name).includes(clean)) return true;
+    if (item.taxId && normalizeText(item.taxId).includes(clean)) return true;
+    if (item.address && normalizeText(item.address).includes(clean)) return true;
+    if (item.email && normalizeText(item.email).includes(clean)) return true;
+    if (item.phone && normalizeText(item.phone).includes(clean)) return true;
+
+    return false;
+  });
+}
+
+export function handleOrganizationSearch(term) {
+  state.organizationSearchTerm = term;
+  const clearBtn = query('#clear-organization-search');
+  if (clearBtn) clearBtn.hidden = !term;
+
+  const filtered = filterOrganizationItems(state.organizationItems || [], term);
+  renderOrganization(filtered, term);
+}
+
+export function renderOrganization(items, term = '') {
   const config = organizationDefinitions[state.organizationEntity];
   const titleEl = query('#organization-title');
   const importBtn = query('#open-employee-import');
@@ -144,8 +202,8 @@ export function renderOrganization(items) {
       `<tr>${config.columns.map(([label]) => `<th>${escapeHtml(label)}</th>`).join('')}<th></th></tr>`;
   }
   if (bodyEl) {
-    bodyEl.innerHTML = items.length
-      ? items
+    if (items.length) {
+      bodyEl.innerHTML = items
         .map((item) => {
           const actions = [
             `<button class="small-button" data-organization-edit="${item.id}" type="button">Editar</button>`,
@@ -153,17 +211,39 @@ export function renderOrganization(items) {
           ];
           return `<tr>${config.columns.map(([, getter]) => `<td>${escapeHtml(getter(item))}</td>`).join('')}<td><span class="table-actions">${actions.join('')}</span></td></tr>`;
         })
-        .join('')
-      : `<tr><td colspan="${config.columns.length + 1}">No hay registros para mostrar.</td></tr>`;
+        .join('');
+    } else if (term) {
+      bodyEl.innerHTML = `<tr><td colspan="${config.columns.length + 1}" class="table-empty-search"><div class="table-empty-content"><p>No se encontraron resultados para "<strong>${escapeHtml(term)}</strong>"</p><button id="clear-search-link" class="text-button" type="button">Limpiar búsqueda</button></div></td></tr>`;
+    } else {
+      bodyEl.innerHTML = `<tr><td colspan="${config.columns.length + 1}">No hay registros para mostrar.</td></tr>`;
+    }
   }
 }
 
 export async function loadOrganization() {
   try {
     const config = organizationDefinitions[state.organizationEntity];
-    const data = await api(`${config.endpoint}?limit=100`);
+    const searchInput = query('#organization-search');
+    const clearBtn = query('#clear-organization-search');
+
+    if (searchInput) {
+      searchInput.placeholder = config.searchPlaceholder || 'Buscar...';
+      if (state.organizationSearchTerm !== undefined) {
+        searchInput.value = state.organizationSearchTerm;
+      }
+    }
+
+    const [data] = await Promise.all([
+      api(`${config.endpoint}?limit=100`),
+      loadOrganizationReferences()
+    ]);
+
     state.organizationItems = data.items || [];
-    renderOrganization(state.organizationItems);
+    const term = searchInput ? searchInput.value : state.organizationSearchTerm || '';
+    if (clearBtn) clearBtn.hidden = !term;
+
+    const filtered = filterOrganizationItems(state.organizationItems, term);
+    renderOrganization(filtered, term);
   } catch (error) {
     showMessage(error.message);
   }
@@ -180,3 +260,4 @@ export async function deleteOrganizationItem(itemId) {
     showToast(error.message, 'error');
   }
 }
+

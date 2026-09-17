@@ -1,0 +1,498 @@
+/* ==========================================================================
+   VIEW: DASHBOARD (ADMIN & EMPLOYEE HOME)
+   ========================================================================== */
+
+.dashboard-layout,
+.operational-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.95fr);
+  gap: 16px;
+  margin-top: 16px;
+  align-items: start;
+}
+
+.operational-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0;
+}
+
+.chart-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 480px;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 12px;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.legend-entry::before {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  content: '';
+  vertical-align: 1px;
+}
+
+.entry-teal::before {
+  background: var(--teal);
+}
+
+.entry-amber::before {
+  background: var(--amber);
+}
+
+.attendance-chart {
+  display: grid;
+  min-height: 220px;
+  grid-template-columns: repeat(7, minmax(34px, 1fr));
+  align-items: end;
+  gap: clamp(7px, 1.4vw, 15px);
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.chart-day {
+  display: grid;
+  height: 184px;
+  grid-template-rows: 1fr auto;
+  gap: 9px;
+  align-items: end;
+  text-align: center;
+}
+
+.chart-columns {
+  display: flex;
+  height: 144px;
+  align-items: end;
+  justify-content: center;
+  gap: 4px;
+}
+
+.chart-bar {
+  width: min(18px, 42%);
+  min-height: 3px;
+  background: var(--teal);
+}
+
+.chart-bar.late {
+  background: var(--amber);
+}
+
+.chart-day small {
+  color: var(--ink-soft);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+/* Weekly Chart KPI Summaries */
+.chart-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.chart-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.summary-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.summary-value {
+  font-size: 1.15rem;
+  font-weight: 850;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.summary-value.text-teal {
+  color: #166534;
+}
+
+.summary-value.text-amber {
+  color: #b45309;
+}
+
+/* Activity Panel & Contained Scrollable List */
+.activity-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
+}
+
+.activity-panel-heading {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.activity-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.activity-title-row h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.activity-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
+
+.activity-search-wrap {
+  width: 100%;
+}
+
+.activity-search-wrap .table-search-input {
+  min-height: 36px;
+  font-size: 0.8rem;
+}
+
+.activity-filter-pills {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.activity-filter-btn {
+  min-height: 28px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 140ms ease;
+}
+
+.activity-filter-btn:hover {
+  background: #e2e8f0;
+  color: var(--ink);
+}
+
+.activity-filter-btn.active {
+  background: var(--secondary);
+  color: #ffffff;
+  border-color: var(--secondary);
+}
+
+.activity-list {
+  max-height: 360px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.activity-card-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.activity-card-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(227, 6, 19, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.activity-card-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.activity-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.activity-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.activity-card-text strong {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activity-card-text small {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Event Pills with Bordered Badges */
+.event-pill-check-in {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.event-pill-check-out {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.event-pill-lunch-break {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.event-pill-lunch-return {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+/* Roster Panel */
+.roster-panel {
+  margin-top: 16px;
+}
+
+.roster-search-wrap {
+  min-width: 180px;
+}
+
+.roster-search-wrap .table-search-input {
+  min-height: 34px;
+  font-size: 0.78rem;
+}
+
+.roster-list {
+  max-height: 380px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.roster-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+/* Webkit Scrollbars for Contained Lists */
+.activity-list::-webkit-scrollbar,
+.roster-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.activity-list::-webkit-scrollbar-track,
+.roster-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.activity-list::-webkit-scrollbar-thumb,
+.roster-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.activity-list::-webkit-scrollbar-thumb:hover,
+.roster-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Dashboard Announcements */
+.announcement-dashboard-panel {
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
+
+.dashboard-announcements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.announcement-card-hero {
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--teal);
+  border-radius: 6px;
+  padding: 16px 18px;
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.announcement-card-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.announcement-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.announcement-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.announcement-card-date {
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.announcement-card-title {
+  margin: 6px 0 8px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.announcement-card-body {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* Employee Portal Layout */
+.employee-dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+.employee-sidebar-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.quick-check-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.quick-check-status {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+@media (max-width: 1080px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-layout,
+  .operational-grid,
+  .employee-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .chart-legend {
+    display: none;
+  }
+  .attendance-chart {
+    gap: 4px;
+  }
+  .chart-day {
+    height: 170px;
+  }
+  .chart-columns {
+    height: 130px;
+  }
+  .chart-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,7 +1,11 @@
 import { state } from '../../core/state.js';
-import { query, fullName, formatDate, escapeHtml } from '../../core/utils.js';
+import { query, queryAll, fullName, formatDate, escapeHtml } from '../../core/utils.js';
 import { api } from '../../core/api.js';
 import { showToast, showMessage } from '../../components/toast.js';
+
+let currentAuditItems = [];
+let currentLogItems = [];
+let activeLogKind = 'combined';
 
 export function selectedCompanyId() {
   const select = query('#settings-company');
@@ -186,54 +190,294 @@ export async function restoreBackup(id) {
   }
 }
 
+function formatUptime(seconds) {
+  const s = Math.floor(Number(seconds) || 0);
+  const days = Math.floor(s / 86400);
+  const hours = Math.floor((s % 86400) / 3600);
+  const minutes = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+  if (hours > 0) return `${hours}h ${minutes}m ${sec}s`;
+  if (minutes > 0) return `${minutes}m ${sec}s`;
+  return `${sec}s`;
+}
+
 export function renderSystemStatus(data) {
-  const metrics = data.metrics || {};
-  const entries = [
-    ['Base de datos', data.database],
-    ['Tiempo activo', `${data.uptimeSeconds || 0} s`],
-    ['Empleados activos', metrics.activeEmployees || 0],
-    ['Solicitudes pendientes', metrics.pendingRequests || 0],
-    ['Notificaciones sin leer', metrics.unreadNotifications || 0]
-  ];
   const container = query('#system-status');
-  if (container) {
-    container.innerHTML = entries
-      .map(
-        ([label, value]) =>
-          `<div class="system-status-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`
-      )
-      .join('');
+  if (!container) return;
+
+  const metrics = data?.metrics || {};
+  const isDbOk = data?.database === 'connected';
+  const uptime = formatUptime(data?.uptimeSeconds);
+
+  container.innerHTML = `
+    <div class="audit-stat-card">
+      <div class="stat-card-header">
+        <span class="stat-label">Base de Datos</span>
+        <span class="stat-status-dot ${isDbOk ? 'status-ok' : 'status-err'}"></span>
+      </div>
+      <div class="stat-main-value">${isDbOk ? 'MySQL En línea' : 'Desconectada'}</div>
+      <div class="stat-subtext">${isDbOk ? 'Conexión activa y respondiendo' : 'Error en conexión'}</div>
+    </div>
+
+    <div class="audit-stat-card">
+      <div class="stat-card-header">
+        <span class="stat-label">Tiempo Activo (Uptime)</span>
+        <span class="stat-icon-tag">⏱️</span>
+      </div>
+      <div class="stat-main-value">${escapeHtml(uptime)}</div>
+      <div class="stat-subtext">Servidor Node.js / Express</div>
+    </div>
+
+    <div class="audit-stat-card">
+      <div class="stat-card-header">
+        <span class="stat-label">Personal Activo</span>
+        <span class="stat-icon-tag">👥</span>
+      </div>
+      <div class="stat-main-value">${metrics.activeEmployees || 0}</div>
+      <div class="stat-subtext">De ${metrics.users || 0} usuarios en el sistema</div>
+    </div>
+
+    <div class="audit-stat-card">
+      <div class="stat-card-header">
+        <span class="stat-label">Solicitudes Pendientes</span>
+        <span class="stat-icon-tag">📋</span>
+      </div>
+      <div class="stat-main-value ${metrics.pendingRequests > 0 ? 'text-amber' : ''}">${metrics.pendingRequests || 0}</div>
+      <div class="stat-subtext">${metrics.pendingRequests > 0 ? 'Requieren aprobación' : 'Todo al día'}</div>
+    </div>
+
+    <div class="audit-stat-card">
+      <div class="stat-card-header">
+        <span class="stat-label">Avisos Sin Leer</span>
+        <span class="stat-icon-tag">🔔</span>
+      </div>
+      <div class="stat-main-value">${metrics.unreadNotifications || 0}</div>
+      <div class="stat-subtext">Notificaciones de sistema</div>
+    </div>
+  `;
+}
+
+const ENTITY_TRANSLATIONS = {
+  Device: 'Dispositivo',
+  Employee: 'Empleado',
+  User: 'Usuario',
+  Company: 'Empresa',
+  Site: 'Sede',
+  Department: 'Área',
+  Position: 'Cargo',
+  Schedule: 'Horario',
+  Role: 'Rol',
+  Attendance: 'Asistencia',
+  Vacation: 'Vacaciones',
+  WorkPermission: 'Permiso Laboral',
+  License: 'Licencia',
+  OfflineAttendanceToken: 'Token Offline',
+  System: 'Sistema'
+};
+
+const ACTION_MAP = {
+  REGISTER: { label: 'Registro', class: 'audit-badge-create', icon: '➕' },
+  CREATE: { label: 'Creación', class: 'audit-badge-create', icon: '➕' },
+  PROVISION: { label: 'Alta', class: 'audit-badge-create', icon: '➕' },
+  UPDATE: { label: 'Modificación', class: 'audit-badge-update', icon: '✏️' },
+  SET_STATUS: { label: 'Cambio de Estado', class: 'audit-badge-update', icon: '🔄' },
+  DELETE: { label: 'Eliminación', class: 'audit-badge-delete', icon: '🗑️' },
+  REVOKE: { label: 'Revocación', class: 'audit-badge-delete', icon: '⛔' },
+  LOGIN: { label: 'Inicio de Sesión', class: 'audit-badge-auth', icon: '🔑' },
+  ANALYZE: { label: 'Diagnóstico BD', class: 'audit-badge-maint', icon: '⚙️' },
+  CLEANUP: { label: 'Limpieza BD', class: 'audit-badge-maint', icon: '🧹' }
+};
+
+export function renderAuditList(items = currentAuditItems, term = '') {
+  const auditList = query('#audit-list');
+  if (!auditList) return;
+
+  let filtered = items;
+  if (term && term.trim()) {
+    const clean = term.trim().toLowerCase();
+    filtered = items.filter((item) => {
+      const uName = fullName(item.user).toLowerCase();
+      const uEmail = (item.user?.email || '').toLowerCase();
+      const action = (item.action || '').toLowerCase();
+      const entity = (ENTITY_TRANSLATIONS[item.entity] || item.entity || '').toLowerCase();
+      const ip = (item.ipAddress || '').toLowerCase();
+      return (
+        uName.includes(clean) ||
+        uEmail.includes(clean) ||
+        action.includes(clean) ||
+        entity.includes(clean) ||
+        ip.includes(clean)
+      );
+    });
   }
+
+  if (!filtered.length) {
+    auditList.innerHTML = term
+      ? `<div class="empty-state">No se encontraron eventos para "<strong>${escapeHtml(term)}</strong>"</div>`
+      : '<div class="empty-state">No hay registros de auditoría recientes.</div>';
+    return;
+  }
+
+  auditList.innerHTML = filtered
+    .map((item) => {
+      const actMeta = ACTION_MAP[item.action] || {
+        label: item.action,
+        class: 'audit-badge-default',
+        icon: '📌'
+      };
+      const entityLabel = ENTITY_TRANSLATIONS[item.entity] || item.entity;
+      const userName = fullName(item.user);
+      const userInitials = userName
+        .split(' ')
+        .map((p) => p[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase() || 'US';
+      const formattedDate = formatDate(item.createdAt, {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      });
+      const ip = item.ipAddress || '127.0.0.1';
+
+      return `
+        <div class="audit-card-row">
+          <div class="audit-avatar">${escapeHtml(userInitials)}</div>
+          <div class="audit-card-body">
+            <div class="audit-card-top">
+              <span class="audit-badge ${actMeta.class}">${actMeta.icon} ${escapeHtml(actMeta.label)}</span>
+              <span class="audit-entity-tag">${escapeHtml(entityLabel)}</span>
+              <span class="audit-time">${escapeHtml(formattedDate)}</span>
+            </div>
+            <div class="audit-narrative">
+              <strong>${escapeHtml(userName)}</strong> ejecutó <em>${escapeHtml(actMeta.label.toLowerCase())}</em> sobre <strong>${escapeHtml(entityLabel)}</strong>
+            </div>
+            <div class="audit-meta-row">
+              <span class="audit-ip-pill">🌐 IP: ${escapeHtml(ip)}</span>
+              ${item.device ? `<span class="audit-device-pill">💻 ${escapeHtml(item.device.slice(0, 45))}</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+export function handleAuditFilter(term) {
+  renderAuditList(currentAuditItems, term);
+}
+
+export function renderLogs(logs = currentLogItems) {
+  const sysLogs = query('#system-log-list');
+  if (!sysLogs) return;
+
+  if (!Array.isArray(logs) || !logs.length) {
+    sysLogs.innerHTML = '<div class="terminal-empty">No hay eventos registrados en este momento.</div>';
+    return;
+  }
+
+  sysLogs.innerHTML = logs
+    .map((entry) => {
+      const timestamp = entry.timestamp
+        ? new Date(entry.timestamp).toLocaleTimeString('es-PE', { hour12: false })
+        : '--:--:--';
+      const level = (entry.level || 'info').toUpperCase();
+      const levelClass =
+        level === 'ERROR'
+          ? 'log-lvl-error'
+          : level === 'WARN'
+            ? 'log-lvl-warn'
+            : level === 'DEBUG'
+              ? 'log-lvl-debug'
+              : 'log-lvl-info';
+      const msg = entry.message || (typeof entry === 'string' ? entry : JSON.stringify(entry));
+
+      let extraMeta = '';
+      const rest = { ...entry };
+      delete rest.timestamp;
+      delete rest.level;
+      delete rest.message;
+      if (Object.keys(rest).length > 0) {
+        extraMeta = `<span class="log-extra">${escapeHtml(JSON.stringify(rest))}</span>`;
+      }
+
+      return `
+        <div class="terminal-line">
+          <span class="log-time">[${escapeHtml(timestamp)}]</span>
+          <span class="log-level ${levelClass}">${escapeHtml(level)}</span>
+          <span class="log-message">${escapeHtml(msg)}</span>
+          ${extraMeta}
+        </div>
+      `;
+    })
+    .join('');
+}
+
+export async function handleLogKindChange(kind) {
+  activeLogKind = kind;
+  queryAll('.log-tab').forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.logKind === kind);
+  });
+  try {
+    const logs = await api(`/system/logs?kind=${kind}&limit=40`);
+    currentLogItems = logs || [];
+    renderLogs(currentLogItems);
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+export function copySystemLogs() {
+  const text = currentLogItems
+    .map((e) => `[${e.timestamp || ''}] [${(e.level || 'info').toUpperCase()}] ${e.message || JSON.stringify(e)}`)
+    .join('\n');
+  if (!text) return showToast('No hay logs para copiar');
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Logs copiados al portapapeles');
+  }).catch(() => {
+    showToast('No se pudo copiar al portapapeles', 'error');
+  });
 }
 
 export async function loadAudit() {
   try {
-    const [status, audits, logs] = await Promise.all([
+    const [statusRes, auditsRes, logsRes] = await Promise.allSettled([
       api('/system/status'),
-      api('/audit-logs?limit=30'),
-      api('/system/logs?kind=combined&limit=30')
+      api('/audit-logs?limit=40'),
+      api(`/system/logs?kind=${activeLogKind}&limit=40`)
     ]);
-    renderSystemStatus(status);
-    const auditList = query('#audit-list');
-    const sysLogs = query('#system-log-list');
-    if (auditList) {
-      auditList.innerHTML = (audits.items || []).length
-        ? audits.items
-          .map(
-            (item) =>
-              `<div class="request-row"><span><strong class="row-name">${escapeHtml(item.action)} · ${escapeHtml(item.entity)}</strong><small class="row-meta">${escapeHtml(fullName(item.user))} · ${formatDate(item.createdAt, { dateStyle: 'medium', timeStyle: 'short' })} · ${escapeHtml(item.ipAddress || '-')}</small></span></div>`
-          )
-          .join('')
-        : '<p class="empty-state">No hay eventos de auditoría.</p>';
+
+    if (statusRes.status === 'fulfilled') {
+      renderSystemStatus(statusRes.value);
+    } else {
+      const container = query('#system-status');
+      if (container) container.innerHTML = '<div class="empty-state">Sin permiso para ver métricas del servidor.</div>';
     }
-    if (sysLogs) {
-      sysLogs.innerHTML = logs.length
-        ? logs
-          .map(
-            (entry) => `<pre class="system-log-entry">${escapeHtml(JSON.stringify(entry))}</pre>`
-          )
-          .join('')
-        : '<p class="empty-state">No hay eventos del sistema.</p>';
+
+    if (auditsRes.status === 'fulfilled') {
+      currentAuditItems = auditsRes.value?.items || [];
+      const searchInput = query('#audit-filter-input');
+      renderAuditList(currentAuditItems, searchInput?.value || '');
+    } else {
+      const auditList = query('#audit-list');
+      if (auditList) auditList.innerHTML = '<div class="empty-state">Sin permiso para ver eventos de auditoría.</div>';
+    }
+
+    if (logsRes.status === 'fulfilled') {
+      currentLogItems = logsRes.value || [];
+      renderLogs(currentLogItems);
+    } else {
+      const sysLogs = query('#system-log-list');
+      if (sysLogs) sysLogs.innerHTML = '<div class="terminal-empty">Sin permiso para ver logs del sistema.</div>';
+    }
+
+    if (
+      statusRes.status === 'rejected' &&
+      auditsRes.status === 'rejected' &&
+      logsRes.status === 'rejected'
+    ) {
+      showMessage(statusRes.reason?.message || 'No tiene permisos para ver auditoría ni logs');
     }
   } catch (error) {
     showMessage(error.message);
@@ -241,23 +485,43 @@ export async function loadAudit() {
 }
 
 export async function analyzeDatabase() {
+  const btn = query('#analyze-database');
+  if (btn) btn.disabled = true;
   try {
-    await api('/system/analyze', { method: 'POST' });
-    showToast('Análisis de base de datos iniciado');
+    showToast('Iniciando diagnóstico y optimización de tablas...');
+    const result = await api('/system/analyze', { method: 'POST' });
+    const count = result?.results?.length || 0;
+    showToast(`Diagnóstico completado con éxito (${count} tablas analizadas)`);
     loadAudit();
   } catch (error) {
     showToast(error.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
 export async function cleanSystemData() {
-  if (!window.confirm('Se eliminarán tokens vencidos y auditorías antiguas. ¿Desea continuar?'))
+  if (
+    !window.confirm(
+      '¿Deseas purgar datos vencidos?\n\nEsta tarea eliminará permanentemente:\n- Tokens de sesión expirados.\n- Tokens de recuperación y permisos offline vencidos.\n- Registros de auditoría con más de 90 días de antigüedad.'
+    )
+  )
     return;
+
+  const btn = query('#clean-system-data');
+  if (btn) btn.disabled = true;
   try {
-    await api('/system/cleanup', { method: 'POST', body: JSON.stringify({ retentionDays: 90 }) });
-    showToast('Limpieza de datos completada');
+    const result = await api('/system/cleanup', {
+      method: 'POST',
+      body: JSON.stringify({ retentionDays: 90 })
+    });
+    showToast(
+      `Limpieza completada: ${result?.sessions || 0} sesiones, ${result?.auditLogs || 0} auditorías antiguas y ${result?.offlineTokens || 0} tokens purgados.`
+    );
     loadAudit();
   } catch (error) {
     showToast(error.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }

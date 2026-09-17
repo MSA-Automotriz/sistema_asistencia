@@ -249,15 +249,33 @@ export class AttendanceOperationsService {
             throw new AppError(422, 'La hora del registro offline no es válida');
         const employee = await prisma.employee.findUnique({
             where: { userId },
-            include: { site: true, schedule: true, company: { select: { timeZone: true } } }
+            include: { site: true, schedule: true, company: { select: { id: true, timeZone: true } } }
         });
-        const site = employee?.site;
-        if (!employee?.active || !site || site.id !== offlinePermit.siteId)
+        if (!employee?.active)
+            throw new AppError(403, 'Empleado inactivo o sin sede activa asignada');
+        const activeSites = await prisma.site.findMany({
+            where: {
+                companyId: employee.companyId,
+                active: true
+            }
+        });
+        const candidateSites = activeSites.length > 0 ? activeSites : employee.site?.active ? [employee.site] : [];
+        if (candidateSites.length === 0)
             throw new AppError(403, 'Empleado sin sede activa asignada');
-        const distanceMeters = haversineMeters(input.latitude, input.longitude, site.latitude, site.longitude);
-        const toleranceMeters = site.radiusMeters + 150; // Add 150m tolerance buffer
-        if (distanceMeters > toleranceMeters)
-            throw new AppError(403, 'No se encuentra dentro del área autorizada.');
+        const evaluatedSites = candidateSites.map((candidate) => {
+            const dist = haversineMeters(input.latitude, input.longitude, Number(candidate.latitude), Number(candidate.longitude));
+            return {
+                site: candidate,
+                distanceMeters: dist,
+                isInside: dist <= (candidate.radiusMeters + 150)
+            };
+        });
+        evaluatedSites.sort((a, b) => a.distanceMeters - b.distanceMeters);
+        const matched = evaluatedSites.find((item) => item.isInside);
+        if (!matched)
+            throw new AppError(403, 'No se encuentra dentro del área autorizada de ninguna sede.');
+        const matchedSite = matched.site;
+        const distanceMeters = matched.distanceMeters;
         const lastAttendance = await prisma.attendance.findFirst({
             where: { employeeId: employee.id },
             orderBy: { recordedAt: 'desc' },
@@ -324,7 +342,7 @@ export class AttendanceOperationsService {
             return transaction.attendance.create({
                 data: {
                     employeeId: employee.id,
-                    siteId: site.id,
+                    siteId: matchedSite.id,
                     type: input.type,
                     status: evaluation.status,
                     excessMinutes: evaluation.excessMinutes,

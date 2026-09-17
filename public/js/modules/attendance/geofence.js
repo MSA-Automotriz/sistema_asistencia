@@ -3,6 +3,18 @@ import { query, escapeHtml } from '../../core/utils.js';
 import { api } from '../../core/api.js';
 import { prepareOfflinePermit } from './offline-sync.js';
 
+export function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 export function setGeofenceMapState(label, className = 'status-pending') {
   const element = query('#geofence-map-state');
   if (!element) return;
@@ -12,25 +24,50 @@ export function setGeofenceMapState(label, className = 'status-pending') {
 
 export function clearGeofenceLayers() {
   if (!state.geofenceMap) return;
+  if (state.geofenceSiteLayers?.length) {
+    state.geofenceSiteLayers.forEach(({ marker, circle }) => {
+      if (marker) state.geofenceMap.removeLayer(marker);
+      if (circle) state.geofenceMap.removeLayer(circle);
+    });
+    state.geofenceSiteLayers = [];
+  }
   ['geofenceSiteMarker', 'geofenceCircle', 'geofenceLocationMarker'].forEach((key) => {
     if (state[key]) state.geofenceMap.removeLayer(state[key]);
     state[key] = null;
   });
 }
 
-export function renderGeofenceMap(site) {
+export function renderGeofenceMap(sitesData) {
   const leaflet = window.L;
-  const latitude = Number(site?.latitude);
-  const longitude = Number(site?.longitude);
-  const radiusMeters = Number(site?.radiusMeters);
   if (!leaflet) {
     setGeofenceMapState('Mapa no disponible', 'status-inactive');
     return;
   }
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || !Number.isFinite(radiusMeters)) {
+
+  const rawList = Array.isArray(sitesData) ? sitesData : sitesData ? [sitesData] : [];
+  const validSites = rawList
+    .map((s) => ({
+      id: s.id,
+      name: s.name || 'Sede',
+      address: s.address || '',
+      latitude: Number(s.latitude),
+      longitude: Number(s.longitude),
+      radiusMeters: Number(s.radiusMeters) || 30
+    }))
+    .filter(
+      (s) =>
+        Number.isFinite(s.latitude) &&
+        Number.isFinite(s.longitude) &&
+        Number.isFinite(s.radiusMeters)
+    );
+
+  state.activeGeofenceSites = validSites;
+
+  if (validSites.length === 0) {
     setGeofenceMapState('Sede sin geocerca', 'status-inactive');
     return;
   }
+
   const container = query('#geofence-map');
   if (!container) return;
 
@@ -58,11 +95,15 @@ export function renderGeofenceMap(site) {
       preferCanvas: true
     });
     leaflet
-      .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 19,
-        subdomains: ['a', 'b', 'c']
-      })
+      .tileLayer(
+        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> &copy; <a href="https://carto.com/" target="_blank">CARTO</a>',
+          maxZoom: 20,
+          subdomains: ['a', 'b', 'c', 'd']
+        }
+      )
       .addTo(state.geofenceMap);
   } catch (err) {
     console.error('Error al inicializar Leaflet:', err);
@@ -72,78 +113,144 @@ export function renderGeofenceMap(site) {
 
   try {
     clearGeofenceLayers();
-    const center = [latitude, longitude];
-    state.geofenceMap.setView(center, 16);
+    state.geofenceSiteLayers = [];
 
-    state.geofenceSiteMarker = leaflet
-      .circleMarker(center, {
-        radius: 9,
-        color: '#ffffff',
-        weight: 2,
-        fillColor: '#e30613',
-        fillOpacity: 1
-      })
-      .bindPopup(
-        `<strong>Sede autorizada: ${escapeHtml(site.name || 'Sin nombre')}</strong><br><small>${latitude.toFixed(6)}, ${longitude.toFixed(6)}</small>`
-      )
-      .addTo(state.geofenceMap);
+    const bounds = leaflet.latLngBounds([]);
 
-    state.geofenceCircle = leaflet
-      .circle(center, {
-        radius: Math.max(10, radiusMeters),
-        color: '#e30613',
-        fillColor: '#e30613',
-        fillOpacity: 0.18,
-        weight: 2
-      })
-      .addTo(state.geofenceMap);
+    validSites.forEach((site) => {
+      const center = [site.latitude, site.longitude];
+      bounds.extend(center);
 
-    if (state.attendanceLocation) renderGeofenceLocation(state.attendanceLocation);
-    setGeofenceMapState(`Sede: ${site.name || 'Autorizada'} (${radiusMeters}m)`, 'status-active');
+      const marker = leaflet
+        .circleMarker(center, {
+          radius: 8,
+          color: '#ffffff',
+          weight: 2,
+          fillColor: '#e30613',
+          fillOpacity: 1
+        })
+        .bindPopup(
+          `<strong>Sede autorizada: ${escapeHtml(site.name)}</strong><br><small>${escapeHtml(site.address)}</small><br><small>Radio: ${site.radiusMeters} m</small>`
+        )
+        .addTo(state.geofenceMap);
+
+      const circle = leaflet
+        .circle(center, {
+          radius: Math.max(10, site.radiusMeters),
+          color: '#e30613',
+          fillColor: '#e30613',
+          fillOpacity: 0.18,
+          weight: 2
+        })
+        .addTo(state.geofenceMap);
+
+      state.geofenceSiteLayers.push({ site, marker, circle });
+    });
+
+    if (validSites.length === 1) {
+      state.geofenceMap.setView([validSites[0].latitude, validSites[0].longitude], 16);
+    } else {
+      state.geofenceMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+    }
+
+    if (state.attendanceLocation) {
+      renderGeofenceLocation(state.attendanceLocation);
+    } else {
+      const count = validSites.length;
+      setGeofenceMapState(
+        count === 1
+          ? `Sede: ${validSites[0].name} (${validSites[0].radiusMeters}m)`
+          : `${count} sedes autorizadas`,
+        'status-active'
+      );
+    }
+
     setTimeout(() => state.geofenceMap?.invalidateSize(), 100);
     setTimeout(() => state.geofenceMap?.invalidateSize(), 500);
   } catch (err) {
-    console.error('Error al renderizar geocerca en mapa:', err);
+    console.error('Error al renderizar geocercas en mapa:', err);
   }
 }
 
 export function renderGeofenceLocation(location) {
   const leaflet = window.L;
   if (!leaflet || !state.geofenceMap || !location) return;
-  if (state.geofenceLocationMarker) state.geofenceMap.removeLayer(state.geofenceLocationMarker);
+
+  if (state.geofenceLocationMarker) {
+    state.geofenceMap.removeLayer(state.geofenceLocationMarker);
+  }
+
+  const userLat = location.latitude;
+  const userLng = location.longitude;
+
   state.geofenceLocationMarker = leaflet
-    .circleMarker([location.latitude, location.longitude], {
+    .circleMarker([userLat, userLng], {
       radius: 7,
       color: '#1d4ed8',
       fillColor: '#3b82f6',
       fillOpacity: 0.95,
       weight: 2
     })
-    .bindPopup('Ubicación actual')
+    .bindPopup('<strong>Tu ubicación actual</strong>')
     .addTo(state.geofenceMap);
+
+  const sites = state.activeGeofenceSites || [];
+  if (sites.length === 0) return;
+
+  const evaluated = sites.map((site) => {
+    const dist = calculateDistanceMeters(userLat, userLng, site.latitude, site.longitude);
+    return {
+      site,
+      distanceMeters: dist,
+      isInside: dist <= site.radiusMeters
+    };
+  });
+
+  evaluated.sort((a, b) => a.distanceMeters - b.distanceMeters);
+  const matched = evaluated.find((e) => e.isInside);
+
+  if (matched) {
+    setGeofenceMapState(
+      `Sede detectada: ${matched.site.name} (${Math.round(matched.distanceMeters)}m)`,
+      'status-active'
+    );
+  } else {
+    const nearest = evaluated[0];
+    const nearestDist = Math.round(nearest.distanceMeters);
+    setGeofenceMapState(
+      `Fuera de sede (${nearest.site.name} a ${nearestDist}m)`,
+      'status-pending'
+    );
+  }
 }
 
 export async function loadAttendanceMap() {
   setGeofenceMapState('Cargando mapa...', 'status-pending');
-  let siteToRender = null;
+  let sitesToRender = null;
   try {
     const profile = await api('/me/profile');
     state.profile = profile;
-    siteToRender = profile?.site;
+    sitesToRender = profile?.sites?.length ? profile.sites : profile?.site ? [profile.site] : null;
   } catch (error) {
     console.warn('Error al obtener perfil en vivo:', error);
   }
 
-  if (!siteToRender) {
-    siteToRender = state.profile?.site || {
-      name: 'MSA Automotriz',
-      latitude: -7.144582,
-      longitude: -78.512535,
-      radiusMeters: 30
-    };
+  if (!sitesToRender || sitesToRender.length === 0) {
+    sitesToRender = state.profile?.sites?.length
+      ? state.profile.sites
+      : state.profile?.site
+        ? [state.profile.site]
+        : [
+            {
+              name: 'MSA Automotriz',
+              latitude: -7.144582,
+              longitude: -78.512535,
+              radiusMeters: 30
+            }
+          ];
   }
 
-  renderGeofenceMap(siteToRender);
+  renderGeofenceMap(sitesToRender);
   void prepareOfflinePermit(false);
 }
 

@@ -1,0 +1,38 @@
+/* ==========================================================================
+   VIEW: ATTENDANCE (MARKING & GEOFENCING MAP)
+   ========================================================================== */
+
+.map-panel {
+  margin-top: 16px;
+}
+
+.geofence-map {
+  min-height: 280px;
+  height: min(52vh, 420px);
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  background: var(--paper-deep);
+}
+
+.location-readout {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px dashed var(--line);
+  padding: 8px 9px;
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 620px) {
+  .location-readout {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .geofence-map {
+    min-height: 230px;
+    height: min(44vh, 300px);
+  }
+}

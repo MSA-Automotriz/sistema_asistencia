@@ -1,37 +1,37 @@
 <div class="view-heading">
-          <div>
-            <p class="eyebrow">Trazabilidad</p>
-            <h2>Historial de asistencias</h2>
-          </div>
-          <button id="refresh-history" class="quiet-button" type="button">Actualizar</button>
-        </div>
-        <form id="history-filter-form" class="filter-bar data-panel">
-          <label>Desde<input id="history-start-date" name="startDate" type="date" /></label>
-          <label>Hasta<input id="history-end-date" name="endDate" type="date" /></label>
-          <label>Estado<select id="history-status" name="status">
-              <option value="">Todos</option>
-              <option value="ON_TIME">Puntual</option>
-              <option value="LATE">Tardanza</option>
-              <option value="EARLY_DEPARTURE">Salida anticipada</option>
-            </select></label>
-          <label>Buscar<input id="history-search" name="search" type="search" placeholder="Empleado o código" /></label>
-          <button class="primary-button" type="submit">Filtrar</button>
-        </form>
-        <section class="data-panel table-panel">
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Empleado</th>
-                  <th>Sede</th>
-                  <th>Movimiento</th>
-                  <th>Estado</th>
-                  <th>Ubicación</th>
-                  <th>Dispositivo</th>
-                </tr>
-              </thead>
-              <tbody id="history-table"></tbody>
-            </table>
-          </div>
-        </section>
+  <div>
+    <p class="eyebrow">Trazabilidad</p>
+    <h2>Historial de asistencias</h2>
+  </div>
+  <button id="refresh-history" class="quiet-button" type="button">Actualizar</button>
+</div>
+<form id="history-filter-form" class="filter-bar data-panel">
+  <label>Desde<input id="history-start-date" name="startDate" type="date" /></label>
+  <label>Hasta<input id="history-end-date" name="endDate" type="date" /></label>
+  <label>Estado<select id="history-status" name="status">
+      <option value="">Todos</option>
+      <option value="ON_TIME">Puntual</option>
+      <option value="LATE">Tardanza</option>
+      <option value="EARLY_DEPARTURE">Salida anticipada</option>
+    </select></label>
+  <label>Buscar<input id="history-search" name="search" type="search" placeholder="Empleado o código" /></label>
+  <button class="primary-button" type="submit">Filtrar</button>
+</form>
+<section class="data-panel table-panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Empleado</th>
+          <th>Sede</th>
+          <th>Movimiento</th>
+          <th>Estado</th>
+          <th>Ubicación</th>
+          <th>Dispositivo</th>
+        </tr>
+      </thead>
+      <tbody id="history-table"></tbody>
+    </table>
+  </div>
+</section>
