@@ -27,6 +27,7 @@ describe('System-wide Route & Asset Verification Scanner', () => {
       '/css/views/profile.css',
       '/css/views/users.css',
       '/css/views/audit.css',
+      '/css/views/tickets.css',
       '/manifest.webmanifest',
       '/service-worker.js',
       '/views/dashboard/dashboard.html',
@@ -45,6 +46,7 @@ describe('System-wide Route & Asset Verification Scanner', () => {
       '/views/users/users.html',
       '/views/roles/roles.html',
       '/views/sessions/sessions.html',
+      '/views/tickets/tickets.html',
       '/views/modals/user-dialog.html',
       '/views/modals/edit-user-dialog.html',
       '/views/modals/role-dialog.html',
@@ -52,12 +54,15 @@ describe('System-wide Route & Asset Verification Scanner', () => {
       '/views/modals/employee-import-dialog.html',
       '/views/modals/announcement-dialog.html',
       '/views/modals/request-dialog.html',
+      '/views/modals/ticket-dialog.html',
+      '/views/modals/resolve-ticket-dialog.html',
       '/js/app.js',
       '/js/core/constants.js',
       '/js/core/state.js',
       '/js/core/utils.js',
       '/js/core/api.js',
       '/js/core/auth.js',
+      '/js/modules/tickets/tickets.js',
       '/js/core/router.js',
       '/js/core/view-loader.js',
       '/js/components/toast.js',
@@ -166,7 +171,8 @@ describe('System-wide Route & Asset Verification Scanner', () => {
       '/api/v1/sessions',
       '/api/v1/system/status',
       '/api/v1/audit-logs',
-      '/api/v1/reports/ATTENDANCE'
+      '/api/v1/reports/ATTENDANCE',
+      '/api/v1/tickets'
     ];
 
     for (const endpoint of protectedGetEndpoints) {

@@ -1,0 +1,72 @@
+<div class="view-heading">
+  <div>
+    <p class="eyebrow" id="tickets-view-eyebrow">Mesa de Ayuda</p>
+    <h2 id="tickets-view-title">Tickets de Soporte TI</h2>
+  </div>
+  <div class="inline-actions">
+    <button id="open-ticket-dialog-btn" class="primary-button" type="button">
+      Abrir Ticket
+    </button>
+    <button id="refresh-tickets-btn" class="quiet-button" type="button">Actualizar</button>
+  </div>
+</div>
+
+<!-- Selector de Pestañas (Solo si es Administrador o Sistemas) -->
+<div id="ticket-manager-tabs" class="ticket-nav-tabs" hidden>
+  <button class="ticket-tab active" data-ticket-tab="own" type="button">
+    Mis Tickets <span id="own-tickets-badge" class="count-badge">0</span>
+  </button>
+  <button class="ticket-tab" data-ticket-tab="all" type="button">
+    Bandeja de Sistemas <span id="all-tickets-badge" class="count-badge">0</span>
+  </button>
+</div>
+
+<!-- Filtros de búsqueda -->
+<section class="ticket-filter-bar">
+  <div class="filter-group">
+    <label for="ticket-status-filter">Estado</label>
+    <select id="ticket-status-filter" class="filter-select">
+      <option value="">Todos los estados</option>
+      <option value="PENDING">Pendiente</option>
+      <option value="IN_PROGRESS">En Proceso</option>
+      <option value="RESOLVED">Resuelto</option>
+      <option value="CLOSED">Cerrado</option>
+      <option value="REJECTED">Rechazado</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label for="ticket-category-filter">Categoría</label>
+    <select id="ticket-category-filter" class="filter-select">
+      <option value="">Todas las categorías</option>
+      <option value="HARDWARE">Hardware / Computadora</option>
+      <option value="SOFTWARE">Software / Programas</option>
+      <option value="NETWORK">Red / Internet</option>
+      <option value="ATTENDANCE_SYSTEM">Sistema de Asistencia</option>
+      <option value="EMAIL">Correo / Cuentas</option>
+      <option value="PRINTER">Impresoras</option>
+      <option value="OTHER">Otro</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label for="ticket-priority-filter">Prioridad</label>
+    <select id="ticket-priority-filter" class="filter-select">
+      <option value="">Todas</option>
+      <option value="URGENT">Urgente</option>
+      <option value="HIGH">Alta</option>
+      <option value="MEDIUM">Media</option>
+      <option value="LOW">Baja</option>
+    </select>
+  </div>
+
+  <div class="filter-group search-group">
+    <label for="ticket-search-input">Buscar</label>
+    <input type="search" id="ticket-search-input" class="filter-input" placeholder="Buscar por código, asunto o detalle..." />
+  </div>
+</section>
+
+<!-- Contenedor Principal de Tickets -->
+<div id="tickets-container" class="tickets-grid-container">
+  <div class="loading-indicator">Cargando tickets de soporte...</div>
+</div>

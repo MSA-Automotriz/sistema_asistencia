@@ -32,7 +32,8 @@ const resources = [
   'backups',
   'maintenance',
   'imports',
-  'dashboard'
+  'dashboard',
+  'tickets'
 ];
 
 async function main() {

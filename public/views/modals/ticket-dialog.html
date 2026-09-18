@@ -1,0 +1,68 @@
+<dialog id="ticket-dialog" class="dialog">
+  <form id="create-ticket-form" class="dialog-content" method="dialog">
+    <div class="dialog-heading">
+      <div>
+        <p class="eyebrow">Soporte Técnico TI</p>
+        <h2 id="ticket-dialog-title">Abrir Ticket de Soporte</h2>
+      </div>
+      <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+    </div>
+
+    <div class="dialog-grid">
+      <label class="dialog-wide">
+        Asunto / Título del Problema <span class="required">*</span>
+        <input
+          type="text"
+          id="ticket-form-title"
+          name="title"
+          required
+          minlength="3"
+          maxlength="150"
+          placeholder="Ej: Impresora sin conexión en recepción / Error en sistema"
+        />
+      </label>
+
+      <label>
+        Categoría <span class="required">*</span>
+        <select id="ticket-form-category" name="category" required>
+          <option value="HARDWARE">Hardware / Computadora</option>
+          <option value="SOFTWARE">Software / Programas</option>
+          <option value="NETWORK">Red / Internet</option>
+          <option value="ATTENDANCE_SYSTEM">Sistema de Asistencia</option>
+          <option value="EMAIL">Correo / Cuentas</option>
+          <option value="PRINTER">Impresoras</option>
+          <option value="OTHER" selected>Otro inconveniente</option>
+        </select>
+      </label>
+
+      <label>
+        Nivel de Urgencia <span class="required">*</span>
+        <select id="ticket-form-priority" name="priority" required>
+          <option value="LOW">Baja (Consulta / No bloqueante)</option>
+          <option value="MEDIUM" selected>Media (Inconveniente regular)</option>
+          <option value="HIGH">Alta (Afecta mi trabajo continuo)</option>
+          <option value="URGENT">Urgente (Bloqueo total de operación)</option>
+        </select>
+      </label>
+
+      <label class="dialog-wide">
+        Descripción detallada del problema <span class="required">*</span>
+        <textarea
+          id="ticket-form-description"
+          name="description"
+          required
+          rows="4"
+          minlength="5"
+          maxlength="3000"
+          placeholder="Describa con claridad qué sucede, qué equipo o área se ve afectada..."
+        ></textarea>
+      </label>
+    </div>
+
+    <div class="dialog-actions">
+      <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+      <button id="submit-ticket-form-btn" class="primary-button" type="submit">Enviar Ticket a Sistemas</button>
+    </div>
+  </form>
+</dialog>
+

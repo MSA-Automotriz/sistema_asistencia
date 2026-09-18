@@ -18,6 +18,7 @@ import { loadProfile } from '../modules/profile/profile.js';
 import { loadUsers } from '../modules/users/users.js';
 import { loadRolesAndPermissions } from '../modules/users/roles.js';
 import { loadSessions } from '../modules/users/sessions.js';
+import { loadTickets } from '../modules/tickets/tickets.js';
 
 export function renderSidebarNavigation() {
   const userPermissions = state.session?.user?.permissions || [];
@@ -49,7 +50,8 @@ export function renderSidebarNavigation() {
     profile: true,
     users: has('users.read'),
     roles: has('roles.read'),
-    sessions: hasAny(['sessions.read', 'users.read'])
+    sessions: hasAny(['sessions.read', 'users.read']),
+    tickets: true
   };
 
   queryAll('.nav-item').forEach((item) => {
@@ -88,7 +90,8 @@ export async function setView(viewName) {
     profile: ['Autoservicio', 'Mi perfil'],
     users: ['Accesos', 'Usuarios'],
     roles: ['Control de acceso', 'Roles y permisos'],
-    sessions: ['Seguridad', 'Sesiones activas']
+    sessions: ['Seguridad', 'Sesiones activas'],
+    tickets: ['Mesa de Ayuda', 'Tickets de Soporte TI']
   };
 
   if (titles[viewName]) {
@@ -122,7 +125,9 @@ export async function setView(viewName) {
   if (viewName === 'users') loadUsers();
   if (viewName === 'roles') loadRolesAndPermissions();
   if (viewName === 'sessions') loadSessions();
+  if (viewName === 'tickets') loadTickets();
 }
+
 
 if (typeof window !== 'undefined') {
   window.setView = setView;

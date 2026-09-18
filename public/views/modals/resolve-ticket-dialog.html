@@ -1,0 +1,57 @@
+<dialog id="resolve-ticket-dialog" class="dialog">
+  <form id="resolve-ticket-form" class="dialog-content" method="dialog">
+    <div class="dialog-heading">
+      <div>
+        <p class="eyebrow">Área de Sistemas TI</p>
+        <h2 id="resolve-ticket-dialog-title">Atención de Ticket</h2>
+      </div>
+      <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+    </div>
+
+    <div class="ticket-summary-box dialog-wide">
+      <div class="summary-meta-line">
+        <strong id="resolve-summary-number">TKT-0000</strong>
+        <span id="resolve-summary-priority" class="status-pill status-pending">Media</span>
+        <span id="resolve-summary-category" class="status-pill event-pill">Hardware</span>
+      </div>
+      <h3 id="resolve-summary-title" class="summary-ticket-title">Título del ticket</h3>
+      <p id="resolve-summary-author" class="summary-author-info">Reportado por: -</p>
+      <div class="summary-desc-box">
+        <strong>Detalle reportado:</strong>
+        <p id="resolve-summary-desc">-</p>
+      </div>
+    </div>
+
+    <div class="dialog-grid">
+      <input type="hidden" id="resolve-ticket-id" name="ticketId" value="" />
+
+      <label class="dialog-wide">
+        Actualizar Estado <span class="required">*</span>
+        <select id="resolve-form-status" name="status" required>
+          <option value="IN_PROGRESS">En Proceso (Tomar caso e investigar)</option>
+          <option value="RESOLVED" selected>Resuelto (Problema solucionado)</option>
+          <option value="REJECTED">Rechazado (No procede o duplicado)</option>
+          <option value="CLOSED">Cerrar definitivamente</option>
+        </select>
+      </label>
+
+      <label class="dialog-wide">
+        Solución / Nota Técnica de Sistemas <span class="required">*</span>
+        <textarea
+          id="resolve-form-note"
+          name="resolutionNote"
+          rows="4"
+          maxlength="3000"
+          placeholder="Escriba la acción correctiva realizada, componentes cambiados o instrucciones brindadas..."
+          required
+        ></textarea>
+      </label>
+    </div>
+
+    <div class="dialog-actions">
+      <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+      <button id="submit-resolve-form-btn" class="primary-button" type="submit">Guardar Atención</button>
+    </div>
+  </form>
+</dialog>
+

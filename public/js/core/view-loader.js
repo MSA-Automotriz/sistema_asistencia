@@ -20,7 +20,8 @@ export const VIEW_TEMPLATES = {
   profile: 'views/profile/profile.html',
   users: 'views/users/users.html',
   roles: 'views/roles/roles.html',
-  sessions: 'views/sessions/sessions.html'
+  sessions: 'views/sessions/sessions.html',
+  tickets: 'views/tickets/tickets.html'
 };
 
 export const MODAL_TEMPLATES = [
@@ -30,7 +31,9 @@ export const MODAL_TEMPLATES = [
   'views/modals/organization-dialog.html',
   'views/modals/employee-import-dialog.html',
   'views/modals/announcement-dialog.html',
-  'views/modals/request-dialog.html'
+  'views/modals/request-dialog.html',
+  'views/modals/ticket-dialog.html',
+  'views/modals/resolve-ticket-dialog.html'
 ];
 
 const templateCache = new Map();

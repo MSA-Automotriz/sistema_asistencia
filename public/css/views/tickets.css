@@ -1,0 +1,361 @@
+/* ==========================================================================
+   VIEW: SUPPORT TICKETS (MESA DE AYUDA TI)
+   ========================================================================== */
+
+/* 1. Header & Navigation Tabs */
+.ticket-nav-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 20px 0;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.ticket-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ticket-tab:hover {
+  background: var(--paper-deep);
+  color: var(--ink);
+  border-color: var(--ink-soft);
+}
+
+.ticket-tab.active {
+  background: var(--charcoal);
+  color: #ffffff;
+  border-color: var(--charcoal);
+}
+
+.ticket-tab .count-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: inherit;
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.ticket-tab.active .count-badge {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+/* 2. Filter Bar */
+.ticket-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+}
+
+.ticket-filter-bar .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+}
+
+.ticket-filter-bar .filter-group label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.ticket-filter-bar .filter-select,
+.ticket-filter-bar .filter-input {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.ticket-filter-bar .filter-select:focus,
+.ticket-filter-bar .filter-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(227, 6, 19, 0.15);
+}
+
+.ticket-filter-bar .search-group {
+  flex: 1;
+  min-width: 220px;
+}
+
+/* 3. Tickets Container & Cards */
+.tickets-grid-container {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.ticket-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 18px 20px;
+  display: grid;
+  gap: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ticket-card:hover {
+  border-color: var(--gray);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.ticket-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ticket-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ticket-code {
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--ink);
+  letter-spacing: 0.03em;
+}
+
+.ticket-date {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.ticket-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Priority Pills */
+.priority-pill {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.priority-low {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.priority-medium {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.priority-high {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.priority-urgent {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Status Specific Pills */
+.ticket-status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ticket-status-in-progress {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.ticket-status-resolved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.ticket-status-closed {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.ticket-status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Card Body */
+.ticket-card-body {
+  display: grid;
+  gap: 8px;
+}
+
+.ticket-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.ticket-author-info {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.ticket-author-info strong {
+  color: var(--ink);
+}
+
+.ticket-description {
+  margin: 4px 0 0 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper-deep);
+  border-radius: 4px;
+  padding: 10px 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Resolution Box */
+.ticket-resolution-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 4px;
+  padding: 10px 14px;
+  display: grid;
+  gap: 4px;
+}
+
+.ticket-resolution-box.rejected {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.resolution-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #166534;
+}
+
+.ticket-resolution-box.rejected .resolution-header {
+  color: #991b1b;
+}
+
+.resolution-text {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Card Footer / Actions */
+.ticket-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+/* Modal Ticket Summary Box */
+.ticket-summary-box {
+  background: var(--paper-deep);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.summary-meta-line {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.summary-ticket-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.summary-author-info {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.summary-desc-box {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  color: var(--ink);
+}
+
+.summary-desc-box p {
+  margin: 4px 0 0 0;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 768px) {
+  .ticket-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ticket-filter-bar .filter-group {
+    width: 100%;
+  }
+  .ticket-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
