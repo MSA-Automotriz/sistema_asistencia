@@ -3,7 +3,7 @@ import { env } from '../../config/env.js';
 import { prisma } from '../../database/prisma.js';
 import { hashToken, haversineMeters, randomToken } from '../../utils/crypto.js';
 import { parseUserAgent } from '../../utils/user-agent.js';
-import { determineAttendanceStatus } from './attendance-rules.js';
+import { determineAttendanceStatus, getEffectiveBreakMinutesForToday } from './attendance-rules.js';
 const employeeSummary = {
     select: {
         id: true,
@@ -282,6 +282,7 @@ export class AttendanceOperationsService {
             select: { type: true, recordedAt: true }
         });
         let lastBreakOutAt = null;
+        const effectiveBreakMinutes = getEffectiveBreakMinutesForToday(employee.schedule, input.recordedAt, employee.company.timeZone);
         if (!lastAttendance || lastAttendance.type === 'CHECK_OUT') {
             if (input.type !== 'CHECK_IN') {
                 throw new AppError(400, 'Primero debe registrar su Entrada antes de cualquier otro movimiento.');
@@ -289,12 +290,14 @@ export class AttendanceOperationsService {
         }
         else if (lastAttendance.type === 'CHECK_IN') {
             if (input.type === 'CHECK_IN') {
-                throw new AppError(400, 'Ya cuenta con una Entrada registrada. Su siguiente marcación debe ser Salida a Refrigerio.');
+                throw new AppError(400, effectiveBreakMinutes > 0
+                    ? 'Ya cuenta con una Entrada registrada. Su siguiente marcación debe ser Salida a Refrigerio.'
+                    : 'Ya cuenta con una Entrada registrada. Su siguiente marcación debe ser Salida de la jornada.');
             }
             if (input.type === 'BREAK_IN') {
                 throw new AppError(400, 'Debe registrar primero su Salida a Refrigerio antes del Retorno.');
             }
-            if (input.type === 'CHECK_OUT') {
+            if (input.type === 'CHECK_OUT' && effectiveBreakMinutes > 0) {
                 throw new AppError(400, 'Debe registrar su período de Refrigerio (Salida y Retorno) antes de marcar su Salida de la jornada.');
             }
         }

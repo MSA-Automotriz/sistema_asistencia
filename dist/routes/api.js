@@ -17,6 +17,7 @@ import { backupsRouter } from './backups.routes.js';
 import { systemRouter } from './system.routes.js';
 import { crudRouter } from './crud.routes.js';
 import { pushRouter } from './push.routes.js';
+import { ticketsRouter } from './tickets.routes.js';
 export const apiRouter = Router();
 // Rutas públicas y de autenticación base
 apiRouter.use(authRouter);
@@ -27,6 +28,7 @@ apiRouter.use(authenticate);
 apiRouter.use(usersRouter);
 apiRouter.use(rolesRouter);
 apiRouter.use(requestsRouter);
+apiRouter.use(ticketsRouter);
 apiRouter.use(meRouter);
 apiRouter.use(attendanceRouter);
 apiRouter.use(reportsRouter);

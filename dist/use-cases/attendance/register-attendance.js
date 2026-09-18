@@ -1,7 +1,7 @@
 import { prisma } from '../../database/prisma.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { haversineMeters } from '../../utils/crypto.js';
-import { determineAttendanceStatus } from './attendance-rules.js';
+import { determineAttendanceStatus, getEffectiveBreakMinutesForToday } from './attendance-rules.js';
 import { parseUserAgent } from '../../utils/user-agent.js';
 export class RegisterAttendance {
     async execute(userId, input, meta) {
@@ -43,6 +43,8 @@ export class RegisterAttendance {
             orderBy: { recordedAt: 'desc' },
             select: { type: true, recordedAt: true }
         });
+        const recordedAt = new Date();
+        const effectiveBreakMinutes = getEffectiveBreakMinutesForToday(employee.schedule, recordedAt, employee.company.timeZone);
         let lastBreakOutAt = null;
         if (!lastAttendance || lastAttendance.type === 'CHECK_OUT') {
             if (input.type !== 'CHECK_IN') {
@@ -51,12 +53,14 @@ export class RegisterAttendance {
         }
         else if (lastAttendance.type === 'CHECK_IN') {
             if (input.type === 'CHECK_IN') {
-                throw new AppError(400, 'Ya cuenta con una Entrada registrada. Su siguiente marcación debe ser Salida a Refrigerio.');
+                throw new AppError(400, effectiveBreakMinutes > 0
+                    ? 'Ya cuenta con una Entrada registrada. Su siguiente marcación debe ser Salida a Refrigerio.'
+                    : 'Ya cuenta con una Entrada registrada. Su siguiente marcación debe ser Salida de la jornada.');
             }
             if (input.type === 'BREAK_IN') {
                 throw new AppError(400, 'Debe registrar primero su Salida a Refrigerio antes del Retorno.');
             }
-            if (input.type === 'CHECK_OUT') {
+            if (input.type === 'CHECK_OUT' && effectiveBreakMinutes > 0) {
                 throw new AppError(400, 'Debe registrar su período de Refrigerio (Salida y Retorno) antes de marcar su Salida de la jornada.');
             }
         }
@@ -71,7 +75,6 @@ export class RegisterAttendance {
                 throw new AppError(400, 'Ya completó su Entrada y Refrigerio. Su siguiente marcación debe ser Salida de la jornada.');
             }
         }
-        const recordedAt = new Date();
         const deviceMeta = parseUserAgent(meta.userAgent ?? meta.browser);
         const evaluation = determineAttendanceStatus(input.type, employee.schedule, recordedAt, employee.company.timeZone, lastBreakOutAt);
         const attendance = await prisma.$transaction(async (tx) => {
