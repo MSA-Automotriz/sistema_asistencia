@@ -2,6 +2,7 @@ import { state } from '../../core/state.js';
 import { query, queryAll, fullName, formatDate, escapeHtml, hasPermission } from '../../core/utils.js';
 import { api } from '../../core/api.js';
 import { showToast, showMessage, clearMessage } from '../../components/toast.js';
+import { loadModals } from '../../core/view-loader.js';
 
 let activeScope = 'own';
 let cachedTickets = [];
@@ -268,22 +269,14 @@ export function setupTicketEventListeners() {
       }, 300);
     });
   }
-
-  // 6. Create Ticket Form Submit
-  const createForm = query('#create-ticket-form');
-  if (createForm) {
-    createForm.addEventListener('submit', handleCreateTicketSubmit);
-  }
-
-  // 7. Resolve Ticket Form Submit
-  const resolveForm = query('#resolve-ticket-form');
-  if (resolveForm) {
-    resolveForm.addEventListener('submit', handleResolveTicketSubmit);
-  }
 }
 
-export function openCreateTicketDialog() {
-  const dialog = query('#ticket-dialog');
+export async function openCreateTicketDialog() {
+  let dialog = query('#ticket-dialog');
+  if (!dialog) {
+    await loadModals();
+    dialog = query('#ticket-dialog');
+  }
   const form = query('#create-ticket-form');
   if (!dialog || !form) return;
 
@@ -291,12 +284,13 @@ export function openCreateTicketDialog() {
   dialog.showModal();
 }
 
-export async function handleCreateTicketSubmit(event) {
-  if (event?.preventDefault) event.preventDefault();
+export async function handleCreateTicketSubmit() {
   const form = query('#create-ticket-form');
   const submitBtn = query('#submit-ticket-form-btn');
   if (!form) return;
   
+  if (!form.reportValidity()) return;
+
   const title = form.querySelector('[name="title"]')?.value?.trim();
   const category = form.querySelector('[name="category"]')?.value;
   const priority = form.querySelector('[name="priority"]')?.value;
@@ -320,12 +314,13 @@ export async function handleCreateTicketSubmit(event) {
       })
     });
 
-    showToast(`Ticket ${created.ticketNumber || ''} registrado exitosamente. El área de Sistemas lo revisará pronto.`, 'success');
+    const ticketCode = created?.ticketNumber ? ` ${created.ticketNumber}` : '';
+    showToast(`Ticket${ticketCode} registrado exitosamente. El área de Sistemas lo revisará pronto.`, 'success');
     
     const dialog = query('#ticket-dialog');
     if (dialog) dialog.close();
     
-    loadTickets();
+    await loadTickets();
   } catch (error) {
     console.error('Error creating ticket:', error);
     showToast(error.message || 'No se pudo registrar el ticket.', 'error');
@@ -334,11 +329,15 @@ export async function handleCreateTicketSubmit(event) {
   }
 }
 
-export function openResolveDialog(ticketId) {
+export async function openResolveDialog(ticketId) {
+  let dialog = query('#resolve-ticket-dialog');
+  if (!dialog) {
+    await loadModals();
+    dialog = query('#resolve-ticket-dialog');
+  }
   const ticket = cachedTickets.find((t) => t.id === ticketId);
   if (!ticket) return;
 
-  const dialog = query('#resolve-ticket-dialog');
   const form = query('#resolve-ticket-form');
   if (!dialog || !form) return;
 
@@ -387,11 +386,12 @@ export function openResolveDialog(ticketId) {
   dialog.showModal();
 }
 
-export async function handleResolveTicketSubmit(event) {
-  if (event?.preventDefault) event.preventDefault();
+export async function handleResolveTicketSubmit() {
   const form = query('#resolve-ticket-form');
   const submitBtn = query('#submit-resolve-form-btn');
   if (!form) return;
+
+  if (!form.reportValidity()) return;
 
   const ticketId = query('#resolve-ticket-id')?.value;
   const status = form.querySelector('[name="status"]')?.value;
@@ -418,7 +418,7 @@ export async function handleResolveTicketSubmit(event) {
     const dialog = query('#resolve-ticket-dialog');
     if (dialog) dialog.close();
 
-    loadTickets();
+    await loadTickets();
   } catch (error) {
     console.error('Error updating ticket:', error);
     showToast(error.message || 'No se pudo actualizar el ticket.', 'error');
