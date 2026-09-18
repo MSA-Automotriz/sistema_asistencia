@@ -113,41 +113,4 @@ export async function loadStatistics() {
   }
 }
 
-function calendarPeriod() {
-  const input = query('#calendar-month');
-  if (input && !input.value) input.value = new Date().toISOString().slice(0, 7);
-  const [year, month] = (input?.value || new Date().toISOString().slice(0, 7)).split('-').map(Number);
-  const start = new Date(year, month - 1, 1);
-  const end = new Date(year, month, 0, 23, 59, 59, 999);
-  return { startDate: start.toISOString(), endDate: end.toISOString() };
-}
-
-function calendarClass(category) {
-  return (
-    {
-      HOLIDAY: 'holiday',
-      VACATION: 'vacation',
-      LICENSE: 'license'
-    }[category] || 'attendance'
-  );
-}
-
-export async function loadCalendar() {
-  try {
-    const data = await api(`/attendance/calendar?${new URLSearchParams(calendarPeriod())}`);
-    const events = data.events || [];
-    const container = query('#calendar-events');
-    if (container) {
-      container.innerHTML = events.length
-        ? events
-          .map(
-            (event) =>
-              `<article class="calendar-event ${calendarClass(event.category)}"><small>${formatDate(event.start, { dateStyle: 'medium', timeStyle: event.category === 'ATTENDANCE' ? 'short' : undefined })}</small><strong>${escapeHtml(event.title)}</strong><small>${escapeHtml(event.detail || event.status || '')}</small></article>`
-          )
-          .join('')
-        : '<p class="empty-state">No hay eventos para el mes seleccionado.</p>';
-    }
-  } catch (error) {
-    showMessage(error.message);
-  }
-}
+export { loadCalendar } from '../calendar/calendar.js';

@@ -33,9 +33,17 @@ import {
 } from './modules/attendance/offline-sync.js';
 import {
   loadDashboard,
-  loadStatistics,
-  loadCalendar
+  loadStatistics
 } from './modules/dashboard/dashboard.js';
+import {
+  loadCalendar,
+  selectCalendarDay,
+  handleCategoryFilter,
+  handleCalendarSearch,
+  changeCalendarMonth,
+  resetCalendarToToday,
+  clearCalendarDaySelection
+} from './modules/calendar/calendar.js';
 import { loadRoster } from './modules/dashboard/activity.js';
 import {
   loadRequests,
@@ -415,6 +423,18 @@ function bindGlobalEvents() {
     if (button.dataset.backupRestore) restoreBackup(button.dataset.backupRestore);
     if (button.dataset.ownDeviceDelete) deleteOwnDevice(button.dataset.ownDeviceDelete);
     if (button.dataset.logKind) handleLogKindChange(button.dataset.logKind);
+    if (button.id === 'calendar-prev-month') changeCalendarMonth(-1);
+    if (button.id === 'calendar-next-month') changeCalendarMonth(1);
+    if (button.id === 'calendar-today-btn') resetCalendarToToday();
+    if (button.id === 'day-drawer-close') clearCalendarDaySelection();
+    if (button.dataset.category && button.closest('#calendar-category-filters')) {
+      handleCategoryFilter(button.dataset.category);
+    }
+
+    const dayCell = event.target.closest('.cal-day-cell');
+    if (dayCell && dayCell.dataset.calendarDate) {
+      selectCalendarDay(dayCell.dataset.calendarDate);
+    }
   });
 
   // 3. Cambios en selects / inputs (change)
@@ -440,6 +460,8 @@ function bindGlobalEvents() {
       handleOrganizationSearch(target.value);
     } else if (target && target.id === 'audit-filter-input') {
       handleAuditFilter(target.value);
+    } else if (target && target.id === 'calendar-search') {
+      handleCalendarSearch(target.value);
     }
   });
 

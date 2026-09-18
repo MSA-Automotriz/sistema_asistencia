@@ -1,10 +1,91 @@
-<div class="view-heading">
-          <div>
-            <p class="eyebrow">Planificación</p>
-            <h2>Calendario operativo</h2>
-          </div>
-          <input id="calendar-month" class="month-input" type="month" aria-label="Mes del calendario" />
-        </div>
-        <section class="data-panel">
-          <div id="calendar-events" class="calendar-events"></div>
-        </section>
+<!-- Barra Superior de Navegación de Mes -->
+<div class="calendar-top-toolbar">
+  <div class="calendar-month-nav">
+    <button id="calendar-prev-month" class="icon-button" type="button" title="Mes anterior" aria-label="Mes anterior">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+    <input id="calendar-month" class="month-input" type="month" aria-label="Mes del calendario" />
+    <button id="calendar-next-month" class="icon-button" type="button" title="Mes siguiente" aria-label="Mes siguiente">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+    <button id="calendar-today-btn" class="secondary-button compact-button" type="button">Hoy</button>
+  </div>
+
+  <div class="calendar-search-wrap">
+    <input id="calendar-search" class="search-input" type="search" placeholder="Buscar por colaborador, motivo o sede..." />
+  </div>
+</div>
+
+<!-- Barra de Filtros de Categoría -->
+<div class="calendar-filter-bar">
+  <div class="filter-pills" id="calendar-category-filters">
+    <button class="filter-pill active" data-category="ALL" type="button">Todos</button>
+    <button class="filter-pill" data-category="ATTENDANCE" type="button">
+      <span class="cal-dot cal-dot-green"></span> Asistencias
+    </button>
+    <button class="filter-pill" data-category="VACATION" type="button">
+      <span class="cal-dot cal-dot-blue"></span> Vacaciones
+    </button>
+    <button class="filter-pill" data-category="WORK_PERMISSION" type="button">
+      <span class="cal-dot cal-dot-purple"></span> Permisos / Licencias
+    </button>
+    <button class="filter-pill" data-category="HOLIDAY" type="button">
+      <span class="cal-dot cal-dot-red"></span> Feriados
+    </button>
+  </div>
+</div>
+
+<!-- Resumen de Métricas del Mes -->
+<div class="calendar-summary-cards" id="calendar-stats-cards">
+  <div class="cal-stat-card">
+    <span class="cal-stat-label">Total Marcaciones</span>
+    <strong class="cal-stat-val text-green" id="cal-total-attendances">0</strong>
+  </div>
+  <div class="cal-stat-card">
+    <span class="cal-stat-label">Tardanzas registradas</span>
+    <strong class="cal-stat-val text-amber" id="cal-total-late">0</strong>
+  </div>
+  <div class="cal-stat-card">
+    <span class="cal-stat-label">En Vacaciones</span>
+    <strong class="cal-stat-val text-blue" id="cal-total-vacations">0</strong>
+  </div>
+  <div class="cal-stat-card">
+    <span class="cal-stat-label">Permisos / Licencias</span>
+    <strong class="cal-stat-val text-purple" id="cal-total-permissions">0</strong>
+  </div>
+</div>
+
+<!-- Layout Principal: Cuadrícula Mensual + Panel Lateral de Detalle del Día -->
+<div class="calendar-workspace">
+  <section class="calendar-grid-container">
+    <div class="calendar-weekdays">
+      <span>Lun</span>
+      <span>Mar</span>
+      <span>Mié</span>
+      <span>Jue</span>
+      <span>Vie</span>
+      <span>Sáb</span>
+      <span>Dom</span>
+    </div>
+    <div id="calendar-grid" class="calendar-days-grid">
+      <!-- Días generados dinámicamente -->
+    </div>
+  </section>
+
+  <!-- Panel Lateral: Detalle del Día Seleccionado -->
+  <aside id="calendar-day-drawer" class="calendar-day-drawer">
+    <div class="day-drawer-header">
+      <div>
+        <span class="eyebrow" id="day-drawer-kicker">Detalle del día</span>
+        <h3 id="day-drawer-title">Selecciona un día</h3>
+      </div>
+      <button id="day-drawer-close" class="icon-button-subtle" type="button" title="Limpiar selección" aria-label="Cerrar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div class="day-drawer-metrics" id="day-drawer-metrics"></div>
+    <div class="day-drawer-content" id="day-drawer-list">
+      <p class="empty-state">Haz clic en cualquier día del calendario para ver el desglose de asistencias, tardanzas, vacaciones y permisos.</p>
+    </div>
+  </aside>
+</div>

@@ -121,30 +121,184 @@ async function main() {
     }
   });
 
-  let schedule = await prisma.schedule.findFirst({ where: { name: 'Jornada Completa 8am - 5pm' } });
-  if (!schedule) {
-    schedule = await prisma.schedule.create({
-      data: {
-        name: 'Jornada Completa 8am - 5pm',
-        type: 'NORMAL',
-        startTime: '08:00',
-        endTime: '17:00',
-        breakStartTime: '13:00',
-        breakEndTime: '14:00',
-        breakMinutes: 60,
-        toleranceMinutes: 15,
-        flexibleWindowMinutes: 0,
-        workDays: JSON.stringify([1, 2, 3, 4, 5]),
+  const masterSchedules = [
+    {
+      id: 'sch_general_2h',
+      name: 'General / Taller (2h Refrigerio)',
+      type: 'NORMAL' as const,
+      startTime: '08:00',
+      endTime: '18:30',
+      toleranceMinutes: 10,
+      flexibleWindowMinutes: 0,
+      breakStartTime: '13:00',
+      breakEndTime: '15:00',
+      breakMinutes: 120,
+      workDays: JSON.stringify({
+        days: [1, 2, 3, 4, 5, 6],
+        saturday: { startTime: '08:00', endTime: '13:30', breakMinutes: 0 }
+      })
+    },
+    {
+      id: 'sch_general_1_5h',
+      name: 'General / Taller (1.5h Refrigerio)',
+      type: 'NORMAL' as const,
+      startTime: '08:00',
+      endTime: '18:00',
+      toleranceMinutes: 10,
+      flexibleWindowMinutes: 0,
+      breakStartTime: '13:00',
+      breakEndTime: '14:30',
+      breakMinutes: 90,
+      workDays: JSON.stringify({
+        days: [1, 2, 3, 4, 5, 6],
+        saturday: { startTime: '08:00', endTime: '13:30', breakMinutes: 0 }
+      })
+    },
+    {
+      id: 'sch_ventas_rotativo',
+      name: 'Comercial - Asesor de Ventas (Sáb. Rotativo)',
+      type: 'ROTATING' as const,
+      startTime: '08:30',
+      endTime: '19:00',
+      toleranceMinutes: 10,
+      flexibleWindowMinutes: 0,
+      breakStartTime: '13:00',
+      breakEndTime: '15:00',
+      breakMinutes: 120,
+      workDays: JSON.stringify({
+        days: [1, 2, 3, 4, 5, 6],
+        saturday: {
+          isRotating: true,
+          shifts: [
+            { name: '1.er Turno', startTime: '08:30', endTime: '14:00', breakMinutes: 0 },
+            { name: '2.º Turno', startTime: '12:30', endTime: '18:00', breakMinutes: 0 }
+          ]
+        }
+      })
+    },
+    {
+      id: 'sch_gerencia_comercial',
+      name: 'Comercial - Gerencia',
+      type: 'NORMAL' as const,
+      startTime: '08:30',
+      endTime: '19:00',
+      toleranceMinutes: 10,
+      flexibleWindowMinutes: 0,
+      breakStartTime: '13:00',
+      breakEndTime: '15:00',
+      breakMinutes: 120,
+      workDays: JSON.stringify({
+        days: [1, 2, 3, 4, 5, 6],
+        saturday: { startTime: '08:00', endTime: '13:30', breakMinutes: 0 }
+      })
+    },
+    {
+      id: 'sch_limpieza_2h',
+      name: 'Limpieza - Completo (2h Refrigerio)',
+      type: 'NORMAL' as const,
+      startTime: '07:00',
+      endTime: '17:30',
+      toleranceMinutes: 10,
+      flexibleWindowMinutes: 0,
+      breakStartTime: '13:00',
+      breakEndTime: '15:00',
+      breakMinutes: 120,
+      workDays: JSON.stringify({
+        days: [1, 2, 3, 4, 5, 6],
+        saturday: { startTime: '07:00', endTime: '12:30', breakMinutes: 0 }
+      })
+    },
+    {
+      id: 'sch_limpieza_1_5h',
+      name: 'Limpieza - Completo (1.5h Refrigerio)',
+      type: 'NORMAL' as const,
+      startTime: '07:00',
+      endTime: '17:00',
+      toleranceMinutes: 10,
+      flexibleWindowMinutes: 0,
+      breakStartTime: '13:00',
+      breakEndTime: '14:30',
+      breakMinutes: 90,
+      workDays: JSON.stringify({
+        days: [1, 2, 3, 4, 5, 6],
+        saturday: { startTime: '07:00', endTime: '12:30', breakMinutes: 0 }
+      })
+    },
+    {
+      id: 'sch_limpieza_continuo',
+      name: 'Limpieza - Turno Continuo (7h)',
+      type: 'PART_TIME' as const,
+      startTime: '07:00',
+      endTime: '14:00',
+      toleranceMinutes: 10,
+      flexibleWindowMinutes: 0,
+      breakStartTime: null,
+      breakEndTime: null,
+      breakMinutes: 0,
+      workDays: JSON.stringify({
+        days: [1, 2, 3, 4, 5, 6],
+        saturday: { startTime: '07:00', endTime: '14:00', breakMinutes: 0 }
+      })
+    },
+    {
+      id: 'sch_vigilancia_24h',
+      name: 'Seguridad y Vigilancia (24h)',
+      type: 'ROTATING' as const,
+      startTime: '07:00',
+      endTime: '07:00',
+      toleranceMinutes: 15,
+      flexibleWindowMinutes: 0,
+      breakStartTime: null,
+      breakEndTime: null,
+      breakMinutes: 0,
+      workDays: JSON.stringify({
+        days: [1, 2, 3, 4, 5, 6],
+        saturday: { startTime: '07:00', endTime: '14:00', breakMinutes: 0 }
+      })
+    }
+  ];
+
+  let schedule = await prisma.schedule.findFirst({ where: { name: 'General / Taller (2h Refrigerio)' } });
+  for (const s of masterSchedules) {
+    const upserted = await prisma.schedule.upsert({
+      where: { id: s.id },
+      update: {
+        name: s.name,
+        type: s.type,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        toleranceMinutes: s.toleranceMinutes,
+        flexibleWindowMinutes: s.flexibleWindowMinutes,
+        breakStartTime: s.breakStartTime,
+        breakEndTime: s.breakEndTime,
+        breakMinutes: s.breakMinutes,
+        workDays: s.workDays,
+        active: true
+      },
+      create: {
+        id: s.id,
+        name: s.name,
+        type: s.type,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        toleranceMinutes: s.toleranceMinutes,
+        flexibleWindowMinutes: s.flexibleWindowMinutes,
+        breakStartTime: s.breakStartTime,
+        breakEndTime: s.breakEndTime,
+        breakMinutes: s.breakMinutes,
+        workDays: s.workDays,
         active: true
       }
     });
+    if (!schedule && s.id === 'sch_general_2h') {
+      schedule = upserted;
+    }
+    await prisma.siteSchedule.upsert({
+      where: { siteId_scheduleId: { siteId: site.id, scheduleId: upserted.id } },
+      update: {},
+      create: { siteId: site.id, scheduleId: upserted.id, active: true }
+    });
   }
-
-  await prisma.siteSchedule.upsert({
-    where: { siteId_scheduleId: { siteId: site.id, scheduleId: schedule.id } },
-    update: {},
-    create: { siteId: site.id, scheduleId: schedule.id, active: true }
-  });
 
   // 5. Usuario Administrador Inicial
   const passwordHash = await bcrypt.hash('ChangeMe123!', 12);

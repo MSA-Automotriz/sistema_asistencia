@@ -6,12 +6,142 @@ export type AttendanceEvaluation = {
   excessMinutes?: number | null;
 };
 
+export type ShiftConfig = {
+  name?: string;
+  startTime: string;
+  endTime: string;
+  breakMinutes?: number;
+};
+
+export type SaturdayScheduleConfig = {
+  startTime?: string;
+  endTime?: string;
+  breakMinutes?: number;
+  isRotating?: boolean;
+  shifts?: ShiftConfig[];
+};
+
+export type WorkDaysConfig = {
+  days?: number[];
+  saturday?: SaturdayScheduleConfig;
+};
+
+export const parseWorkDaysConfig = (workDays: unknown): WorkDaysConfig | null => {
+  if (!workDays) return null;
+  if (typeof workDays === 'string') {
+    try {
+      const parsed = JSON.parse(workDays);
+      if (Array.isArray(parsed)) return { days: parsed };
+      if (typeof parsed === 'object' && parsed !== null) return parsed as WorkDaysConfig;
+    } catch {
+      return null;
+    }
+  }
+  if (Array.isArray(workDays)) {
+    return { days: workDays as number[] };
+  }
+  if (typeof workDays === 'object' && workDays !== null) {
+    return workDays as WorkDaysConfig;
+  }
+  return null;
+};
+
+export const getDayOfWeekInTimeZone = (date: Date, timeZone: string): number => {
+  const dayName = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short' }).format(date);
+  const dayMap: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6
+  };
+  return dayMap[dayName] ?? date.getDay();
+};
+
+export const resolveEffectiveDaySchedule = (
+  schedule: Pick<Schedule, 'startTime' | 'endTime' | 'breakMinutes'> & { workDays?: unknown },
+  type: AttendanceType,
+  recordedAt: Date,
+  timeZone: string
+): { startTime: string; endTime: string; breakMinutes: number } => {
+  const dayOfWeek = getDayOfWeekInTimeZone(recordedAt, timeZone);
+  const workDaysConfig = parseWorkDaysConfig(schedule.workDays);
+
+  if (dayOfWeek === 6 && workDaysConfig?.saturday) {
+    const sat = workDaysConfig.saturday;
+    if (sat.isRotating && Array.isArray(sat.shifts) && sat.shifts.length > 0) {
+      if (sat.shifts.length === 1) {
+        return {
+          startTime: sat.shifts[0].startTime,
+          endTime: sat.shifts[0].endTime,
+          breakMinutes: sat.shifts[0].breakMinutes ?? 0
+        };
+      }
+      const actualMinutes = minutesInTimeZone(recordedAt, timeZone);
+      if (type === 'CHECK_IN') {
+        const start1 = timeToMinutes(sat.shifts[0].startTime) ?? 510;
+        const start2 = timeToMinutes(sat.shifts[1].startTime) ?? 750;
+        const threshold = Math.floor((start1 + start2) / 2);
+        const chosen = actualMinutes < threshold ? sat.shifts[0] : sat.shifts[1];
+        return {
+          startTime: chosen.startTime,
+          endTime: chosen.endTime,
+          breakMinutes: chosen.breakMinutes ?? 0
+        };
+      }
+      if (type === 'CHECK_OUT') {
+        const end1 = timeToMinutes(sat.shifts[0].endTime) ?? 840;
+        const end2 = timeToMinutes(sat.shifts[1].endTime) ?? 1080;
+        const threshold = Math.floor((end1 + end2) / 2);
+        const chosen = actualMinutes < threshold ? sat.shifts[0] : sat.shifts[1];
+        return {
+          startTime: chosen.startTime,
+          endTime: chosen.endTime,
+          breakMinutes: chosen.breakMinutes ?? 0
+        };
+      }
+      return {
+        startTime: sat.shifts[0].startTime,
+        endTime: sat.shifts[0].endTime,
+        breakMinutes: sat.shifts[0].breakMinutes ?? 0
+      };
+    }
+    if (sat.startTime && sat.endTime) {
+      return {
+        startTime: sat.startTime,
+        endTime: sat.endTime,
+        breakMinutes: sat.breakMinutes ?? 0
+      };
+    }
+  }
+
+  return {
+    startTime: schedule.startTime,
+    endTime: schedule.endTime,
+    breakMinutes: schedule.breakMinutes && schedule.breakMinutes > 0 ? schedule.breakMinutes : 0
+  };
+};
+
+export const getEffectiveBreakMinutesForToday = (
+  schedule: (Pick<Schedule, 'startTime' | 'endTime' | 'breakMinutes'> & { workDays?: unknown }) | null,
+  recordedAt: Date,
+  timeZone: string
+): number => {
+  if (!schedule) return 0;
+  const effective = resolveEffectiveDaySchedule(schedule, 'CHECK_IN', recordedAt, timeZone);
+  return effective.breakMinutes;
+};
+
 export const determineAttendanceStatus = (
   type: AttendanceType,
-  schedule: Pick<
-    Schedule,
-    'startTime' | 'endTime' | 'toleranceMinutes' | 'flexibleWindowMinutes' | 'type' | 'breakMinutes'
-  > | null,
+  schedule:
+    | (Pick<
+        Schedule,
+        'startTime' | 'endTime' | 'toleranceMinutes' | 'flexibleWindowMinutes' | 'type' | 'breakMinutes'
+      > & { workDays?: unknown })
+    | null,
   recordedAt: Date,
   timeZone: string,
   lastBreakOutAt?: Date | null
@@ -22,9 +152,15 @@ export const determineAttendanceStatus = (
     return { status: AttendanceStatus.ON_TIME, excessMinutes: null };
   }
 
+  const effectiveSchedule = resolveEffectiveDaySchedule(schedule, type, recordedAt, timeZone);
+
   if (type === 'BREAK_IN') {
     const allowedMinutes =
-      schedule.breakMinutes && schedule.breakMinutes > 0 ? schedule.breakMinutes : 60;
+      effectiveSchedule.breakMinutes > 0
+        ? effectiveSchedule.breakMinutes
+        : schedule.breakMinutes && schedule.breakMinutes > 0
+          ? schedule.breakMinutes
+          : 60;
     const tolerance = schedule.toleranceMinutes || 0;
     if (lastBreakOutAt) {
       const elapsedMinutes = Math.max(
@@ -39,8 +175,8 @@ export const determineAttendanceStatus = (
     return { status: AttendanceStatus.ON_TIME, excessMinutes: 0 };
   }
 
-  const startMinutes = timeToMinutes(schedule.startTime);
-  const endMinutes = timeToMinutes(schedule.endTime);
+  const startMinutes = timeToMinutes(effectiveSchedule.startTime);
+  const endMinutes = timeToMinutes(effectiveSchedule.endTime);
   if (startMinutes === null || endMinutes === null)
     return { status: AttendanceStatus.ON_TIME, excessMinutes: null };
 
@@ -67,7 +203,7 @@ export const determineAttendanceStatus = (
   };
 };
 
-const timeToMinutes = (value: string) => {
+export const timeToMinutes = (value: string) => {
   const match = /^(\d{1,2}):(\d{2})$/.exec(value);
   if (!match) return null;
   const hours = Number(match[1]);
@@ -76,7 +212,7 @@ const timeToMinutes = (value: string) => {
   return hours * 60 + minutes;
 };
 
-const minutesInTimeZone = (date: Date, timeZone: string) => {
+export const minutesInTimeZone = (date: Date, timeZone: string) => {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone,
     hour: '2-digit',
