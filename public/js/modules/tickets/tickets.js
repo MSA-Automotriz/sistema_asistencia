@@ -292,14 +292,15 @@ export function openCreateTicketDialog() {
 }
 
 export async function handleCreateTicketSubmit(event) {
-  event.preventDefault();
-  const form = event.target;
+  if (event?.preventDefault) event.preventDefault();
+  const form = query('#create-ticket-form');
   const submitBtn = query('#submit-ticket-form-btn');
+  if (!form) return;
   
-  const title = form.title?.value?.trim();
-  const category = form.category?.value;
-  const priority = form.priority?.value;
-  const description = form.description?.value?.trim();
+  const title = form.querySelector('[name="title"]')?.value?.trim();
+  const category = form.querySelector('[name="category"]')?.value;
+  const priority = form.querySelector('[name="priority"]')?.value;
+  const description = form.querySelector('[name="description"]')?.value?.trim();
 
   if (!title || !category || !priority || !description) {
     showToast('Por favor complete todos los campos obligatorios.', 'warning');
@@ -373,12 +374,12 @@ export function openResolveDialog(ticketId) {
   const descEl = query('#resolve-summary-desc');
   if (descEl) descEl.textContent = ticket.description;
 
-  const statusSelect = query('#resolve-form-status');
+  const statusSelect = form.querySelector('[name="status"]');
   if (statusSelect) {
     statusSelect.value = ticket.status === 'PENDING' ? 'IN_PROGRESS' : ticket.status;
   }
 
-  const noteInput = query('#resolve-form-note');
+  const noteInput = form.querySelector('[name="resolutionNote"]');
   if (noteInput && ticket.resolutionNote) {
     noteInput.value = ticket.resolutionNote;
   }
@@ -387,13 +388,14 @@ export function openResolveDialog(ticketId) {
 }
 
 export async function handleResolveTicketSubmit(event) {
-  event.preventDefault();
-  const form = event.target;
+  if (event?.preventDefault) event.preventDefault();
+  const form = query('#resolve-ticket-form');
   const submitBtn = query('#submit-resolve-form-btn');
+  if (!form) return;
 
   const ticketId = query('#resolve-ticket-id')?.value;
-  const status = form.status?.value;
-  const resolutionNote = form.resolutionNote?.value?.trim();
+  const status = form.querySelector('[name="status"]')?.value;
+  const resolutionNote = form.querySelector('[name="resolutionNote"]')?.value?.trim();
 
   if (!ticketId || !status || !resolutionNote) {
     showToast('Por favor ingrese el estado y la nota de atención técnica.', 'warning');
@@ -424,6 +426,7 @@ export async function handleResolveTicketSubmit(event) {
     if (submitBtn) submitBtn.disabled = false;
   }
 }
+
 
 export async function handleCancelTicket(ticketId) {
   if (!confirm('¿Está seguro de que desea cancelar este ticket de soporte?')) {

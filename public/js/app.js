@@ -121,6 +121,13 @@ import {
   sendTestPushNotification
 } from './modules/notifications/notifications.js';
 import {
+  loadTickets,
+  openCreateTicketDialog,
+  handleCreateTicketSubmit,
+  handleResolveTicketSubmit
+} from './modules/tickets/tickets.js';
+
+import {
   loadProfile,
   saveProfile,
   changeOwnPassword,
@@ -338,6 +345,14 @@ function bindGlobalEvents() {
       submitRequestForm();
     } else if (id === 'refresh-requests') {
       loadRequests();
+    } else if (id === 'open-ticket-dialog-btn') {
+      openCreateTicketDialog();
+    } else if (id === 'submit-ticket-form-btn') {
+      handleCreateTicketSubmit();
+    } else if (id === 'submit-resolve-form-btn') {
+      handleResolveTicketSubmit();
+    } else if (id === 'refresh-tickets-btn') {
+      loadTickets();
     } else if (id === 'refresh-sessions') {
       loadSessions();
     } else if (id === 'close-roster') {
