@@ -22,9 +22,11 @@ export type TicketFilters = {
   priority?: TicketPriority;
   siteId?: string;
   search?: string;
+  scope?: 'own' | 'all';
   page?: number;
   limit?: number;
 };
+
 
 type AuthContext = {
   sub: string;
@@ -173,12 +175,13 @@ export class SupportTicketService {
 
     const where: Record<string, unknown> = {};
 
-    // Privacy Isolation: Regular users can ONLY see their own tickets
-    if (!isManager) {
+    // Privacy Isolation: Regular users can ONLY see their own tickets. Managers can toggle scope='own'.
+    if (!isManager || filters.scope === 'own') {
       where.userId = auth.sub;
     } else if (filters.siteId) {
       where.siteId = filters.siteId;
     }
+
 
     if (filters.status) {
       where.status = filters.status;

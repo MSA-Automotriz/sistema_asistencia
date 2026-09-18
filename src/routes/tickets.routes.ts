@@ -32,16 +32,14 @@ const updateTicketStatusSchema = z.object({
 });
 
 const ticketQuerySchema = z.object({
-  query: z.object({
-    status: z.nativeEnum(TicketStatus).optional(),
-    category: z.nativeEnum(TicketCategory).optional(),
-    priority: z.nativeEnum(TicketPriority).optional(),
-    siteId: z.string().optional(),
-    search: z.string().optional(),
-    scope: z.enum(['own', 'all']).optional(),
-    page: z.coerce.number().int().positive().optional(),
-    limit: z.coerce.number().int().positive().max(100).optional()
-  })
+  status: z.preprocess((val) => (val === '' ? undefined : val), z.nativeEnum(TicketStatus).optional()),
+  category: z.preprocess((val) => (val === '' ? undefined : val), z.nativeEnum(TicketCategory).optional()),
+  priority: z.preprocess((val) => (val === '' ? undefined : val), z.nativeEnum(TicketPriority).optional()),
+  siteId: z.preprocess((val) => (val === '' ? undefined : val), z.string().optional()),
+  search: z.preprocess((val) => (val === '' ? undefined : val), z.string().optional()),
+  scope: z.preprocess((val) => (val === '' ? undefined : val), z.enum(['own', 'all']).optional()),
+  page: z.preprocess((val) => (val === '' ? undefined : val), z.coerce.number().int().positive().optional()),
+  limit: z.preprocess((val) => (val === '' ? undefined : val), z.coerce.number().int().positive().max(100).optional())
 });
 
 export const ticketsRouter = Router();
@@ -58,14 +56,12 @@ ticketsRouter.post(
   }
 );
 
-ticketsRouter.get(
-  '/tickets',
-  validate(ticketQuerySchema),
-  async (request, response) => {
-    const result = await tickets.listTickets(request.auth!, request.query);
-    return ok(response, 'Tickets obtenidos correctamente', result.items);
-  }
-);
+ticketsRouter.get('/tickets', async (request, response) => {
+  const query = ticketQuerySchema.parse(request.query);
+  const result = await tickets.listTickets(request.auth!, query);
+  return ok(response, 'Tickets obtenidos correctamente', result.items);
+});
+
 
 ticketsRouter.get('/tickets/:id', async (request, response) => {
   const ticket = await tickets.getTicketById(request.auth!, String(request.params.id));

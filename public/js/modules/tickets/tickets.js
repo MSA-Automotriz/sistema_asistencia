@@ -85,7 +85,8 @@ export async function loadTickets() {
       queryParams.set('scope', 'own');
     }
 
-    const endpoint = `/tickets?${queryParams.toString()}`;
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/tickets?${queryString}` : '/tickets';
     const response = await api(endpoint);
     const tickets = Array.isArray(response) ? response : response.items || [];
     cachedTickets = tickets;
@@ -97,6 +98,7 @@ export async function loadTickets() {
     container.innerHTML = `<div class="empty-state">Error al cargar los tickets: ${escapeHtml(error.message || 'Error desconocido')}</div>`;
   }
 }
+
 
 export function updateTabBadges() {
   const ownBadge = query('#own-tickets-badge');
