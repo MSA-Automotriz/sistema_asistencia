@@ -19,6 +19,7 @@ const userDetails = {
         select: {
             id: true,
             employeeCode: true,
+            birthDate: true,
             siteId: true,
             site: { select: { id: true, name: true } }
         }
@@ -39,10 +40,13 @@ export class UserManagementService {
             }),
             prisma.user.count()
         ]);
-        return { items, pagination: { page, limit, total } };
+        return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
     }
     async get(userId) {
-        const user = await prisma.user.findUnique({ where: { id: userId }, select: userDetails });
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: userDetails
+        });
         if (!user)
             throw new AppError(404, 'Usuario no encontrado');
         return user;
@@ -55,14 +59,16 @@ export class UserManagementService {
                 throw new AppError(404, 'Sede no encontrada');
         }
         const idValue = input.idUsuario?.trim();
-        const rawEmail = input.email?.trim() || (idValue ? `${idValue}@msa.local` : '');
-        if (!rawEmail)
-            throw new AppError(400, 'Debe proporcionar un ID de usuario o correo electrónico');
+        const email = input.email && input.email.trim() !== ''
+            ? input.email.trim().toLowerCase()
+            : idValue
+                ? `${idValue}@msa.local`.toLowerCase()
+                : `user-${Date.now()}@msa.local`.toLowerCase();
         try {
             return await prisma.$transaction(async (transaction) => {
                 const user = await transaction.user.create({
                     data: {
-                        email: rawEmail.toLocaleLowerCase(),
+                        email,
                         passwordHash: await bcrypt.hash(input.password, 12),
                         firstName: input.firstName,
                         lastName: input.lastName,
@@ -71,7 +77,7 @@ export class UserManagementService {
                     },
                     select: userDetails
                 });
-                if (idValue || input.siteId) {
+                if (idValue || input.siteId || input.birthDate) {
                     const defaultCompany = await transaction.company.findFirst();
                     if (defaultCompany) {
                         await transaction.employee.create({
@@ -80,6 +86,7 @@ export class UserManagementService {
                                 companyId: defaultCompany.id,
                                 employeeCode: idValue || `EMP-${user.id.slice(-6)}`,
                                 siteId: input.siteId ? input.siteId : null,
+                                birthDate: input.birthDate ? input.birthDate : null,
                                 hiredAt: new Date(),
                                 active: true
                             }
@@ -135,11 +142,12 @@ export class UserManagementService {
                         where: { userId },
                         data: {
                             ...(idValue ? { employeeCode: idValue } : {}),
-                            ...(input.siteId !== undefined ? { siteId: input.siteId ? input.siteId : null } : {})
+                            ...(input.siteId !== undefined ? { siteId: input.siteId ? input.siteId : null } : {}),
+                            ...(input.birthDate !== undefined ? { birthDate: input.birthDate ? input.birthDate : null } : {})
                         }
                     });
                 }
-                else if (idValue || input.siteId) {
+                else if (idValue || input.siteId || input.birthDate) {
                     const defaultCompany = await transaction.company.findFirst();
                     if (defaultCompany) {
                         await transaction.employee.create({
@@ -148,6 +156,7 @@ export class UserManagementService {
                                 companyId: defaultCompany.id,
                                 employeeCode: idValue || `EMP-${userId.slice(-6)}`,
                                 siteId: input.siteId ? input.siteId : null,
+                                birthDate: input.birthDate ? input.birthDate : null,
                                 hiredAt: new Date(),
                                 active: true
                             }

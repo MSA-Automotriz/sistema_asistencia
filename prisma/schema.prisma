@@ -283,6 +283,7 @@ model Employee {
   employeeCode String @unique
   profilePhotoUrl String?
   hiredAt DateTime
+  birthDate DateTime? @db.Date
   active Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

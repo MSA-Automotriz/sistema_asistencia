@@ -243,6 +243,15 @@ function bindGlobalEvents() {
     const target = event.target;
     if (!target) return;
 
+    // Cerrar menú de notificaciones si se hace clic fuera
+    const notifWrap = target.closest('.notification-wrap');
+    if (!notifWrap) {
+      const menu = query('#notification-menu');
+      if (menu && !menu.hidden) {
+        menu.hidden = true;
+      }
+    }
+
     // Navegación de vistas
     const viewButton = target.closest('[data-view-target]');
     if (viewButton) {
@@ -259,6 +268,13 @@ function bindGlobalEvents() {
     // Retorno al login
     if (target.closest('[data-back-to-login]')) {
       showLoginForm();
+      return;
+    }
+
+    // Selección de día en el calendario
+    const dayCell = target.closest('.cal-day-cell');
+    if (dayCell && dayCell.dataset.calendarDate) {
+      selectCalendarDay(dayCell.dataset.calendarDate);
       return;
     }
 
@@ -444,11 +460,6 @@ function bindGlobalEvents() {
     if (button.id === 'day-drawer-close') clearCalendarDaySelection();
     if (button.dataset.category && button.closest('#calendar-category-filters')) {
       handleCategoryFilter(button.dataset.category);
-    }
-
-    const dayCell = event.target.closest('.cal-day-cell');
-    if (dayCell && dayCell.dataset.calendarDate) {
-      selectCalendarDay(dayCell.dataset.calendarDate);
     }
   });
 

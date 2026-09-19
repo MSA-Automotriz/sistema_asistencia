@@ -31,6 +31,7 @@ const profileSelect = {
   employeeCode: true,
   profilePhotoUrl: true,
   hiredAt: true,
+  birthDate: true,
   active: true,
   user: { select: { id: true, firstName: true, lastName: true, email: true, status: true } },
   company: { select: { id: true, name: true, timeZone: true, logoUrl: true } },

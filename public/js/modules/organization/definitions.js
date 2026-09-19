@@ -210,6 +210,12 @@ export const organizationDefinitions = {
         required: true,
         defaultValue: () => new Date().toISOString().slice(0, 10)
       },
+      {
+        name: 'birthDate',
+        label: 'Fecha de nacimiento',
+        type: 'date',
+        optional: true
+      },
       { name: 'active', label: 'Activo', kind: 'checkbox', defaultValue: true }
     ]
   },

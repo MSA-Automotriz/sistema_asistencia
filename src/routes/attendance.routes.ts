@@ -122,7 +122,6 @@ attendanceRouter.get(
 
 attendanceRouter.get(
   '/attendance/calendar',
-  authorize('calendar.read'),
   async (request, response) => {
     const query = calendarQuerySchema.parse(request.query);
     return ok(

@@ -115,6 +115,7 @@
 .cal-dot-amber { background: #d97706; }
 .cal-dot-blue { background: #2563eb; }
 .cal-dot-purple { background: #9333ea; }
+.cal-dot-pink { background: #db2777; }
 .cal-dot-red { background: #dc2626; }
 
 .cal-icon {
@@ -178,6 +179,7 @@
 .text-amber { color: #d97706; }
 .text-blue { color: #2563eb; }
 .text-purple { color: #9333ea; }
+.text-pink { color: #db2777; }
 .text-red { color: var(--primary); }
 
 /* Workspace Cuadrícula + Drawer */
@@ -338,6 +340,11 @@
   color: #7e22ce;
 }
 
+.cal-pill-birth {
+  background: #fce7f3;
+  color: #be185d;
+}
+
 .cal-pill-hol {
   background: #fee2e2;
   color: #b91c1c;
@@ -431,6 +438,7 @@
 .day-event-item.cat-VACATION { border-left-color: #2563eb; }
 .day-event-item.cat-WORK_PERMISSION,
 .day-event-item.cat-LICENSE { border-left-color: #9333ea; }
+.day-event-item.cat-BIRTHDAY { border-left-color: #db2777; background: #fdf2f8; }
 .day-event-item.cat-HOLIDAY { border-left-color: #dc2626; }
 
 .day-event-top {

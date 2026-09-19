@@ -88,6 +88,7 @@ export declare class EmployeeSelfService {
         employeeCode: string;
         profilePhotoUrl: string | null;
         hiredAt: Date;
+        birthDate: Date | null;
         active: boolean;
         company: {
             id: string;
@@ -138,6 +139,7 @@ export declare class EmployeeSelfService {
         employeeCode: string;
         profilePhotoUrl: string | null;
         hiredAt: Date;
+        birthDate: Date | null;
         active: boolean;
         company: {
             id: string;

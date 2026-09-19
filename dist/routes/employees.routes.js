@@ -20,6 +20,7 @@ const employeeProvisionSchema = z.object({
         supervisorId: z.string().min(1).nullable().optional(),
         profilePhotoUrl: z.string().url().max(500).nullable().optional(),
         hiredAt: z.coerce.date(),
+        birthDate: z.coerce.date().nullable().optional(),
         active: z.boolean().optional()
     })
         .strict()

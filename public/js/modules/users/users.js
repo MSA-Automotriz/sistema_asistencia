@@ -76,6 +76,11 @@ export async function createUser() {
   if (values.email !== undefined) values.email = values.email.trim();
   if (values.idUsuario !== undefined) values.idUsuario = values.idUsuario.trim();
   if (values.siteId !== undefined) values.siteId = values.siteId.trim() || null;
+  if (values.birthDate) {
+    values.birthDate = values.birthDate.trim();
+  } else {
+    delete values.birthDate;
+  }
   const button = query('#submit-user-form');
   button.disabled = true;
   try {
@@ -107,6 +112,11 @@ export async function openEditUserDialog(userId) {
     query('#edit-user-id-input').value = userCode || '';
     query('#edit-user-email').value = isInternalEmail ? '' : user.email || '';
     if (query('#edit-user-password')) query('#edit-user-password').value = '';
+    const birthDateInput = query('#edit-user-birth-date');
+    if (birthDateInput) {
+      const bDate = user.employee?.birthDate ? new Date(user.employee.birthDate).toISOString().slice(0, 10) : '';
+      birthDateInput.value = bDate;
+    }
     query('#edit-user-role').innerHTML = state.roles
       .map(
         (role) =>
@@ -137,6 +147,11 @@ export async function updateUser() {
   if (values.email !== undefined) values.email = values.email.trim();
   if (values.idUsuario !== undefined) values.idUsuario = values.idUsuario.trim();
   if (values.siteId !== undefined) values.siteId = values.siteId.trim() || null;
+  if (values.birthDate) {
+    values.birthDate = values.birthDate.trim();
+  } else {
+    delete values.birthDate;
+  }
   if (!values.password?.trim()) {
     delete values.password;
   } else {

@@ -42,7 +42,7 @@ export function renderSidebarNavigation() {
     ]),
     reports: has('reports.read'),
     statistics: has('statistics.read'),
-    calendar: has('calendar.read'),
+    calendar: true,
     announcements: hasAny(['announcements.read', 'announcements.create']),
     devices: has('devices.read'),
     settings: has('settings.read'),

@@ -19,7 +19,8 @@ const createUserSchema = z.object({
       lastName: z.string().trim().min(1).max(100),
       roleId: z.string().min(1),
       status: z.nativeEnum(UserStatus).optional(),
-      siteId: z.string().trim().optional().or(z.literal('')).nullable()
+      siteId: z.string().trim().optional().or(z.literal('')).nullable(),
+      birthDate: z.coerce.date().nullable().optional()
     })
     .strict()
 });
@@ -33,7 +34,8 @@ const updateUserSchema = z.object({
       firstName: z.string().trim().min(1).max(100).optional(),
       lastName: z.string().trim().min(1).max(100).optional(),
       roleId: z.string().min(1).optional(),
-      siteId: z.string().trim().optional().or(z.literal('')).nullable()
+      siteId: z.string().trim().optional().or(z.literal('')).nullable(),
+      birthDate: z.coerce.date().nullable().optional()
     })
     .strict()
     .refine(

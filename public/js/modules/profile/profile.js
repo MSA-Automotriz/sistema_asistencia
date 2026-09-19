@@ -39,6 +39,16 @@ export async function loadProfile() {
     if (query('#hero-site')) query('#hero-site').textContent = profile.site?.name || 'Sin sede';
     if (query('#hero-schedule'))
       query('#hero-schedule').textContent = profile.schedule?.name || 'Sin horario';
+    if (query('#hero-birthday')) {
+      if (profile.birthDate) {
+        const bDate = new Date(profile.birthDate);
+        const day = bDate.getUTCDate();
+        const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        query('#hero-birthday').textContent = `${day} de ${months[bDate.getUTCMonth()]}`;
+      } else {
+        query('#hero-birthday').textContent = 'No registrado';
+      }
+    }
 
     if (query('#profile-first-name')) query('#profile-first-name').value = user.firstName || '';
     if (query('#profile-last-name')) query('#profile-last-name').value = user.lastName || '';

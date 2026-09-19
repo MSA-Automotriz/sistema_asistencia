@@ -29,6 +29,9 @@
     <button class="filter-pill" data-category="WORK_PERMISSION" type="button">
       <span class="cal-dot cal-dot-purple"></span> Permisos / Licencias
     </button>
+    <button class="filter-pill" data-category="BIRTHDAY" type="button">
+      <span class="cal-dot cal-dot-pink"></span> Cumpleaños
+    </button>
     <button class="filter-pill" data-category="HOLIDAY" type="button">
       <span class="cal-dot cal-dot-red"></span> Feriados
     </button>
@@ -52,6 +55,10 @@
   <div class="cal-stat-card">
     <span class="cal-stat-label">Permisos / Licencias</span>
     <strong class="cal-stat-val text-purple" id="cal-total-permissions">0</strong>
+  </div>
+  <div class="cal-stat-card">
+    <span class="cal-stat-label">Cumpleaños del mes</span>
+    <strong class="cal-stat-val text-pink" id="cal-total-birthdays">0</strong>
   </div>
 </div>
 
@@ -85,7 +92,7 @@
     </div>
     <div class="day-drawer-metrics" id="day-drawer-metrics"></div>
     <div class="day-drawer-content" id="day-drawer-list">
-      <p class="empty-state">Haz clic en cualquier día del calendario para ver el desglose de asistencias, tardanzas, vacaciones y permisos.</p>
+      <p class="empty-state">Haz clic en cualquier día del calendario para ver el desglose de asistencias, tardanzas, vacaciones, permisos y cumpleaños.</p>
     </div>
   </aside>
 </div>

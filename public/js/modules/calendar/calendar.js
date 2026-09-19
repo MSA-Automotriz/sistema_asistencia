@@ -13,6 +13,7 @@ const SVG_ICONS = {
   clock: '<svg class="cal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
   vacation: '<svg class="cal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>',
   permission: '<svg class="cal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>',
+  birthday: '<svg class="cal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"></path><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"></path><path d="M2 21h20"></path><line x1="7" y1="8" x2="7" y2="4"></line><line x1="12" y1="8" x2="12" y2="4"></line><line x1="17" y1="8" x2="17" y2="4"></line><circle cx="7" cy="3" r="1"></circle><circle cx="12" cy="3" r="1"></circle><circle cx="17" cy="3" r="1"></circle></svg>',
   flag: '<svg class="cal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>',
   pin: '<svg class="cal-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>'
 };
@@ -66,6 +67,7 @@ function updateMonthlySummaryCards(events) {
   let late = 0;
   let vacations = 0;
   let permissions = 0;
+  let birthdays = 0;
 
   events.forEach((ev) => {
     if (ev.category === 'ATTENDANCE') {
@@ -75,6 +77,8 @@ function updateMonthlySummaryCards(events) {
       vacations++;
     } else if (ev.category === 'WORK_PERMISSION' || ev.category === 'LICENSE') {
       permissions++;
+    } else if (ev.category === 'BIRTHDAY') {
+      birthdays++;
     }
   });
 
@@ -82,11 +86,13 @@ function updateMonthlySummaryCards(events) {
   const elLate = query('#cal-total-late');
   const elVac = query('#cal-total-vacations');
   const elPerm = query('#cal-total-permissions');
+  const elBirth = query('#cal-total-birthdays');
 
   if (elAtt) elAtt.textContent = attendances;
   if (elLate) elLate.textContent = late;
   if (elVac) elVac.textContent = vacations;
   if (elPerm) elPerm.textContent = permissions;
+  if (elBirth) elBirth.textContent = birthdays;
 }
 
 function getFilteredEvents() {
@@ -164,6 +170,7 @@ function renderCalendarGrid(year, month, events) {
     let lateCount = 0;
     let vacCount = 0;
     let permCount = 0;
+    const birthEvents = [];
 
     dayEvents.forEach((e) => {
       if (e.category === 'ATTENDANCE') {
@@ -173,12 +180,20 @@ function renderCalendarGrid(year, month, events) {
         vacCount++;
       } else if (e.category === 'WORK_PERMISSION' || e.category === 'LICENSE') {
         permCount++;
+      } else if (e.category === 'BIRTHDAY') {
+        birthEvents.push(e);
       }
     });
 
     let badgesHtml = '';
     if (holidayEvent) {
       badgesHtml += `<div class="cal-event-pill cal-pill-hol" title="${escapeHtml(holidayEvent.title)}">${SVG_ICONS.flag} <span>${escapeHtml(holidayEvent.title)}</span></div>`;
+    }
+    if (birthEvents.length > 0) {
+      const birthLabel = birthEvents.length === 1 
+        ? birthEvents[0].title.replace(/^Cumpleaños\s*-\s*/i, '') 
+        : `${birthEvents.length} cumpleaños`;
+      badgesHtml += `<div class="cal-event-pill cal-pill-birth" title="${escapeHtml(birthEvents.map((b) => b.title).join(' • '))}">${SVG_ICONS.birthday} <span>${escapeHtml(birthLabel)}</span></div>`;
     }
     if (attCount > 0) {
       badgesHtml += `<div class="cal-event-pill cal-pill-att">${SVG_ICONS.check} <span>${attCount} asistencias</span></div>`;
@@ -266,6 +281,7 @@ function renderDayDetail(dateKey) {
   let late = 0;
   let vacations = 0;
   let permissions = 0;
+  let birthdays = 0;
 
   dayEvents.forEach((ev) => {
     if (ev.category === 'ATTENDANCE') {
@@ -273,20 +289,25 @@ function renderDayDetail(dateKey) {
       if (ev.status === 'LATE') late++;
     } else if (ev.category === 'VACATION') vacations++;
     else if (ev.category === 'WORK_PERMISSION' || ev.category === 'LICENSE') permissions++;
+    else if (ev.category === 'BIRTHDAY') birthdays++;
   });
 
   if (metricsEl) {
-    metricsEl.innerHTML = `
+    let metricsHtml = `
       <div class="mini-metric"><span>Marcaciones</span><strong class="text-green">${attendances}</strong></div>
       <div class="mini-metric"><span>Tardanzas</span><strong class="text-amber">${late}</strong></div>
       <div class="mini-metric"><span>Vacaciones</span><strong class="text-blue">${vacations}</strong></div>
       <div class="mini-metric"><span>Permisos</span><strong class="text-purple">${permissions}</strong></div>
     `;
+    if (birthdays > 0) {
+      metricsHtml += `<div class="mini-metric"><span>Cumpleaños</span><strong class="text-pink">${birthdays}</strong></div>`;
+    }
+    metricsEl.innerHTML = metricsHtml;
   }
 
   if (listEl) {
     if (!dayEvents.length) {
-      listEl.innerHTML = '<p class="empty-state">No se registraron asistencias, vacaciones ni permisos para esta fecha.</p>';
+      listEl.innerHTML = '<p class="empty-state">No se registraron asistencias, vacaciones, permisos ni cumpleaños para esta fecha.</p>';
       return;
     }
 
@@ -294,15 +315,20 @@ function renderDayDetail(dateKey) {
       .map((ev) => {
         const timeStr = ev.category === 'ATTENDANCE'
           ? formatDate(ev.start, { timeStyle: 'short' })
-          : (ev.category === 'HOLIDAY' ? 'Todo el día' : 'Jornada completa');
+          : (ev.category === 'HOLIDAY' || ev.category === 'BIRTHDAY' ? 'Todo el día' : 'Jornada completa');
 
         const catClass = ev.status === 'LATE' ? 'cat-LATE' : `cat-${ev.category}`;
+        const badgeLabel = ev.category === 'BIRTHDAY' ? 'Cumpleaños' : (ev.status || 'Registrado');
+        const badgeClass = ev.category === 'BIRTHDAY'
+          ? 'badge-pink'
+          : (ev.status === 'LATE' ? 'badge-amber' : 'badge-neutral');
+        const icon = ev.category === 'BIRTHDAY' ? SVG_ICONS.birthday : SVG_ICONS.clock;
 
         return `
           <div class="day-event-item ${catClass}">
             <div class="day-event-top">
-              <span class="day-event-time">${SVG_ICONS.clock} ${timeStr}</span>
-              <span class="badge ${ev.status === 'LATE' ? 'badge-amber' : 'badge-neutral'}">${ev.status || 'Registrado'}</span>
+              <span class="day-event-time">${icon} ${timeStr}</span>
+              <span class="badge ${badgeClass}">${badgeLabel}</span>
             </div>
             <div class="day-event-name">${escapeHtml(ev.title)}</div>
             ${ev.detail ? `<div class="day-event-detail">${SVG_ICONS.pin} ${escapeHtml(ev.detail)}</div>` : ''}

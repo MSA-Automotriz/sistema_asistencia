@@ -89,7 +89,7 @@ attendanceRouter.get('/attendance/statistics', authorize('statistics.read'), asy
     const query = statisticsQuerySchema.parse(request.query);
     return ok(response, 'Estadísticas de asistencia obtenidas correctamente', await attendanceOperations.statistics(query));
 });
-attendanceRouter.get('/attendance/calendar', authorize('calendar.read'), async (request, response) => {
+attendanceRouter.get('/attendance/calendar', async (request, response) => {
     const query = calendarQuerySchema.parse(request.query);
     return ok(response, 'Calendario operativo obtenido correctamente', await attendanceOperations.calendar(query.startDate, query.endDate, query));
 });

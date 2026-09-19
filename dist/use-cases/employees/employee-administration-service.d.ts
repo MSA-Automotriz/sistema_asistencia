@@ -9,6 +9,7 @@ export type EmployeeInput = {
     supervisorId?: string | null;
     profilePhotoUrl?: string | null;
     hiredAt: Date;
+    birthDate?: Date | null;
     active?: boolean;
 };
 export type EmployeeUpdateInput = Omit<Partial<EmployeeInput>, 'userId'>;
@@ -64,6 +65,7 @@ export declare class EmployeeAdministrationService {
         employeeCode: string;
         profilePhotoUrl: string | null;
         hiredAt: Date;
+        birthDate: Date | null;
         active: boolean;
     }>;
     update(employeeId: string, input: EmployeeUpdateInput): Promise<{
@@ -117,6 +119,7 @@ export declare class EmployeeAdministrationService {
         employeeCode: string;
         profilePhotoUrl: string | null;
         hiredAt: Date;
+        birthDate: Date | null;
         active: boolean;
     }>;
     importWorkbook(buffer: Buffer): Promise<{

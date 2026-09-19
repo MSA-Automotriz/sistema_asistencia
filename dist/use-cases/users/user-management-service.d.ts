@@ -8,6 +8,7 @@ export type CreateUserInput = {
     roleId: string;
     status?: UserStatus;
     siteId?: string | null;
+    birthDate?: Date | null;
 };
 export type UpdateUserInput = {
     email?: string;
@@ -17,6 +18,7 @@ export type UpdateUserInput = {
     lastName?: string;
     roleId?: string;
     siteId?: string | null;
+    birthDate?: Date | null;
 };
 export declare class UserManagementService {
     list(page: number, limit: number): Promise<{
@@ -40,6 +42,7 @@ export declare class UserManagementService {
                 id: string;
                 siteId: string | null;
                 employeeCode: string;
+                birthDate: Date | null;
                 site: {
                     id: string;
                     name: string;
@@ -57,11 +60,10 @@ export declare class UserManagementService {
                 recoveryQuestions: number;
             };
         }[];
-        pagination: {
-            page: number;
-            limit: number;
-            total: number;
-        };
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
     }>;
     get(userId: string): Promise<{
         status: import("@prisma/client").$Enums.UserStatus;
@@ -83,6 +85,7 @@ export declare class UserManagementService {
             id: string;
             siteId: string | null;
             employeeCode: string;
+            birthDate: Date | null;
             site: {
                 id: string;
                 name: string;
@@ -120,6 +123,7 @@ export declare class UserManagementService {
             id: string;
             siteId: string | null;
             employeeCode: string;
+            birthDate: Date | null;
             site: {
                 id: string;
                 name: string;
@@ -157,6 +161,7 @@ export declare class UserManagementService {
             id: string;
             siteId: string | null;
             employeeCode: string;
+            birthDate: Date | null;
             site: {
                 id: string;
                 name: string;
@@ -194,6 +199,7 @@ export declare class UserManagementService {
             id: string;
             siteId: string | null;
             employeeCode: string;
+            birthDate: Date | null;
             site: {
                 id: string;
                 name: string;
@@ -233,6 +239,7 @@ export declare class UserManagementService {
             id: string;
             siteId: string | null;
             employeeCode: string;
+            birthDate: Date | null;
             site: {
                 id: string;
                 name: string;
@@ -270,6 +277,7 @@ export declare class UserManagementService {
             id: string;
             siteId: string | null;
             employeeCode: string;
+            birthDate: Date | null;
             site: {
                 id: string;
                 name: string;

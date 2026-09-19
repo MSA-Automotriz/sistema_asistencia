@@ -65,6 +65,8 @@ export class EmployeeAdministrationService {
                 const employeeCode = this.required(row, 'employeecode', 'codigoempleado', 'codigo');
                 const companyId = this.required(row, 'companyid', 'empresaid');
                 const hiredAt = this.toDate(this.required(row, 'hiredat', 'fechaingreso'));
+                const birthDateRaw = this.optional(row, 'birthdate', 'fechanacimiento', 'cumpleanos', 'cumpleaños');
+                const birthDate = birthDateRaw ? this.toDate(birthDateRaw) : null;
                 if (password.length < 12)
                     throw new AppError(422, 'La contraseña debe tener al menos 12 caracteres');
                 const role = await this.resolveRole(row.role, defaultRole.id);
@@ -89,7 +91,8 @@ export class EmployeeAdministrationService {
                         supervisorId: this.optional(row, 'supervisorid'),
                         employeeCode,
                         userId: user.id,
-                        hiredAt
+                        hiredAt,
+                        birthDate
                     });
                     return transaction.employee.create({
                         data: {
@@ -97,6 +100,7 @@ export class EmployeeAdministrationService {
                             companyId,
                             employeeCode,
                             hiredAt,
+                            birthDate,
                             siteId: this.optional(row, 'siteid', 'sedeid'),
                             departmentId: this.optional(row, 'departmentid', 'areaid'),
                             positionId: this.optional(row, 'positionid', 'cargoid'),
