@@ -125,10 +125,13 @@ attendanceRouter.get(
   async (request, response) => {
     const query = calendarQuerySchema.parse(request.query);
     const userPermissions = request.auth?.permissions ?? [];
+    const userRole = String(request.auth?.role ?? '').trim().toLowerCase();
     const isEmployeeOnly =
-      !userPermissions.includes('attendances.read') &&
-      !userPermissions.includes('reports.read') &&
-      !userPermissions.includes('statistics.read');
+      userRole === 'empleado' ||
+      userRole.includes('empleado') ||
+      (!userPermissions.includes('attendances.read') &&
+        !userPermissions.includes('reports.read') &&
+        !userPermissions.includes('statistics.read'));
 
     return ok(
       response,

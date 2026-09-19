@@ -92,9 +92,12 @@ attendanceRouter.get('/attendance/statistics', authorize('statistics.read'), asy
 attendanceRouter.get('/attendance/calendar', async (request, response) => {
     const query = calendarQuerySchema.parse(request.query);
     const userPermissions = request.auth?.permissions ?? [];
-    const isEmployeeOnly = !userPermissions.includes('attendances.read') &&
-        !userPermissions.includes('reports.read') &&
-        !userPermissions.includes('statistics.read');
+    const userRole = String(request.auth?.role ?? '').trim().toLowerCase();
+    const isEmployeeOnly = userRole === 'empleado' ||
+        userRole.includes('empleado') ||
+        (!userPermissions.includes('attendances.read') &&
+            !userPermissions.includes('reports.read') &&
+            !userPermissions.includes('statistics.read'));
     return ok(response, 'Calendario operativo obtenido correctamente', await attendanceOperations.calendar(query.startDate, query.endDate, query, isEmployeeOnly));
 });
 attendanceRouter.post('/attendance/offline-permit', async (request, response) => {

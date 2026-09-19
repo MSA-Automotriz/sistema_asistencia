@@ -9,8 +9,15 @@ let searchQuery = '';
 let selectedDateKey = null;
 
 function isEmployeeRole() {
-  const permissions = state.session?.permissions || [];
-  return !permissions.includes('attendances.read') && !permissions.includes('reports.read') && !permissions.includes('statistics.read');
+  const user = state.session?.user || state.session;
+  const roleName = String(user?.role?.name || user?.role || '').trim().toLowerCase();
+  if (roleName === 'empleado' || roleName.includes('empleado')) return true;
+  const permissions = user?.permissions || state.session?.permissions || [];
+  return (
+    !permissions.includes('attendances.read') &&
+    !permissions.includes('reports.read') &&
+    !permissions.includes('statistics.read')
+  );
 }
 
 // SVG Icons reutilizables
@@ -74,7 +81,10 @@ export async function loadCalendar() {
       endDate: period.endDate
     });
     const data = await api(`/attendance/calendar?${params}`);
-    rawEvents = data.events || [];
+    const events = data.events || [];
+    rawEvents = isEmployee
+      ? events.filter((ev) => ev.category === 'BIRTHDAY' || ev.category === 'HOLIDAY')
+      : events;
 
     updateMonthlySummaryCards(rawEvents);
     renderCalendarGrid(period.year, period.month, rawEvents);
@@ -121,7 +131,12 @@ function updateMonthlySummaryCards(events) {
 }
 
 function getFilteredEvents() {
+  const isEmployee = isEmployeeRole();
   return rawEvents.filter((ev) => {
+    if (isEmployee && ev.category !== 'BIRTHDAY' && ev.category !== 'HOLIDAY') {
+      return false;
+    }
+
     if (activeCategory !== 'ALL') {
       if (activeCategory === 'WORK_PERMISSION') {
         if (ev.category !== 'WORK_PERMISSION' && ev.category !== 'LICENSE') return false;
@@ -145,10 +160,13 @@ function renderCalendarGrid(year, month, events) {
   const container = query('#calendar-grid');
   if (!container) return;
 
+  const isEmployee = isEmployeeRole();
   const filtered = getFilteredEvents();
 
   const eventsByDate = new Map();
   filtered.forEach((ev) => {
+    if (isEmployee && ev.category !== 'BIRTHDAY' && ev.category !== 'HOLIDAY') return;
+
     const startDate = new Date(ev.start);
     const endDate = ev.end ? new Date(ev.end) : startDate;
 
@@ -198,15 +216,19 @@ function renderCalendarGrid(year, month, events) {
     const birthEvents = [];
 
     dayEvents.forEach((e) => {
-      if (e.category === 'ATTENDANCE') {
-        attCount++;
-        if (e.status === 'LATE') lateCount++;
-      } else if (e.category === 'VACATION') {
-        vacCount++;
-      } else if (e.category === 'WORK_PERMISSION' || e.category === 'LICENSE') {
-        permCount++;
-      } else if (e.category === 'BIRTHDAY') {
-        birthEvents.push(e);
+      if (isEmployee) {
+        if (e.category === 'BIRTHDAY') birthEvents.push(e);
+      } else {
+        if (e.category === 'ATTENDANCE') {
+          attCount++;
+          if (e.status === 'LATE') lateCount++;
+        } else if (e.category === 'VACATION') {
+          vacCount++;
+        } else if (e.category === 'WORK_PERMISSION' || e.category === 'LICENSE') {
+          permCount++;
+        } else if (e.category === 'BIRTHDAY') {
+          birthEvents.push(e);
+        }
       }
     });
 
@@ -220,17 +242,19 @@ function renderCalendarGrid(year, month, events) {
         : `${birthEvents.length} cumpleaños`;
       badgesHtml += `<div class="cal-event-pill cal-pill-birth" title="${escapeHtml(birthEvents.map((b) => b.title).join(' • '))}">${SVG_ICONS.birthday} <span>${escapeHtml(birthLabel)}</span></div>`;
     }
-    if (attCount > 0) {
-      badgesHtml += `<div class="cal-event-pill cal-pill-att">${SVG_ICONS.check} <span>${attCount} asistencias</span></div>`;
-    }
-    if (lateCount > 0) {
-      badgesHtml += `<div class="cal-event-pill cal-pill-late">${SVG_ICONS.clock} <span>${lateCount} tardanzas</span></div>`;
-    }
-    if (vacCount > 0) {
-      badgesHtml += `<div class="cal-event-pill cal-pill-vac">${SVG_ICONS.vacation} <span>${vacCount} vacaciones</span></div>`;
-    }
-    if (permCount > 0) {
-      badgesHtml += `<div class="cal-event-pill cal-pill-perm">${SVG_ICONS.permission} <span>${permCount} permisos</span></div>`;
+    if (!isEmployee) {
+      if (attCount > 0) {
+        badgesHtml += `<div class="cal-event-pill cal-pill-att">${SVG_ICONS.check} <span>${attCount} asistencias</span></div>`;
+      }
+      if (lateCount > 0) {
+        badgesHtml += `<div class="cal-event-pill cal-pill-late">${SVG_ICONS.clock} <span>${lateCount} tardanzas</span></div>`;
+      }
+      if (vacCount > 0) {
+        badgesHtml += `<div class="cal-event-pill cal-pill-vac">${SVG_ICONS.vacation} <span>${vacCount} vacaciones</span></div>`;
+      }
+      if (permCount > 0) {
+        badgesHtml += `<div class="cal-event-pill cal-pill-perm">${SVG_ICONS.permission} <span>${permCount} permisos</span></div>`;
+      }
     }
 
     html += `
@@ -292,8 +316,10 @@ function renderDayDetail(dateKey) {
   if (titleEl) titleEl.textContent = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
   if (kickerEl) kickerEl.textContent = `Registros del ${day}/${month}/${year}`;
 
+  const isEmployee = isEmployeeRole();
   const filtered = getFilteredEvents();
   const dayEvents = filtered.filter((ev) => {
+    if (isEmployee && ev.category !== 'BIRTHDAY' && ev.category !== 'HOLIDAY') return false;
     const startDate = new Date(ev.start);
     startDate.setHours(0, 0, 0, 0);
     const endDate = ev.end ? new Date(ev.end) : new Date(startDate);
