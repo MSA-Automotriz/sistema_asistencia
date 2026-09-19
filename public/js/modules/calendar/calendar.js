@@ -343,8 +343,6 @@ function renderDayDetail(dateKey) {
     else if (ev.category === 'BIRTHDAY') birthdays++;
   });
 
-  const isEmployee = isEmployeeRole();
-
   if (metricsEl) {
     if (isEmployee) {
       if (birthdays > 0) {
