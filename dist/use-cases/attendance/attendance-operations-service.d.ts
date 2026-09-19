@@ -106,7 +106,7 @@ export declare class AttendanceOperationsService {
             present: number;
         }[];
     }>;
-    calendar(startDate: Date, endDate: Date, filters: Pick<AttendanceFilters, 'companyId' | 'siteId' | 'departmentId' | 'employeeId'>): Promise<{
+    calendar(startDate: Date, endDate: Date, filters: Pick<AttendanceFilters, 'companyId' | 'siteId' | 'departmentId' | 'employeeId'>, isEmployeeOnly?: boolean): Promise<{
         events: {
             id: string;
             category: string;

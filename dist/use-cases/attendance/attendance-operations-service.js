@@ -121,7 +121,71 @@ export class AttendanceOperationsService {
             series: [...series.values()]
         };
     }
-    async calendar(startDate, endDate, filters) {
+    async calendar(startDate, endDate, filters, isEmployeeOnly = false) {
+        if (isEmployeeOnly) {
+            const [holidays, birthdayEmployees] = await Promise.all([
+                prisma.holiday.findMany({
+                    where: {
+                        date: { gte: startDate, lte: endDate },
+                        ...(filters.companyId ? { companyId: filters.companyId } : {})
+                    },
+                    orderBy: { date: 'asc' }
+                }),
+                prisma.employee.findMany({
+                    where: {
+                        active: true,
+                        birthDate: { not: null },
+                        ...(filters.companyId ? { companyId: filters.companyId } : {}),
+                        ...(filters.siteId ? { siteId: filters.siteId } : {}),
+                        ...(filters.departmentId ? { departmentId: filters.departmentId } : {})
+                    },
+                    include: {
+                        user: { select: { firstName: true, lastName: true } },
+                        department: { select: { name: true } },
+                        position: { select: { name: true } },
+                        site: { select: { name: true } }
+                    }
+                })
+            ]);
+            const startYear = startDate.getFullYear();
+            const endYear = endDate.getFullYear();
+            const birthdayEvents = [];
+            for (const emp of birthdayEmployees) {
+                if (!emp.birthDate)
+                    continue;
+                const bMonth = emp.birthDate.getUTCMonth();
+                const bDay = emp.birthDate.getUTCDate();
+                for (let y = startYear; y <= endYear; y++) {
+                    const bDate = new Date(Date.UTC(y, bMonth, bDay, 12, 0, 0, 0));
+                    if (bDate >= startDate && bDate <= endDate) {
+                        const detailParts = [emp.department?.name, emp.position?.name, emp.site?.name].filter(Boolean);
+                        birthdayEvents.push({
+                            id: `birthday:${emp.id}:${y}`,
+                            category: 'BIRTHDAY',
+                            title: `Cumpleaños - ${this.employeeName(emp)}`,
+                            start: bDate,
+                            end: bDate,
+                            status: 'CELEBRATION',
+                            detail: detailParts.length ? detailParts.join(' • ') : 'MSA Automotriz'
+                        });
+                    }
+                }
+            }
+            return {
+                events: [
+                    ...holidays.map((item) => ({
+                        id: `holiday:${item.id}`,
+                        category: 'HOLIDAY',
+                        title: item.name,
+                        start: item.date,
+                        end: item.date,
+                        status: 'APPROVED',
+                        detail: 'Feriado'
+                    })),
+                    ...birthdayEvents
+                ]
+            };
+        }
         const employee = this.employeeWhere(filters);
         const attendanceWhere = {
             recordedAt: { gte: startDate, lte: endDate },

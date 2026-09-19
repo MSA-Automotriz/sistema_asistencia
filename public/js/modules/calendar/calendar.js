@@ -1,4 +1,5 @@
 import { api } from '../../core/api.js';
+import { state } from '../../core/state.js';
 import { query, queryAll, escapeHtml, formatDate } from '../../core/utils.js';
 import { showMessage } from '../../components/toast.js';
 
@@ -6,6 +7,11 @@ let rawEvents = [];
 let activeCategory = 'ALL';
 let searchQuery = '';
 let selectedDateKey = null;
+
+function isEmployeeRole() {
+  const permissions = state.session?.permissions || [];
+  return !permissions.includes('attendances.read') && !permissions.includes('reports.read') && !permissions.includes('statistics.read');
+}
 
 // SVG Icons reutilizables
 const SVG_ICONS = {
@@ -42,6 +48,25 @@ export async function loadCalendar() {
   }
 
   const period = calendarPeriod();
+  const isEmployee = isEmployeeRole();
+
+  // Ocultar filtros administrativos para rol Empleado
+  const attFilter = query('[data-category="ATTENDANCE"]');
+  const vacFilter = query('[data-category="VACATION"]');
+  const permFilter = query('[data-category="WORK_PERMISSION"]');
+  if (attFilter) attFilter.hidden = isEmployee;
+  if (vacFilter) vacFilter.hidden = isEmployee;
+  if (permFilter) permFilter.hidden = isEmployee;
+
+  // Ocultar tarjetas de métricas operativas para rol Empleado
+  const elAttCard = query('#cal-total-attendances')?.closest('.cal-stat-card');
+  const elLateCard = query('#cal-total-late')?.closest('.cal-stat-card');
+  const elVacCard = query('#cal-total-vacations')?.closest('.cal-stat-card');
+  const elPermCard = query('#cal-total-permissions')?.closest('.cal-stat-card');
+  if (elAttCard) elAttCard.hidden = isEmployee;
+  if (elLateCard) elLateCard.hidden = isEmployee;
+  if (elVacCard) elVacCard.hidden = isEmployee;
+  if (elPermCard) elPermCard.hidden = isEmployee;
 
   try {
     const params = new URLSearchParams({
@@ -292,22 +317,34 @@ function renderDayDetail(dateKey) {
     else if (ev.category === 'BIRTHDAY') birthdays++;
   });
 
+  const isEmployee = isEmployeeRole();
+
   if (metricsEl) {
-    let metricsHtml = `
-      <div class="mini-metric"><span>Marcaciones</span><strong class="text-green">${attendances}</strong></div>
-      <div class="mini-metric"><span>Tardanzas</span><strong class="text-amber">${late}</strong></div>
-      <div class="mini-metric"><span>Vacaciones</span><strong class="text-blue">${vacations}</strong></div>
-      <div class="mini-metric"><span>Permisos</span><strong class="text-purple">${permissions}</strong></div>
-    `;
-    if (birthdays > 0) {
-      metricsHtml += `<div class="mini-metric"><span>Cumpleaños</span><strong class="text-pink">${birthdays}</strong></div>`;
+    if (isEmployee) {
+      if (birthdays > 0) {
+        metricsEl.innerHTML = `<div class="mini-metric"><span>Cumpleaños</span><strong class="text-pink">${birthdays}</strong></div>`;
+      } else {
+        metricsEl.innerHTML = '';
+      }
+    } else {
+      let metricsHtml = `
+        <div class="mini-metric"><span>Marcaciones</span><strong class="text-green">${attendances}</strong></div>
+        <div class="mini-metric"><span>Tardanzas</span><strong class="text-amber">${late}</strong></div>
+        <div class="mini-metric"><span>Vacaciones</span><strong class="text-blue">${vacations}</strong></div>
+        <div class="mini-metric"><span>Permisos</span><strong class="text-purple">${permissions}</strong></div>
+      `;
+      if (birthdays > 0) {
+        metricsHtml += `<div class="mini-metric"><span>Cumpleaños</span><strong class="text-pink">${birthdays}</strong></div>`;
+      }
+      metricsEl.innerHTML = metricsHtml;
     }
-    metricsEl.innerHTML = metricsHtml;
   }
 
   if (listEl) {
     if (!dayEvents.length) {
-      listEl.innerHTML = '<p class="empty-state">No se registraron asistencias, vacaciones, permisos ni cumpleaños para esta fecha.</p>';
+      listEl.innerHTML = isEmployee
+        ? '<p class="empty-state">No se registraron feriados ni cumpleaños para esta fecha.</p>'
+        : '<p class="empty-state">No se registraron asistencias, vacaciones, permisos ni cumpleaños para esta fecha.</p>';
       return;
     }
 

@@ -124,10 +124,16 @@ attendanceRouter.get(
   '/attendance/calendar',
   async (request, response) => {
     const query = calendarQuerySchema.parse(request.query);
+    const userPermissions = request.auth?.permissions ?? [];
+    const isEmployeeOnly =
+      !userPermissions.includes('attendances.read') &&
+      !userPermissions.includes('reports.read') &&
+      !userPermissions.includes('statistics.read');
+
     return ok(
       response,
       'Calendario operativo obtenido correctamente',
-      await attendanceOperations.calendar(query.startDate, query.endDate, query)
+      await attendanceOperations.calendar(query.startDate, query.endDate, query, isEmployeeOnly)
     );
   }
 );
