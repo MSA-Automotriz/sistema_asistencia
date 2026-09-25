@@ -17,7 +17,11 @@
               <span id="attendance-location-state" class="status-pill status-pending">Ubicación pendiente</span>
             </div>
             <form id="attendance-form" class="form-stack compact-form">
-              <div id="attendance-check-status-text" class="support-copy" style="margin: 0 0 12px 0;"></div>
+              <div class="attendance-time-banner" style="display: flex; align-items: center; justify-content: space-between; background: var(--surface-bg-alt, #f1f5f9); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px;">
+                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted, #64748b);">Hora oficial de marcación:</span>
+                <span id="attendance-live-clock" style="font-size: 1.05rem; font-weight: 700; font-family: monospace; color: var(--primary-color, #e30613);">--:--:--</span>
+              </div>
+              <div id="attendance-check-status-text" class="support-copy" style="margin: 0 0 10px 0; font-size: 0.85rem; color: var(--text-secondary, #475569);"></div>
               <div class="segmented-control four-options" role="radiogroup" aria-label="Tipo de asistencia">
                 <label><input name="type" type="radio" value="CHECK_IN" checked /><span>Entrada</span></label>
                 <label><input name="type" type="radio" value="BREAK_OUT" /><span>Salida Refrigerio</span></label>

@@ -327,10 +327,28 @@ export class ReportService {
         return `${employee.user.firstName} ${employee.user.lastName}`.trim();
     }
     date(value) {
-        return value.toISOString().slice(0, 10);
+        return new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Lima',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(value);
     }
     dateTime(value) {
-        return value.toISOString().replace('T', ' ').slice(0, 16);
+        const datePart = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/Lima',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(value);
+        const timePart = new Intl.DateTimeFormat('es-PE', {
+            timeZone: 'America/Lima',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        }).format(value);
+        return `${datePart} ${timePart}`;
     }
     status(value) {
         return ({

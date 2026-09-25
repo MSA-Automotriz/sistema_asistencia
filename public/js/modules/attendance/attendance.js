@@ -1,5 +1,5 @@
 import { state } from '../../core/state.js';
-import { query, escapeHtml, formatDate, formatTime, fullName, hasPermission } from '../../core/utils.js';
+import { query, escapeHtml, formatDate, formatTime, formatDateTime, fullName, hasPermission } from '../../core/utils.js';
 import { api } from '../../core/api.js';
 import { showToast, showMessage } from '../../components/toast.js';
 import { deviceFingerprint, queueOfflineAttendance, prepareOfflinePermit } from './offline-sync.js';
@@ -28,12 +28,23 @@ export function attendanceStatusLabel(status) {
   );
 }
 
+export function handleAttendanceTypeChange(type) {
+  const submitBtn = query('#submit-attendance');
+  if (!submitBtn) return;
+  const labels = {
+    CHECK_IN: 'Registrar Entrada',
+    BREAK_OUT: 'Registrar Salida a Refrigerio',
+    BREAK_IN: 'Registrar Retorno de Refrigerio',
+    CHECK_OUT: 'Registrar Salida de Jornada'
+  };
+  submitBtn.textContent = labels[type] || 'Registrar Asistencia';
+}
+
 export async function updateAttendanceTypeSelection() {
   try {
     const last = await api('/me/last-attendance');
     const formStatusEl = query('#attendance-check-status-text');
     const dashStatusEl = query('#quick-check-status-text');
-    const submitBtn = query('#submit-attendance');
 
     const radios = {
       CHECK_IN: query('#attendance-form input[value="CHECK_IN"]'),
@@ -42,43 +53,63 @@ export async function updateAttendanceTypeSelection() {
       CHECK_OUT: query('#attendance-form input[value="CHECK_OUT"]')
     };
 
-    const setOnlyAllowed = (allowedType, btnLabel) => {
-      Object.keys(radios).forEach((type) => {
-        const radio = radios[type];
-        if (radio) {
-          if (type === allowedType) {
-            radio.disabled = false;
-            radio.checked = true;
-          } else {
-            radio.disabled = true;
-            radio.checked = false;
-          }
-        }
-      });
-      if (submitBtn) submitBtn.textContent = btnLabel;
+    // Asegurar que TODOS los botones de radio estén siempre habilitados para el usuario
+    Object.values(radios).forEach((radio) => {
+      if (radio) radio.disabled = false;
+    });
+
+    let suggestedType = 'CHECK_IN';
+    let text = '';
+
+    const isSameDay = (dateStr) => {
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      const now = new Date();
+      return (
+        d.toLocaleDateString('es-PE', { timeZone: 'America/Lima' }) ===
+        now.toLocaleDateString('es-PE', { timeZone: 'America/Lima' })
+      );
     };
 
-    let text = '';
-    if (!last || last.type === 'CHECK_OUT') {
-      setOnlyAllowed('CHECK_IN', 'Registrar Entrada');
-      const timeInfo = last?.recordedAt ? ` (Última salida registrada: ${formatTime(last.recordedAt)})` : '';
-      text = `Paso 1 de 4: Registre su ENTRADA al iniciar su jornada laboral.${timeInfo}`;
-    } else if (last.type === 'CHECK_IN') {
-      setOnlyAllowed('BREAK_OUT', 'Registrar Salida a Refrigerio');
-      text = `Paso 2 de 4: ENTRADA registrada a las ${formatTime(last.recordedAt)}. Siguiente paso: SALIDA A REFRIGERIO.`;
-    } else if (last.type === 'BREAK_OUT') {
-      setOnlyAllowed('BREAK_IN', 'Registrar Retorno de Refrigerio');
-      text = `Paso 3 de 4: En refrigerio desde las ${formatTime(last.recordedAt)}. Siguiente paso: RETORNO DE REFRIGERIO.`;
-    } else if (last.type === 'BREAK_IN') {
-      setOnlyAllowed('CHECK_OUT', 'Registrar Salida de Jornada');
-      const excessInfo = last.excessMinutes ? ` (Tardanza en refrigerio: +${last.excessMinutes} min)` : '';
-      text = `Paso 4 de 4: RETORNO registrado a las ${formatTime(last.recordedAt)}${excessInfo}. Siguiente paso: SALIDA de la jornada.`;
+    if (last && isSameDay(last.recordedAt)) {
+      const timeStr = formatTime(last.recordedAt, true);
+      if (last.type === 'CHECK_IN') {
+        suggestedType = 'BREAK_OUT';
+        text = `Último registro hoy: ENTRADA a las ${timeStr}. Seleccione el movimiento a marcar:`;
+      } else if (last.type === 'BREAK_OUT') {
+        suggestedType = 'BREAK_IN';
+        text = `Último registro hoy: SALIDA A REFRIGERIO a las ${timeStr}. Seleccione el movimiento a marcar:`;
+      } else if (last.type === 'BREAK_IN') {
+        suggestedType = 'CHECK_OUT';
+        const excessInfo = last.excessMinutes ? ` (Tardanza: +${last.excessMinutes} min)` : '';
+        text = `Último registro hoy: RETORNO DE REFRIGERIO a las ${timeStr}${excessInfo}. Seleccione el movimiento a marcar:`;
+      } else if (last.type === 'CHECK_OUT') {
+        suggestedType = 'CHECK_IN';
+        text = `Último registro hoy: SALIDA a las ${timeStr}. Seleccione el movimiento a marcar:`;
+      }
+    } else if (last) {
+      suggestedType = 'CHECK_IN';
+      const dateStr = formatDate(last.recordedAt);
+      const timeStr = formatTime(last.recordedAt, true);
+      text = `Último registro: ${attendanceTypeLabel(last.type)} (${dateStr} a las ${timeStr}). Seleccione el movimiento a marcar:`;
+    } else {
+      suggestedType = 'CHECK_IN';
+      text = 'Seleccione el tipo de marcación que desea registrar:';
     }
+
+    // Pre-seleccionar la opción sugerida si no hay ninguna seleccionada
+    const currentChecked = query('#attendance-form input[name="type"]:checked');
+    if (!currentChecked && radios[suggestedType]) {
+      radios[suggestedType].checked = true;
+    }
+
+    const selectedValue = query('#attendance-form input[name="type"]:checked')?.value || suggestedType;
+    handleAttendanceTypeChange(selectedValue);
 
     if (formStatusEl) formStatusEl.textContent = text;
     if (dashStatusEl) dashStatusEl.textContent = text;
   } catch {
-    // Fallback silencioso si no se encuentra perfil
+    // Fallback silencioso
   }
 }
 
@@ -102,22 +133,16 @@ export async function submitAttendance(event) {
         method: 'POST',
         body: JSON.stringify(payload)
       });
-      form.reset();
       state.attendanceLocation = null;
       const coordsEl = query('#attendance-coordinates');
       if (coordsEl) coordsEl.textContent = 'Aún no se obtuvo la ubicación.';
       
-      let message = 'Asistencia registrada correctamente';
-      if (record.type === 'BREAK_OUT') {
-        message = 'Salida a refrigerio registrada correctamente';
-      } else if (record.type === 'BREAK_IN') {
-        if (record.status === 'LATE' && record.excessMinutes) {
-          message = `Retorno registrado (Tardanza en refrigerio: +${record.excessMinutes} min)`;
-        } else {
-          message = 'Retorno de refrigerio registrado correctamente';
-        }
+      const exactTimeStr = formatTime(record.recordedAt, true);
+      let message = `${attendanceTypeLabel(record.type)} registrada a las ${exactTimeStr}`;
+      if (record.type === 'BREAK_IN' && record.status === 'LATE' && record.excessMinutes) {
+        message += ` (Tardanza en refrigerio: +${record.excessMinutes} min)`;
       } else if (record.status === 'LATE') {
-        message = 'Entrada registrada con tardanza';
+        message += ' (Tardanza)';
       }
       showToast(
         message,
@@ -179,7 +204,7 @@ export async function loadHistory() {
           .map((item) => {
             const employee = item.employee?.user;
             const typeText = attendanceTypeLabel(item.type);
-            return `<tr><td>${formatDate(item.recordedAt, { dateStyle: 'medium', timeStyle: 'short' })}</td><td>${escapeHtml(employee ? fullName(employee) : state.profile?.user ? fullName(state.profile.user) : '-')}</td><td>${escapeHtml(item.site?.name || '-')}</td><td>${escapeHtml(typeText)}</td><td><span class="status-pill ${item.status === 'ON_TIME' ? 'status-approved' : 'status-pending'}">${escapeHtml(attendanceStatusLabel(item.status))}</span></td><td>${escapeHtml(item.approximateAddress || `${Number(item.distanceMeters || 0).toFixed(1)} m`)}</td><td>${escapeHtml(item.device || item.browser || '-')}</td></tr>`;
+            return `<tr><td>${formatDateTime(item.recordedAt, true)}</td><td>${escapeHtml(employee ? fullName(employee) : state.profile?.user ? fullName(state.profile.user) : '-')}</td><td>${escapeHtml(item.site?.name || '-')}</td><td>${escapeHtml(typeText)}</td><td><span class="status-pill ${item.status === 'ON_TIME' ? 'status-approved' : 'status-pending'}">${escapeHtml(attendanceStatusLabel(item.status))}</span></td><td>${escapeHtml(item.approximateAddress || `${Number(item.distanceMeters || 0).toFixed(1)} m`)}</td><td>${escapeHtml(item.device || item.browser || '-')}</td></tr>`;
           })
           .join('')
         : '<tr><td colspan="7">No hay asistencias para el período indicado.</td></tr>';

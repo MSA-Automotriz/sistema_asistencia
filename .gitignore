@@ -4,6 +4,7 @@ node_modules/
 config.env
 app.env
 coverage/
+*.log
 logs/*.log
 !logs/.gitkeep
 prisma/*.dbnode_modules

@@ -167,7 +167,7 @@ export const determineAttendanceStatus = (
         0,
         Math.floor((recordedAt.getTime() - lastBreakOutAt.getTime()) / 60_000)
       );
-      if (elapsedMinutes > allowedMinutes + tolerance) {
+      if (elapsedMinutes <= 12 * 60 && elapsedMinutes > allowedMinutes + tolerance) {
         const excessMinutes = elapsedMinutes - allowedMinutes;
         return { status: AttendanceStatus.LATE, excessMinutes };
       }

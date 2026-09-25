@@ -1,7 +1,7 @@
 import { prisma } from '../../database/prisma.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { haversineMeters } from '../../utils/crypto.js';
-import { determineAttendanceStatus, getEffectiveBreakMinutesForToday } from './attendance-rules.js';
+import { determineAttendanceStatus } from './attendance-rules.js';
 import { parseUserAgent } from '../../utils/user-agent.js';
 export class RegisterAttendance {
     async execute(userId, input, meta) {
@@ -38,41 +38,43 @@ export class RegisterAttendance {
         }
         const matchedSite = matched.site;
         const distanceMeters = matched.distanceMeters;
-        const lastAttendance = await prisma.attendance.findFirst({
-            where: { employeeId: employee.id },
-            orderBy: { recordedAt: 'desc' },
-            select: { type: true, recordedAt: true }
-        });
         const recordedAt = new Date();
-        const effectiveBreakMinutes = getEffectiveBreakMinutesForToday(employee.schedule, recordedAt, employee.company.timeZone);
+        // Evitar doble registro accidental del mismo tipo en menos de 15 segundos
+        const recentDuplicate = await prisma.attendance.findFirst({
+            where: {
+                employeeId: employee.id,
+                type: input.type,
+                recordedAt: {
+                    gte: new Date(recordedAt.getTime() - 15 * 1000)
+                }
+            }
+        });
+        if (recentDuplicate) {
+            const typeLabel = input.type === 'CHECK_IN'
+                ? 'Entrada'
+                : input.type === 'BREAK_OUT'
+                    ? 'Salida a Refrigerio'
+                    : input.type === 'BREAK_IN'
+                        ? 'Retorno de Refrigerio'
+                        : 'Salida';
+            throw new AppError(400, `Ya registró su ${typeLabel} hace unos segundos.`);
+        }
         let lastBreakOutAt = null;
-        if (!lastAttendance || lastAttendance.type === 'CHECK_OUT') {
-            if (input.type !== 'CHECK_IN') {
-                throw new AppError(400, 'Primero debe registrar su Entrada antes de cualquier otro movimiento.');
-            }
-        }
-        else if (lastAttendance.type === 'CHECK_IN') {
-            if (input.type === 'CHECK_IN') {
-                throw new AppError(400, effectiveBreakMinutes > 0
-                    ? 'Ya cuenta con una Entrada registrada. Su siguiente marcación debe ser Salida a Refrigerio.'
-                    : 'Ya cuenta con una Entrada registrada. Su siguiente marcación debe ser Salida de la jornada.');
-            }
-            if (input.type === 'BREAK_IN') {
-                throw new AppError(400, 'Debe registrar primero su Salida a Refrigerio antes del Retorno.');
-            }
-            if (input.type === 'CHECK_OUT' && effectiveBreakMinutes > 0) {
-                throw new AppError(400, 'Debe registrar su período de Refrigerio (Salida y Retorno) antes de marcar su Salida de la jornada.');
-            }
-        }
-        else if (lastAttendance.type === 'BREAK_OUT') {
-            lastBreakOutAt = lastAttendance.recordedAt;
-            if (input.type !== 'BREAK_IN') {
-                throw new AppError(400, 'Se encuentra en tiempo de refrigerio. Su siguiente marcación obligatoria es Retorno de Refrigerio.');
-            }
-        }
-        else if (lastAttendance.type === 'BREAK_IN') {
-            if (input.type !== 'CHECK_OUT') {
-                throw new AppError(400, 'Ya completó su Entrada y Refrigerio. Su siguiente marcación debe ser Salida de la jornada.');
+        if (input.type === 'BREAK_IN') {
+            // Buscar la salida a refrigerio más reciente dentro de las últimas 12 horas
+            const recentBreakOut = await prisma.attendance.findFirst({
+                where: {
+                    employeeId: employee.id,
+                    type: 'BREAK_OUT',
+                    recordedAt: {
+                        gte: new Date(recordedAt.getTime() - 12 * 60 * 60 * 1000)
+                    }
+                },
+                orderBy: { recordedAt: 'desc' },
+                select: { recordedAt: true }
+            });
+            if (recentBreakOut) {
+                lastBreakOutAt = recentBreakOut.recordedAt;
             }
         }
         const deviceMeta = parseUserAgent(meta.userAgent ?? meta.browser);

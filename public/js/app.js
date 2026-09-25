@@ -24,7 +24,8 @@ import { initTheme, toggleTheme } from './components/theme.js';
 // Módulos funcionales
 import {
   submitAttendance,
-  loadHistory
+  loadHistory,
+  handleAttendanceTypeChange
 } from './modules/attendance/attendance.js';
 import { captureLocation } from './modules/attendance/geofence.js';
 import {
@@ -468,7 +469,9 @@ function bindGlobalEvents() {
     const target = event.target;
     if (!target) return;
 
-    if (target.id === 'calendar-month') {
+    if (target.name === 'type' && target.closest('#attendance-form')) {
+      handleAttendanceTypeChange(target.value);
+    } else if (target.id === 'calendar-month') {
       loadCalendar();
     } else if (target.id === 'settings-company') {
       loadCompanySettings();
@@ -503,7 +506,7 @@ async function initialize() {
   setupLogoFallbacks();
   setupAppInstallation();
   updateClock();
-  window.setInterval(updateClock, 15_000);
+  window.setInterval(updateClock, 1000);
   bindGlobalEvents();
 
   // Escucha directa en el formulario de login y recuperación

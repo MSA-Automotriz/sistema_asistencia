@@ -113,7 +113,7 @@ export const determineAttendanceStatus = (type, schedule, recordedAt, timeZone, 
         const tolerance = schedule.toleranceMinutes || 0;
         if (lastBreakOutAt) {
             const elapsedMinutes = Math.max(0, Math.floor((recordedAt.getTime() - lastBreakOutAt.getTime()) / 60_000));
-            if (elapsedMinutes > allowedMinutes + tolerance) {
+            if (elapsedMinutes <= 12 * 60 && elapsedMinutes > allowedMinutes + tolerance) {
                 const excessMinutes = elapsedMinutes - allowedMinutes;
                 return { status: AttendanceStatus.LATE, excessMinutes };
             }
