@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'msa-asistencia-';
-const CACHE_NAME = `${CACHE_PREFIX}v19`;
+const CACHE_NAME = `${CACHE_PREFIX}v22`;
 const APP_SHELL = [
   '/',
   '/index.html',

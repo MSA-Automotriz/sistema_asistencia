@@ -95,15 +95,11 @@ export function renderGeofenceMap(sitesData) {
       preferCanvas: true
     });
     leaflet
-      .tileLayer(
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> &copy; <a href="https://carto.com/" target="_blank">CARTO</a>',
-          maxZoom: 20,
-          subdomains: ['a', 'b', 'c', 'd']
-        }
-      )
+      .tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        attribution:
+          'Tiles &copy; Esri',
+        maxZoom: 19
+      })
       .addTo(state.geofenceMap);
   } catch (err) {
     console.error('Error al inicializar Leaflet:', err);
