@@ -281,23 +281,5 @@ CREATE TABLE IF NOT EXISTS `sync_batches` (
     CONSTRAINT `sync_batches_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- 12. Usuario Administrador por defecto (admin@msaautomotriz.com / admin123)
-INSERT INTO `users` (`id`, `dni`, `email`, `password`, `name`, `lastName`, `role`, `position`, `department`, `company`, `location`, `status`, `createdAt`, `updatedAt`)
-VALUES (
-    'admin_msa_001',
-    '74839201',
-    'admin@msaautomotriz.com',
-    '$2b$10$wTqSfZxNq95XlK3P4V9w7eW1o.QyK3U31.fS9a32yK28bV5lF6Zqe',
-    'Administrador',
-    'MSA',
-    'ADMIN',
-    'Administrador de Sistema',
-    'Tecnología',
-    'MSA Automotriz',
-    'Central',
-    'ACTIVO',
-    NOW(),
-    NOW()
-) ON DUPLICATE KEY UPDATE `id`=`id`;
-
 SET FOREIGN_KEY_CHECKS=1;
+

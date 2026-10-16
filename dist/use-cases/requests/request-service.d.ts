@@ -2,6 +2,7 @@ export type WorkPermissionInput = {
     startDate: Date;
     endDate: Date;
     reason: string;
+    documentUrl?: string | null;
 };
 export type OvertimeRequestInput = {
     date: Date;
@@ -31,6 +32,7 @@ export declare class RequestService {
             startDate: Date;
             endDate: Date;
             reason: string;
+            documentUrl: string | null;
             reviewedById: string | null;
             reviewedAt: Date | null;
         })[];
@@ -90,6 +92,7 @@ export declare class RequestService {
         startDate: Date;
         endDate: Date;
         reason: string;
+        documentUrl: string | null;
         reviewedById: string | null;
         reviewedAt: Date | null;
     }>;
@@ -113,6 +116,7 @@ export declare class RequestService {
         startDate: Date;
         endDate: Date;
         reason: string;
+        documentUrl: string | null;
         reviewedById: string | null;
         reviewedAt: Date | null;
     })[]>;
@@ -136,6 +140,7 @@ export declare class RequestService {
         startDate: Date;
         endDate: Date;
         reason: string;
+        documentUrl: string | null;
         reviewedById: string | null;
         reviewedAt: Date | null;
     }>;
@@ -159,6 +164,7 @@ export declare class RequestService {
         startDate: Date;
         endDate: Date;
         reason: string;
+        documentUrl: string | null;
         reviewedById: string | null;
         reviewedAt: Date | null;
     }>;

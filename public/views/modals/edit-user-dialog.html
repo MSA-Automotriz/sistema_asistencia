@@ -5,7 +5,7 @@
           <p class="eyebrow">Modificar accesos</p>
           <h2>Editar usuario</h2>
         </div>
-        <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+        <button class="quiet-button" value="cancel" type="submit" formnovalidate data-dialog-close>Cerrar</button>
       </div>
       <input type="hidden" id="edit-user-id" name="userId" />
       <div class="dialog-grid">
@@ -24,7 +24,7 @@
             autocomplete="new-password" minlength="8" placeholder="En blanco para no cambiar" /></label>
       </div>
       <div class="dialog-actions">
-        <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+        <button class="quiet-button" value="cancel" type="submit" formnovalidate data-dialog-close>Cancelar</button>
         <button class="primary-button" type="button" id="submit-edit-user-form">
           Guardar cambios
         </button>

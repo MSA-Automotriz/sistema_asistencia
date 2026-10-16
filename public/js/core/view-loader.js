@@ -40,17 +40,26 @@ const templateCache = new Map();
 const loadedViews = new Set();
 let modalsLoaded = false;
 
-function resolvePath(relativePath) {
-  if (typeof window === 'undefined') return '/' + relativePath;
+const KNOWN_SPA_ROUTES = new Set(Object.keys(VIEW_TEMPLATES));
+
+function getAppBasePath() {
+  if (typeof window === 'undefined') return '';
   const path = window.location.pathname;
-  const basePath = path.endsWith('.html')
+  const cleanPath = path.endsWith('.html')
     ? path.substring(0, path.lastIndexOf('/'))
     : path.replace(/\/$/, '');
-  
-  if (!basePath || basePath === '/') {
-    return '/' + relativePath.replace(/^\//, '');
+
+  const segments = cleanPath.split('/').filter(Boolean);
+  if (segments.length > 0 && KNOWN_SPA_ROUTES.has(segments[segments.length - 1])) {
+    segments.pop();
   }
-  return `${basePath}/${relativePath.replace(/^\//, '')}`;
+  return segments.length ? '/' + segments.join('/') : '';
+}
+
+function resolvePath(relativePath) {
+  const base = getAppBasePath();
+  const cleanRelative = relativePath.replace(/^\//, '');
+  return base ? `${base}/${cleanRelative}` : `/${cleanRelative}`;
 }
 
 export async function fetchTemplate(relativePath) {

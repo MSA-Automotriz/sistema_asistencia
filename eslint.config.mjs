@@ -11,6 +11,7 @@ export default tseslint.config(
       'node_modules/**',
       'coverage/**',
       'prisma/**',
+      'scratch/**',
       'vitest.config.*',
       'public/vendor/**'
     ]
@@ -29,6 +30,10 @@ export default tseslint.config(
   {
     files: ['public/**/*.js'],
     languageOptions: { globals: { ...globals.browser, jsQR: 'readonly' } }
+  },
+  {
+    files: ['scripts/**/*.js'],
+    languageOptions: { globals: globals.node }
   },
   prettier
 );

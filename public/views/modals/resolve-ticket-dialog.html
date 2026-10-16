@@ -5,7 +5,7 @@
         <p class="eyebrow">Área de Sistemas TI</p>
         <h2 id="resolve-ticket-dialog-title">Atención de Ticket</h2>
       </div>
-      <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+      <button class="quiet-button" value="cancel" type="submit" formnovalidate data-dialog-close>Cerrar</button>
     </div>
 
     <div class="ticket-summary-box dialog-wide">
@@ -19,6 +19,15 @@
       <div class="summary-desc-box">
         <strong>Detalle reportado:</strong>
         <p id="resolve-summary-desc">-</p>
+      </div>
+      <div id="resolve-summary-evidence-box" class="summary-desc-box" style="display: none; margin-top: 8px;">
+        <strong>Foto de evidencia:</strong>
+        <div style="margin-top: 6px;">
+          <a id="resolve-summary-evidence-link" href="#" target="_blank" rel="noopener noreferrer">
+            <img id="resolve-summary-evidence-img" src="" alt="Evidencia del problema" style="max-height: 140px; max-width: 100%; border-radius: 6px; border: 1px solid var(--border-color, #cbd5e1); object-fit: contain; cursor: pointer;" />
+          </a>
+          <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: var(--text-muted, #64748b);">Clic en la foto para abrirla en tamaño completo</p>
+        </div>
       </div>
     </div>
 
@@ -49,7 +58,7 @@
     </div>
 
     <div class="dialog-actions">
-      <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+      <button class="quiet-button" value="cancel" type="submit" formnovalidate data-dialog-close>Cancelar</button>
       <button id="submit-resolve-form-btn" class="primary-button" type="button">Guardar Atención</button>
     </div>
   </form>

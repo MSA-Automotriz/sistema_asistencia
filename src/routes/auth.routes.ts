@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { AuthService } from '../use-cases/auth/auth-service.js';
 import { authenticate } from '../middleware/auth.js';
+import { authRateLimiter } from '../middleware/auth-rate-limit.js';
 import { validate } from '../middleware/validate.js';
 import { ok } from '../common/http/response.js';
 import { meta } from './helpers.js';
@@ -77,7 +78,7 @@ authRouter.get('/health', (_request, response) =>
   ok(response, 'Servicio disponible', { status: 'healthy' })
 );
 
-authRouter.post('/auth/login', validate(loginSchema), async (request, response) =>
+authRouter.post('/auth/login', authRateLimiter, validate(loginSchema), async (request, response) =>
   ok(
     response,
     'Inicio de sesión correcto',
@@ -137,6 +138,7 @@ authRouter.post(
 
 authRouter.post(
   '/auth/password-recovery/start',
+  authRateLimiter,
   validate(startPasswordRecoverySchema),
   async (request, response) =>
     ok(
@@ -148,6 +150,7 @@ authRouter.post(
 
 authRouter.post(
   '/auth/password-recovery/reset',
+  authRateLimiter,
   validate(resetPasswordRecoverySchema),
   async (request, response) => {
     await auth.resetPasswordWithRecovery(

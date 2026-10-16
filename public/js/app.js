@@ -272,6 +272,16 @@ function bindGlobalEvents() {
       return;
     }
 
+    // Cierre seguro de modales (data-dialog-close o value="cancel")
+    const dialogCloseBtn = target.closest('[data-dialog-close], button[value="cancel"]');
+    if (dialogCloseBtn) {
+      const dialog = dialogCloseBtn.closest('dialog');
+      if (dialog && typeof dialog.close === 'function') {
+        dialog.close();
+        return;
+      }
+    }
+
     // Selección de día en el calendario
     const dayCell = target.closest('.cal-day-cell');
     if (dayCell && dayCell.dataset.calendarDate) {

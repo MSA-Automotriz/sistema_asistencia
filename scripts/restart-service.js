@@ -12,6 +12,11 @@ if (!fs.existsSync(serverPath)) {
   process.exit(0);
 }
 
+if (process.platform === 'win32') {
+  console.log('[DEPLOY-HOOK] Entorno Windows detectado, omitiendo reinicio en segundo plano Unix.');
+  process.exit(0);
+}
+
 // 1. Matar procesos anteriores que ocupen el puerto 3000 o ejecuten dist/server.js
 const killCmd = 'fuser -k 3000/tcp 2>/dev/null || kill $(lsof -t -i:3000) 2>/dev/null || pkill -f "dist/server.js" 2>/dev/null';
 

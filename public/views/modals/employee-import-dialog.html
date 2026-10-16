@@ -5,14 +5,14 @@
           <p class="eyebrow">Carga masiva</p>
           <h2>Importar empleados</h2>
         </div>
-        <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+        <button class="quiet-button" value="cancel" type="submit" formnovalidate data-dialog-close>Cerrar</button>
       </div>
       <div class="dialog-grid">
         <label class="dialog-wide">Archivo Excel<input name="file" type="file" accept=".xlsx" required /></label>
       </div>
       <div id="employee-import-result" class="import-result" hidden></div>
       <div class="dialog-actions">
-        <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+        <button class="quiet-button" value="cancel" type="submit" formnovalidate data-dialog-close>Cancelar</button>
         <button id="submit-employee-import" class="primary-button" type="button">Importar</button>
       </div>
     </form>

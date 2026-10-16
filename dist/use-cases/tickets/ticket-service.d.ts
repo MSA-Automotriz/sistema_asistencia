@@ -5,6 +5,7 @@ export type CreateTicketInput = {
     priority: TicketPriority;
     description: string;
     siteId?: string | null;
+    evidenceUrl?: string | null;
 };
 export type UpdateTicketStatusInput = {
     status: TicketStatus;
@@ -82,6 +83,7 @@ export declare class SupportTicketService {
         priority: import("@prisma/client").$Enums.TicketPriority;
         ticketNumber: string;
         category: import("@prisma/client").$Enums.TicketCategory;
+        evidenceUrl: string | null;
         assignedToId: string | null;
         resolutionNote: string | null;
         resolvedAt: Date | null;
@@ -142,6 +144,7 @@ export declare class SupportTicketService {
             priority: import("@prisma/client").$Enums.TicketPriority;
             ticketNumber: string;
             category: import("@prisma/client").$Enums.TicketCategory;
+            evidenceUrl: string | null;
             assignedToId: string | null;
             resolutionNote: string | null;
             resolvedAt: Date | null;
@@ -209,6 +212,7 @@ export declare class SupportTicketService {
         priority: import("@prisma/client").$Enums.TicketPriority;
         ticketNumber: string;
         category: import("@prisma/client").$Enums.TicketCategory;
+        evidenceUrl: string | null;
         assignedToId: string | null;
         resolutionNote: string | null;
         resolvedAt: Date | null;
@@ -268,6 +272,7 @@ export declare class SupportTicketService {
         priority: import("@prisma/client").$Enums.TicketPriority;
         ticketNumber: string;
         category: import("@prisma/client").$Enums.TicketCategory;
+        evidenceUrl: string | null;
         assignedToId: string | null;
         resolutionNote: string | null;
         resolvedAt: Date | null;
@@ -327,6 +332,7 @@ export declare class SupportTicketService {
         priority: import("@prisma/client").$Enums.TicketPriority;
         ticketNumber: string;
         category: import("@prisma/client").$Enums.TicketCategory;
+        evidenceUrl: string | null;
         assignedToId: string | null;
         resolutionNote: string | null;
         resolvedAt: Date | null;

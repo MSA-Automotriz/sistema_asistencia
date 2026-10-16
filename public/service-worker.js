@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'msa-asistencia-';
-const CACHE_NAME = `${CACHE_PREFIX}v24`;
+const CACHE_NAME = `${CACHE_PREFIX}v26`;
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -23,6 +23,8 @@ const APP_SHELL = [
   '/css/views/profile.css',
   '/css/views/users.css',
   '/css/views/audit.css',
+  '/css/views/calendar.css',
+  '/css/views/tickets.css',
   '/views/dashboard/dashboard.html',
   '/views/attendance/attendance.html',
   '/views/history/history.html',
@@ -39,6 +41,7 @@ const APP_SHELL = [
   '/views/users/users.html',
   '/views/roles/roles.html',
   '/views/sessions/sessions.html',
+  '/views/tickets/tickets.html',
   '/views/modals/user-dialog.html',
   '/views/modals/edit-user-dialog.html',
   '/views/modals/role-dialog.html',
@@ -46,6 +49,8 @@ const APP_SHELL = [
   '/views/modals/employee-import-dialog.html',
   '/views/modals/announcement-dialog.html',
   '/views/modals/request-dialog.html',
+  '/views/modals/ticket-dialog.html',
+  '/views/modals/resolve-ticket-dialog.html',
   '/js/app.js',
   '/js/core/constants.js',
   '/js/core/state.js',
@@ -75,6 +80,8 @@ const APP_SHELL = [
   '/js/modules/announcements/announcements.js',
   '/js/modules/reports/reports.js',
   '/js/modules/audit/audit.js',
+  '/js/modules/calendar/calendar.js',
+  '/js/modules/tickets/tickets.js',
   '/js/modules/notifications/notifications.js',
   '/js/modules/profile/profile.js',
   '/manifest.webmanifest',

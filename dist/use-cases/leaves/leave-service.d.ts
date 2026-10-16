@@ -5,6 +5,7 @@ export type VacationInput = {
 };
 export type LicenseInput = VacationInput & {
     type: string;
+    documentUrl?: string | null;
 };
 export type LeaveReviewInput = {
     status: 'APPROVED' | 'REJECTED';
@@ -80,6 +81,7 @@ export declare class LeaveService {
             startDate: Date;
             endDate: Date;
             reason: string | null;
+            documentUrl: string | null;
             reviewedById: string | null;
             reviewedAt: Date | null;
             reviewNote: string | null;
@@ -247,6 +249,7 @@ export declare class LeaveService {
         startDate: Date;
         endDate: Date;
         reason: string | null;
+        documentUrl: string | null;
         reviewedById: string | null;
         reviewedAt: Date | null;
         reviewNote: string | null;
@@ -280,6 +283,7 @@ export declare class LeaveService {
         startDate: Date;
         endDate: Date;
         reason: string | null;
+        documentUrl: string | null;
         reviewedById: string | null;
         reviewedAt: Date | null;
         reviewNote: string | null;
@@ -313,6 +317,7 @@ export declare class LeaveService {
         startDate: Date;
         endDate: Date;
         reason: string | null;
+        documentUrl: string | null;
         reviewedById: string | null;
         reviewedAt: Date | null;
         reviewNote: string | null;
@@ -346,6 +351,7 @@ export declare class LeaveService {
         startDate: Date;
         endDate: Date;
         reason: string | null;
+        documentUrl: string | null;
         reviewedById: string | null;
         reviewedAt: Date | null;
         reviewNote: string | null;

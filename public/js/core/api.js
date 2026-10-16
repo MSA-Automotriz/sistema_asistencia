@@ -2,9 +2,14 @@ import { apiRoot, sessionKey } from './constants.js';
 import { state } from './state.js';
 
 export async function rawRequest(path, options = {}) {
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  const headers = { ...(options.headers || {}) };
+  if (!isFormData && !headers['content-type']) {
+    headers['content-type'] = 'application/json';
+  }
   const response = await fetch(`${apiRoot}${path}`, {
     ...options,
-    headers: { 'content-type': 'application/json', ...(options.headers || {}) }
+    headers
   });
   const payload = response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) throw new Error(payload?.message || 'No fue posible completar la operación');

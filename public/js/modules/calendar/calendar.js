@@ -156,7 +156,7 @@ function getFilteredEvents() {
   });
 }
 
-function renderCalendarGrid(year, month, events) {
+function renderCalendarGrid(year, month) {
   const container = query('#calendar-grid');
   if (!container) return;
 

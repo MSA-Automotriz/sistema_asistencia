@@ -8,6 +8,7 @@ export type CreateTicketInput = {
   priority: TicketPriority;
   description: string;
   siteId?: string | null;
+  evidenceUrl?: string | null;
 };
 
 export type UpdateTicketStatusInput = {
@@ -115,25 +116,66 @@ export class SupportTicketService {
 
     const siteId = input.siteId || user.employee?.siteId || null;
 
-    // Generate unique sequential ticket number
-    const count = await prisma.supportTicket.count({ where: { companyId } });
+    // Generate unique sequential ticket number (system-wide to respect @unique constraint)
     const currentYear = new Date().getFullYear();
-    const ticketNumber = `TKT-${currentYear}-${String(count + 1).padStart(4, '0')}`;
-
-    const ticket = await prisma.supportTicket.create({
-      data: {
-        ticketNumber,
-        userId,
-        companyId,
-        siteId,
-        title: input.title.trim(),
-        category: input.category || TicketCategory.OTHER,
-        priority: input.priority || TicketPriority.MEDIUM,
-        description: input.description.trim(),
-        status: TicketStatus.PENDING
+    const prefix = `TKT-${currentYear}-`;
+    const lastTicket = await prisma.supportTicket.findFirst({
+      where: {
+        ticketNumber: { startsWith: prefix }
       },
-      include: ticketInclude
+      orderBy: {
+        ticketNumber: 'desc'
+      },
+      select: {
+        ticketNumber: true
+      }
     });
+
+    let nextSeq = 1;
+    if (lastTicket?.ticketNumber) {
+      const match = lastTicket.ticketNumber.match(/TKT-\d{4}-(\d+)/);
+      if (match?.[1]) {
+        nextSeq = parseInt(match[1], 10) + 1;
+      }
+    }
+
+    let ticket;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const ticketNumber = `${prefix}${String(nextSeq + attempt).padStart(4, '0')}`;
+      try {
+        ticket = await prisma.supportTicket.create({
+          data: {
+            ticketNumber,
+            userId,
+            companyId,
+            siteId,
+            title: input.title.trim(),
+            category: input.category || TicketCategory.OTHER,
+            priority: input.priority || TicketPriority.MEDIUM,
+            description: input.description.trim(),
+            evidenceUrl: input.evidenceUrl ? input.evidenceUrl.trim() : null,
+            status: TicketStatus.PENDING
+          },
+          include: ticketInclude
+        });
+        break;
+      } catch (err: unknown) {
+        if (
+          typeof err === 'object' &&
+          err !== null &&
+          'code' in err &&
+          (err as { code: unknown }).code === 'P2002' &&
+          attempt < 4
+        ) {
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!ticket) {
+      throw new AppError(500, 'No se pudo generar un número único para el ticket');
+    }
 
     // Notify admins / Sistemas
     const systemsRole = await prisma.role.findFirst({

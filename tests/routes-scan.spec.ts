@@ -116,7 +116,8 @@ describe('System-wide Route & Asset Verification Scanner', () => {
       '/profile',
       '/users',
       '/roles',
-      '/sessions'
+      '/sessions',
+      '/tickets'
     ];
 
     for (const route of spaRoutes) {

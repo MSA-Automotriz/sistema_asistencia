@@ -41,7 +41,8 @@ export class RequestService {
                 employeeId: employee.id,
                 startDate: input.startDate,
                 endDate: input.endDate,
-                reason: input.reason
+                reason: input.reason,
+                documentUrl: input.documentUrl ? input.documentUrl.trim() : null
             },
             include: { employee: requestEmployee }
         });

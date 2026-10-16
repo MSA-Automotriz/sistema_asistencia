@@ -2,7 +2,12 @@ import { RequestStatus } from '@prisma/client';
 import { AppError } from '../../common/errors/app-error.js';
 import { prisma } from '../../database/prisma.js';
 
-export type WorkPermissionInput = { startDate: Date; endDate: Date; reason: string };
+export type WorkPermissionInput = {
+  startDate: Date;
+  endDate: Date;
+  reason: string;
+  documentUrl?: string | null;
+};
 export type OvertimeRequestInput = { date: Date; requestedMinutes: number; reason: string };
 export type ReviewStatus = 'APPROVED' | 'REJECTED';
 
@@ -49,7 +54,8 @@ export class RequestService {
         employeeId: employee.id,
         startDate: input.startDate,
         endDate: input.endDate,
-        reason: input.reason
+        reason: input.reason,
+        documentUrl: input.documentUrl ? input.documentUrl.trim() : null
       },
       include: { employee: requestEmployee }
     });

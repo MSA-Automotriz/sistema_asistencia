@@ -10,6 +10,7 @@ export type VacationInput = {
 
 export type LicenseInput = VacationInput & {
   type: string;
+  documentUrl?: string | null;
 };
 
 export type LeaveReviewInput = {

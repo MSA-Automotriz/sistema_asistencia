@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { AuthService } from '../use-cases/auth/auth-service.js';
 import { authenticate } from '../middleware/auth.js';
+import { authRateLimiter } from '../middleware/auth-rate-limit.js';
 import { validate } from '../middleware/validate.js';
 import { ok } from '../common/http/response.js';
 import { meta } from './helpers.js';
@@ -61,7 +62,7 @@ const resetPasswordRecoverySchema = z.object({
 });
 export const authRouter = Router();
 authRouter.get('/health', (_request, response) => ok(response, 'Servicio disponible', { status: 'healthy' }));
-authRouter.post('/auth/login', validate(loginSchema), async (request, response) => ok(response, 'Inicio de sesión correcto', await auth.login(request.body.email, request.body.password, meta(request), request.body.rememberMe)));
+authRouter.post('/auth/login', authRateLimiter, validate(loginSchema), async (request, response) => ok(response, 'Inicio de sesión correcto', await auth.login(request.body.email, request.body.password, meta(request), request.body.rememberMe)));
 authRouter.post('/auth/refresh', validate(refreshSchema), async (request, response) => ok(response, 'Token renovado correctamente', await auth.refresh(request.body.refreshToken, meta(request))));
 authRouter.post('/auth/logout', validate(refreshSchema), async (request, response) => {
     await auth.logout(request.body.refreshToken);
@@ -76,8 +77,8 @@ authRouter.post('/auth/recovery-questions', authenticate, validate(recoveryQuest
     await auth.setRecoveryQuestions(request.auth.sub, request.body.questions);
     return ok(response, 'Preguntas de recuperación actualizadas correctamente');
 });
-authRouter.post('/auth/password-recovery/start', validate(startPasswordRecoverySchema), async (request, response) => ok(response, 'Si la cuenta cumple los requisitos, se iniciará su recuperación', await auth.startPasswordRecovery(request.body.email)));
-authRouter.post('/auth/password-recovery/reset', validate(resetPasswordRecoverySchema), async (request, response) => {
+authRouter.post('/auth/password-recovery/start', authRateLimiter, validate(startPasswordRecoverySchema), async (request, response) => ok(response, 'Si la cuenta cumple los requisitos, se iniciará su recuperación', await auth.startPasswordRecovery(request.body.email)));
+authRouter.post('/auth/password-recovery/reset', authRateLimiter, validate(resetPasswordRecoverySchema), async (request, response) => {
     await auth.resetPasswordWithRecovery(request.body.email, request.body.recoveryToken, request.body.answers, request.body.newPassword);
     return ok(response, 'Contraseña restablecida correctamente');
 });

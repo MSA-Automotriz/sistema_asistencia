@@ -5,7 +5,7 @@
           <p class="eyebrow">Autoservicio</p>
           <h2>Nueva solicitud</h2>
         </div>
-        <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+        <button class="quiet-button" value="cancel" type="submit" formnovalidate data-dialog-close>Cerrar</button>
       </div>
       <div class="dialog-grid">
         <label class="dialog-wide">Tipo de solicitud<select id="request-type" name="requestType" required>
@@ -23,9 +23,19 @@
             maxlength="100" /></label>
         <label class="dialog-wide">Motivo<textarea name="reason" maxlength="1000" required></textarea>
         </label>
+        <label id="request-document-field" class="dialog-wide">
+          Sustento / Justificante <span style="font-weight: normal; color: var(--text-muted);">(Opcional: PDF o Foto máx. 5MB)</span>
+          <input
+            type="file"
+            id="request-form-document"
+            name="document"
+            accept="application/pdf,image/png,image/jpeg,image/webp"
+          />
+          <span id="request-document-name" class="support-copy" style="display: none; margin-top: 4px; font-weight: 500; color: var(--primary-color);"></span>
+        </label>
       </div>
       <div class="dialog-actions">
-        <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+        <button class="quiet-button" value="cancel" type="submit" formnovalidate data-dialog-close>Cancelar</button>
         <button id="submit-request-form" class="primary-button" type="button">Enviar</button>
       </div>
     </form>

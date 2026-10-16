@@ -6,6 +6,8 @@ import { authenticate } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { ok } from '../common/http/response.js';
 import { auditEvent } from './helpers.js';
+import { ticketEvidenceUpload } from '../middleware/file-upload.js';
+import { AppError } from '../common/errors/app-error.js';
 
 const tickets = new SupportTicketService();
 
@@ -16,7 +18,8 @@ const createTicketSchema = z.object({
       category: z.nativeEnum(TicketCategory),
       priority: z.nativeEnum(TicketPriority),
       description: z.string().trim().min(5).max(3000),
-      siteId: z.string().min(1).nullable().optional()
+      siteId: z.string().min(1).nullable().optional(),
+      evidenceUrl: z.string().trim().max(500).nullable().optional()
     })
     .strict()
 });
@@ -45,6 +48,18 @@ const ticketQuerySchema = z.object({
 export const ticketsRouter = Router();
 
 ticketsRouter.use(authenticate);
+
+ticketsRouter.post(
+  '/tickets/upload',
+  ticketEvidenceUpload.single('evidence'),
+  async (request, response) => {
+    if (!request.file) {
+      throw new AppError(400, 'Debe adjuntar un archivo de imagen');
+    }
+    const fileUrl = `/uploads/tickets/${request.file.filename}`;
+    return ok(response, 'Foto de evidencia subida correctamente', { url: fileUrl }, 201);
+  }
+);
 
 ticketsRouter.post(
   '/tickets',

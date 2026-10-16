@@ -1,7 +1,7 @@
 import { state } from '../../core/state.js';
-import { query, queryAll, fullName, formatDate, escapeHtml, hasPermission } from '../../core/utils.js';
+import { query, queryAll, fullName, formatDate, escapeHtml } from '../../core/utils.js';
 import { api } from '../../core/api.js';
-import { showToast, showMessage, clearMessage } from '../../components/toast.js';
+import { showToast } from '../../components/toast.js';
 import { loadModals } from '../../core/view-loader.js';
 
 let activeScope = 'own';
@@ -196,6 +196,18 @@ export function renderTicketsList(tickets) {
               <span>Reportado por: <strong>${escapeHtml(authorName)}</strong>${escapeHtml(authorSite)}</span>
             </div>
             <div class="ticket-description">${escapeHtml(t.description)}</div>
+            ${
+              t.evidenceUrl
+                ? `
+              <div class="ticket-evidence-thumb" style="margin: 8px 0 10px 0;">
+                <span style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted, #64748b); margin-bottom: 4px;">Foto de evidencia:</span>
+                <a href="${escapeHtml(t.evidenceUrl)}" target="_blank" rel="noopener noreferrer" style="display: inline-block;">
+                  <img src="${escapeHtml(t.evidenceUrl)}" alt="Foto de evidencia" style="max-height: 80px; max-width: 160px; border-radius: 6px; border: 1px solid var(--border-color, #cbd5e1); object-fit: cover;" />
+                </a>
+              </div>
+            `
+                : ''
+            }
             ${resolutionHtml}
           </div>
 
@@ -269,6 +281,29 @@ export function setupTicketEventListeners() {
       }, 300);
     });
   }
+
+  // 6. Ticket evidence file preview
+  const fileInput = query('#ticket-form-evidence');
+  const previewBox = query('#ticket-evidence-preview');
+  const previewImg = query('#ticket-evidence-img');
+  const removeBtn = query('#remove-ticket-evidence');
+  if (fileInput && previewBox && previewImg) {
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if (file) {
+        previewImg.src = URL.createObjectURL(file);
+        previewBox.style.display = 'flex';
+      } else {
+        previewBox.style.display = 'none';
+      }
+    });
+  }
+  if (removeBtn && fileInput && previewBox) {
+    removeBtn.addEventListener('click', () => {
+      fileInput.value = '';
+      previewBox.style.display = 'none';
+    });
+  }
 }
 
 export async function openCreateTicketDialog() {
@@ -281,6 +316,8 @@ export async function openCreateTicketDialog() {
   if (!dialog || !form) return;
 
   form.reset();
+  const previewBox = query('#ticket-evidence-preview');
+  if (previewBox) previewBox.style.display = 'none';
   dialog.showModal();
 }
 
@@ -304,13 +341,33 @@ export async function handleCreateTicketSubmit() {
   if (submitBtn) submitBtn.disabled = true;
 
   try {
+    const fileInput = form.querySelector('#ticket-form-evidence');
+    const file = fileInput?.files?.[0];
+    let evidenceUrl = null;
+
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('La foto de evidencia no debe superar los 5MB.', 'warning');
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+      const uploadData = new FormData();
+      uploadData.append('evidence', file);
+      const uploadRes = await api('/tickets/upload', {
+        method: 'POST',
+        body: uploadData
+      });
+      evidenceUrl = uploadRes?.url || null;
+    }
+
     const created = await api('/tickets', {
       method: 'POST',
       body: JSON.stringify({
         title,
         category,
         priority,
-        description
+        description,
+        evidenceUrl
       })
     });
 
@@ -372,6 +429,19 @@ export async function openResolveDialog(ticketId) {
 
   const descEl = query('#resolve-summary-desc');
   if (descEl) descEl.textContent = ticket.description;
+
+  const evidenceBox = query('#resolve-summary-evidence-box');
+  const evidenceImg = query('#resolve-summary-evidence-img');
+  const evidenceLink = query('#resolve-summary-evidence-link');
+  if (evidenceBox && evidenceImg && evidenceLink) {
+    if (ticket.evidenceUrl) {
+      evidenceImg.src = ticket.evidenceUrl;
+      evidenceLink.href = ticket.evidenceUrl;
+      evidenceBox.style.display = 'block';
+    } else {
+      evidenceBox.style.display = 'none';
+    }
+  }
 
   const statusSelect = form.querySelector('[name="status"]');
   if (statusSelect) {

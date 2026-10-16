@@ -10,12 +10,39 @@ import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import { apiRouter } from './routes/api.js';
 import { env } from './config/env.js';
+import { applicationFirewall } from './middleware/firewall.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { logger } from './utils/logger.js';
 import { swaggerSpec } from './docs/swagger.js';
 export const app = express();
 app.disable('x-powered-by');
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: [
+                "'self'",
+                'data:',
+                'blob:',
+                'https://server.arcgisonline.com',
+                'https://*.tile.openstreetmap.org',
+                'https://tile.openstreetmap.org'
+            ],
+            connectSrc: [
+                "'self'",
+                'https://server.arcgisonline.com',
+                'https://*.tile.openstreetmap.org',
+                'https://tile.openstreetmap.org'
+            ],
+            fontSrc: ["'self'", 'data:'],
+            objectSrc: ["'none'"],
+            frameAncestors: ["'self'"]
+        }
+    },
+    crossOriginEmbedderPolicy: false
+}));
 app.use(cors({
     origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN,
     credentials: env.CORS_ORIGIN !== '*'
@@ -49,6 +76,7 @@ app.use('/api', rateLimit({
     standardHeaders: 'draft-8',
     legacyHeaders: false
 }));
+app.use('/api', applicationFirewall);
 app.use('/api/v1', apiRouter);
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use((req, res, next) => {

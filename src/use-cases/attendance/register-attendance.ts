@@ -2,10 +2,7 @@ import type { AttendanceType } from '@prisma/client';
 import { prisma } from '../../database/prisma.js';
 import { AppError } from '../../common/errors/app-error.js';
 import { haversineMeters } from '../../utils/crypto.js';
-import {
-  determineAttendanceStatus,
-  getEffectiveBreakMinutesForToday
-} from './attendance-rules.js';
+import { determineAttendanceStatus } from './attendance-rules.js';
 import { parseUserAgent } from '../../utils/user-agent.js';
 
 type AttendanceInput = {

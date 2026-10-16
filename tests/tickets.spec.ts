@@ -1,13 +1,10 @@
 import request from 'supertest';
 import { describe, expect, it, beforeAll } from 'vitest';
 import { app } from '../src/app.js';
-import { prisma } from '../src/database/prisma.js';
 
 describe('Support Tickets Module (Helpdesk TI)', () => {
   let adminToken: string;
-  let adminUser: any;
-  let employeeToken: string;
-  let employeeUser: any;
+  let adminUser: { id: string; email: string };
   let createdTicketId: string;
   let createdTicketNumber: string;
 
@@ -24,49 +21,6 @@ describe('Support Tickets Module (Helpdesk TI)', () => {
     expect(adminLogin.status).toBe(200);
     adminToken = adminLogin.body.data.accessToken;
     adminUser = adminLogin.body.data.user;
-
-    // 2. Find or prepare a regular employee for testing privacy boundaries
-    let regularUser = await prisma.user.findFirst({
-      where: {
-        email: { not: 'admin@msaautomotriz.com' },
-        status: 'ACTIVE',
-        role: { name: 'Empleado' }
-      }
-    });
-
-    if (!regularUser) {
-      // Find any non-admin user
-      regularUser = await prisma.user.findFirst({
-        where: {
-          email: { not: 'admin@msaautomotriz.com' },
-          status: 'ACTIVE'
-        }
-      });
-    }
-
-    if (regularUser) {
-      // Update password to known test password if needed or login
-      await prisma.user.update({
-        where: { id: regularUser.id },
-        data: {
-          // bcrypt hash of 'ChangeMe123!'
-          passwordHash: '$2a$10$8sL4s6x2K1qCgZlY/i9jPeRj6bKqv3S8R9Z.iAke1uXm4N8h0fCqa'
-        }
-      });
-
-      const empLogin = await request(app)
-        .post('/api/v1/auth/login')
-        .send({
-          email: regularUser.email,
-          password: 'ChangeMe123!',
-          rememberMe: true
-        });
-
-      if (empLogin.status === 200) {
-        employeeToken = empLogin.body.data.accessToken;
-        employeeUser = empLogin.body.data.user;
-      }
-    }
   });
 
   it('1. Rejects ticket creation with missing required fields (400 Bad Request)', async () => {
@@ -117,7 +71,7 @@ describe('Support Tickets Module (Helpdesk TI)', () => {
     expect(Array.isArray(res.body.data)).toBe(true);
     expect(res.body.data.length).toBeGreaterThanOrEqual(1);
 
-    const match = res.body.data.find((t: any) => t.id === createdTicketId);
+    const match = res.body.data.find((t: { id: string; ticketNumber: string }) => t.id === createdTicketId);
     expect(match).toBeDefined();
     expect(match.ticketNumber).toBe(createdTicketNumber);
   });
@@ -189,4 +143,76 @@ describe('Support Tickets Module (Helpdesk TI)', () => {
     expect(cancelRes.body.success).toBe(true);
     expect(cancelRes.body.data.status).toBe('CLOSED');
   });
+
+  it('7. Handles photo evidence upload for tickets', async () => {
+    // 1. Rejects invalid file types (e.g. text file pretending to be image or plain text)
+    const badUpload = await request(app)
+      .post('/api/v1/tickets/upload')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .attach('evidence', Buffer.from('console.log("not an image")'), 'script.js');
+
+    expect(badUpload.status).toBe(400);
+
+    // 2. Accepts valid image file (PNG buffer)
+    const pngBuffer = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52
+    ]);
+
+    const goodUpload = await request(app)
+      .post('/api/v1/tickets/upload')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .attach('evidence', pngBuffer, 'error-screenshot.png');
+
+    expect(goodUpload.status).toBe(201);
+    expect(goodUpload.body.success).toBe(true);
+    expect(goodUpload.body.data.url).toMatch(/^\/uploads\/tickets\/ticket-.*\.png$/);
+
+    const uploadedUrl = goodUpload.body.data.url;
+
+    // 3. Creates ticket with evidenceUrl
+    const ticketWithEvidence = await request(app)
+      .post('/api/v1/tickets')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        title: 'Error visual en pantalla azul',
+        category: 'HARDWARE',
+        priority: 'MEDIUM',
+        description: 'Adjunto captura de la pantalla con el código de error visual.',
+        evidenceUrl: uploadedUrl
+      });
+
+    expect(ticketWithEvidence.status).toBe(201);
+    expect(ticketWithEvidence.body.data.evidenceUrl).toBe(uploadedUrl);
+  });
+
+  it('8. Handles document / proof upload (PDF or image) for permissions requests', async () => {
+    // 1. Accepts valid PDF buffer
+    const pdfBuffer = Buffer.from('%PDF-1.4 sample pdf content');
+
+    const pdfUpload = await request(app)
+      .post('/api/v1/requests/upload')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .attach('document', pdfBuffer, 'certificado_medico.pdf');
+
+    expect(pdfUpload.status).toBe(201);
+    expect(pdfUpload.body.success).toBe(true);
+    expect(pdfUpload.body.data.url).toMatch(/^\/uploads\/requests\/request-.*\.pdf$/);
+
+    const docUrl = pdfUpload.body.data.url;
+
+    // 2. Creates work permission with documentUrl
+    const permRes = await request(app)
+      .post('/api/v1/requests/work-permissions')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        startDate: '2026-11-10T08:00:00.000Z',
+        endDate: '2026-11-10T17:00:00.000Z',
+        reason: 'Cita médica programada con certificado adjunto',
+        documentUrl: docUrl
+      });
+
+    expect(permRes.status).toBe(201);
+    expect(permRes.body.data.documentUrl).toBe(docUrl);
+  });
 });
+

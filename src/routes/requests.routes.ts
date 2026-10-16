@@ -7,6 +7,8 @@ import { authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { ok } from '../common/http/response.js';
 import { auditEvent } from './helpers.js';
+import { requestDocumentUpload } from '../middleware/file-upload.js';
+import { AppError } from '../common/errors/app-error.js';
 
 const requests = new RequestService();
 const leaves = new LeaveService();
@@ -17,7 +19,8 @@ const workPermissionSchema = z.object({
     .object({
       startDate: z.coerce.date(),
       endDate: z.coerce.date(),
-      reason: z.string().trim().min(3).max(1_000)
+      reason: z.string().trim().min(3).max(1_000),
+      documentUrl: z.string().trim().max(500).nullable().optional()
     })
     .strict()
 });
@@ -52,7 +55,8 @@ const licenseSchema = z.object({
       startDate: z.coerce.date(),
       endDate: z.coerce.date(),
       type: z.string().trim().min(3).max(100),
-      reason: z.string().trim().max(1_000).optional()
+      reason: z.string().trim().max(1_000).optional(),
+      documentUrl: z.string().trim().max(500).nullable().optional()
     })
     .strict()
 });
@@ -74,6 +78,19 @@ const requestListQuerySchema = z
   .strict();
 
 export const requestsRouter = Router();
+
+// Subida de sustentos (PDF o Foto)
+requestsRouter.post(
+  '/requests/upload',
+  requestDocumentUpload.single('document'),
+  async (request, response) => {
+    if (!request.file) {
+      throw new AppError(400, 'Debe adjuntar un archivo (PDF o imagen)');
+    }
+    const fileUrl = `/uploads/requests/${request.file.filename}`;
+    return ok(response, 'Documento de sustento subido correctamente', { url: fileUrl }, 201);
+  }
+);
 
 // Permisos de trabajo (solicitud por empleado)
 requestsRouter.post(

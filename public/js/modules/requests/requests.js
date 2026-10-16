@@ -67,12 +67,15 @@ export function renderRequests(items, target, type, options) {
           options.canReview && item.employee?.user
             ? `${fullName(item.employee.user)} · ${item.employee.employeeCode}`
             : '';
+        const docLink = item.documentUrl
+          ? `<a href="${escapeHtml(item.documentUrl)}" target="_blank" rel="noopener noreferrer" class="small-button quiet-button" style="text-decoration: none; padding: 2px 8px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;">Ver sustento</a>`
+          : '';
         const actions =
           item.status === 'PENDING' && options.canReview
-            ? `<span class="request-actions"><button class="small-button approve-button" data-review-type="${type}" data-review-id="${item.id}" data-review-status="APPROVED" type="button">Aprobar</button><button class="small-button reject-button" data-review-type="${type}" data-review-id="${item.id}" data-review-status="REJECTED" type="button">Rechazar</button></span>`
+            ? `<span class="request-actions">${docLink}<button class="small-button approve-button" data-review-type="${type}" data-review-id="${item.id}" data-review-status="APPROVED" type="button">Aprobar</button><button class="small-button reject-button" data-review-type="${type}" data-review-id="${item.id}" data-review-status="REJECTED" type="button">Rechazar</button></span>`
             : item.status === 'PENDING' && options.canCancel
-              ? `<span class="request-actions"><button class="small-button reject-button" data-request-cancel-type="${type}" data-request-cancel-id="${item.id}" type="button">Cancelar</button></span>`
-              : `<span class="status-pill ${requestStatusClass(item.status)}">${escapeHtml(item.status)}</span>`;
+              ? `<span class="request-actions">${docLink}<button class="small-button reject-button" data-request-cancel-type="${type}" data-request-cancel-id="${item.id}" type="button">Cancelar</button></span>`
+              : `<span class="request-actions" style="display: inline-flex; align-items: center; gap: 6px;">${docLink}<span class="status-pill ${requestStatusClass(item.status)}">${escapeHtml(item.status)}</span></span>`;
         return `<div class="request-row"><span><strong class="row-name">${escapeHtml(requestDateRange(item, type))}</strong><small class="row-meta">${escapeHtml([employee, requestDetail(item, type)].filter(Boolean).join(' · '))}</small></span>${actions}</div>`;
       })
       .join('')
@@ -170,6 +173,7 @@ export function setRequestFormType() {
   const dateEl = query('#request-date-field');
   const minEl = query('#request-minutes-field');
   const licEl = query('#request-license-type-field');
+  const docEl = query('#request-document-field');
   const form = query('#request-form');
 
   if (startEl) startEl.hidden = isOvertime;
@@ -177,6 +181,7 @@ export function setRequestFormType() {
   if (dateEl) dateEl.hidden = !isOvertime;
   if (minEl) minEl.hidden = !isOvertime;
   if (licEl) licEl.hidden = !isLicense;
+  if (docEl) docEl.hidden = isOvertime;
   
   if (form) {
     if (form.elements.startDate) form.elements.startDate.required = !isOvertime;
@@ -191,6 +196,24 @@ export function setRequestFormType() {
 export function openRequestDialog() {
   const form = query('#request-form');
   if (form) form.reset();
+  const docName = query('#request-document-name');
+  if (docName) {
+    docName.textContent = '';
+    docName.style.display = 'none';
+  }
+  const docInput = query('#request-form-document');
+  if (docInput && !docInput.dataset.listenerBound) {
+    docInput.dataset.listenerBound = 'true';
+    docInput.addEventListener('change', () => {
+      const file = docInput.files?.[0];
+      if (file && docName) {
+        docName.textContent = `Archivo seleccionado: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        docName.style.display = 'block';
+      } else if (docName) {
+        docName.style.display = 'none';
+      }
+    });
+  }
   setRequestFormType();
   const dialog = query('#request-dialog');
   if (dialog) dialog.showModal();
@@ -201,40 +224,66 @@ export async function submitRequestForm() {
   if (!form || !form.reportValidity()) return;
   const values = Object.fromEntries(new FormData(form));
   const button = query('#submit-request-form');
-  const requestByType = {
-    WORK_PERMISSION: {
-      endpoint: '/requests/work-permissions',
-      body: { startDate: values.startDate, endDate: values.endDate, reason: values.reason }
-    },
-    OVERTIME: {
-      endpoint: '/requests/overtime',
-      body: {
-        date: values.date,
-        requestedMinutes: Number(values.requestedMinutes),
-        reason: values.reason
-      }
-    },
-    VACATION: {
-      endpoint: '/requests/vacations',
-      body: {
-        startDate: values.startDate,
-        endDate: values.endDate,
-        reason: values.reason || undefined
-      }
-    },
-    LICENSE: {
-      endpoint: '/requests/licenses',
-      body: {
-        startDate: values.startDate,
-        endDate: values.endDate,
-        type: values.licenseType,
-        reason: values.reason || undefined
-      }
-    }
-  };
-  const request = requestByType[values.requestType];
   button.disabled = true;
+
   try {
+    let documentUrl = null;
+    const docInput = form.querySelector('#request-form-document');
+    const file = docInput?.files?.[0];
+
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('El archivo de sustento no debe superar los 5MB.', 'warning');
+        button.disabled = false;
+        return;
+      }
+      const uploadData = new FormData();
+      uploadData.append('document', file);
+      const uploaded = await api('/requests/upload', {
+        method: 'POST',
+        body: uploadData
+      });
+      documentUrl = uploaded?.url || null;
+    }
+
+    const requestByType = {
+      WORK_PERMISSION: {
+        endpoint: '/requests/work-permissions',
+        body: {
+          startDate: values.startDate,
+          endDate: values.endDate,
+          reason: values.reason,
+          documentUrl
+        }
+      },
+      OVERTIME: {
+        endpoint: '/requests/overtime',
+        body: {
+          date: values.date,
+          requestedMinutes: Number(values.requestedMinutes),
+          reason: values.reason
+        }
+      },
+      VACATION: {
+        endpoint: '/requests/vacations',
+        body: {
+          startDate: values.startDate,
+          endDate: values.endDate,
+          reason: values.reason || undefined
+        }
+      },
+      LICENSE: {
+        endpoint: '/requests/licenses',
+        body: {
+          startDate: values.startDate,
+          endDate: values.endDate,
+          type: values.licenseType,
+          reason: values.reason || undefined,
+          documentUrl
+        }
+      }
+    };
+    const request = requestByType[values.requestType];
     await api(request.endpoint, { method: 'POST', body: JSON.stringify(request.body) });
     const dialog = query('#request-dialog');
     if (dialog) dialog.close();

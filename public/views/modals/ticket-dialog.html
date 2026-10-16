@@ -5,7 +5,7 @@
         <p class="eyebrow">Soporte Técnico TI</p>
         <h2 id="ticket-dialog-title">Abrir Ticket de Soporte</h2>
       </div>
-      <button class="quiet-button" value="cancel" type="submit">Cerrar</button>
+      <button class="quiet-button" value="cancel" type="submit" formnovalidate data-dialog-close>Cerrar</button>
     </div>
 
     <div class="dialog-grid">
@@ -57,10 +57,24 @@
           placeholder="Describa con claridad qué sucede, qué equipo o área se ve afectada..."
         ></textarea>
       </label>
+
+      <label class="dialog-wide">
+        Foto o Captura de Evidencia <span style="font-weight: normal; color: var(--text-muted);">(Opcional: JPG, PNG, WEBP máx. 5MB)</span>
+        <input
+          type="file"
+          id="ticket-form-evidence"
+          name="evidence"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+        />
+        <div id="ticket-evidence-preview" style="display: none; align-items: center; gap: 12px; margin-top: 8px;">
+          <img id="ticket-evidence-img" src="" alt="Vista previa de evidencia" style="max-height: 100px; max-width: 180px; object-fit: contain; border-radius: 6px; border: 1px solid var(--border-color, #cbd5e1);" />
+          <button type="button" id="remove-ticket-evidence" class="quiet-button" style="padding: 4px 10px; font-size: 0.82rem;">Quitar foto</button>
+        </div>
+      </label>
     </div>
 
     <div class="dialog-actions">
-      <button class="quiet-button" value="cancel" type="submit">Cancelar</button>
+      <button class="quiet-button" value="cancel" type="submit" formnovalidate data-dialog-close>Cancelar</button>
       <button id="submit-ticket-form-btn" class="primary-button" type="button">Enviar Ticket a Sistemas</button>
     </div>
   </form>
