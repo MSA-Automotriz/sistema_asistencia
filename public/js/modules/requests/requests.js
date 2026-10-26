@@ -9,6 +9,7 @@ export const requestDefinitions = {
     resource: 'work-permissions',
     adminEndpoint: '/requests/admin/work-permissions?limit=50',
     ownEndpoint: '/requests/work-permissions',
+    updateEndpoint: (id) => `/requests/work-permissions/${id}`,
     reviewEndpoint: (id) => `/work-permissions/${id}/review`,
     cancelEndpoint: (id) => `/requests/work-permissions/${id}`
   },
@@ -16,6 +17,7 @@ export const requestDefinitions = {
     resource: 'overtime-requests',
     adminEndpoint: '/requests/admin/overtime?limit=50',
     ownEndpoint: '/requests/overtime',
+    updateEndpoint: (id) => `/requests/overtime/${id}`,
     reviewEndpoint: (id) => `/overtime-requests/${id}/review`,
     cancelEndpoint: (id) => `/requests/overtime/${id}`
   },
@@ -23,6 +25,7 @@ export const requestDefinitions = {
     resource: 'vacations',
     adminEndpoint: '/requests/admin/vacations?limit=50',
     ownEndpoint: '/requests/vacations',
+    updateEndpoint: (id) => `/requests/vacations/${id}`,
     reviewEndpoint: (id) => `/vacations/${id}/review`,
     cancelEndpoint: (id) => `/requests/vacations/${id}`
   },
@@ -30,6 +33,7 @@ export const requestDefinitions = {
     resource: 'licenses',
     adminEndpoint: '/requests/admin/licenses?limit=50',
     ownEndpoint: '/requests/licenses',
+    updateEndpoint: (id) => `/requests/licenses/${id}`,
     reviewEndpoint: (id) => `/licenses/${id}/review`,
     cancelEndpoint: (id) => `/requests/licenses/${id}`
   }
@@ -57,6 +61,13 @@ export function requestDetail(item, type) {
   return item.reason || 'Sin detalle';
 }
 
+let requestCache = {
+  work: [],
+  overtime: [],
+  vacation: [],
+  license: []
+};
+
 export function renderRequests(items, target, type, options) {
   const container = query(target);
   if (!container) return;
@@ -70,13 +81,18 @@ export function renderRequests(items, target, type, options) {
         const docLink = item.documentUrl
           ? `<a href="${escapeHtml(item.documentUrl)}" target="_blank" rel="noopener noreferrer" class="small-button quiet-button" style="text-decoration: none; padding: 2px 8px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;">Ver sustento</a>`
           : '';
-        const actions =
-          item.status === 'PENDING' && options.canReview
-            ? `<span class="request-actions">${docLink}<button class="small-button approve-button" data-review-type="${type}" data-review-id="${item.id}" data-review-status="APPROVED" type="button">Aprobar</button><button class="small-button reject-button" data-review-type="${type}" data-review-id="${item.id}" data-review-status="REJECTED" type="button">Rechazar</button></span>`
-            : item.status === 'PENDING' && options.canCancel
-              ? `<span class="request-actions">${docLink}<button class="small-button reject-button" data-request-cancel-type="${type}" data-request-cancel-id="${item.id}" type="button">Cancelar</button></span>`
-              : `<span class="request-actions" style="display: inline-flex; align-items: center; gap: 6px;">${docLink}<span class="status-pill ${requestStatusClass(item.status)}">${escapeHtml(item.status)}</span></span>`;
-        return `<div class="request-row"><span><strong class="row-name">${escapeHtml(requestDateRange(item, type))}</strong><small class="row-meta">${escapeHtml([employee, requestDetail(item, type)].filter(Boolean).join(' · '))}</small></span>${actions}</div>`;
+        let actions = '';
+        if (item.status === 'PENDING') {
+          const editBtn = `<button class="small-button edit-button" data-request-edit-type="${type}" data-request-edit-id="${item.id}" type="button">Editar</button>`;
+          if (options.canReview) {
+            actions = `<span class="request-actions">${docLink}${editBtn}<button class="small-button approve-button" data-review-type="${type}" data-review-id="${item.id}" data-review-status="APPROVED" type="button">Aprobar</button><button class="small-button reject-button" data-review-type="${type}" data-review-id="${item.id}" data-review-status="REJECTED" type="button">Rechazar</button></span>`;
+          } else {
+            actions = `<span class="request-actions">${docLink}${editBtn}<button class="small-button reject-button" data-request-cancel-type="${type}" data-request-cancel-id="${item.id}" type="button">Cancelar</button></span>`;
+          }
+        } else {
+          actions = `<span class="request-actions" style="display: inline-flex; align-items: center; gap: 6px;">${docLink}<span class="status-pill ${requestStatusClass(item.status)}">${escapeHtml(item.status)}</span></span>`;
+        }
+        return `<div class="request-row"><span><strong class="row-name">${escapeHtml(requestDateRange(item, type))}</strong> <small class="row-meta">${escapeHtml([employee, requestDetail(item, type)].filter(Boolean).join(' · '))}</small></span>${actions}</div>`;
       })
       .join('')
     : '<p class="empty-state">No hay solicitudes registradas.</p>';
@@ -126,6 +142,13 @@ export async function loadRequests() {
       loadRequestCollection('vacation'),
       loadRequestCollection('license')
     ]);
+
+    requestCache = {
+      work: work.items,
+      overtime: overtime.items,
+      vacation: vacation.items,
+      license: license.items
+    };
     
     const setBadge = (id, count) => {
       const el = query(id);
@@ -193,15 +216,9 @@ export function setRequestFormType() {
   }
 }
 
-export function openRequestDialog() {
-  const form = query('#request-form');
-  if (form) form.reset();
-  const docName = query('#request-document-name');
-  if (docName) {
-    docName.textContent = '';
-    docName.style.display = 'none';
-  }
+function bindDocumentInput() {
   const docInput = query('#request-form-document');
+  const docName = query('#request-document-name');
   if (docInput && !docInput.dataset.listenerBound) {
     docInput.dataset.listenerBound = 'true';
     docInput.addEventListener('change', () => {
@@ -209,11 +226,98 @@ export function openRequestDialog() {
       if (file && docName) {
         docName.textContent = `Archivo seleccionado: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
         docName.style.display = 'block';
-      } else if (docName) {
+      } else if (docName && !query('#request-existing-doc')?.value) {
         docName.style.display = 'none';
       }
     });
   }
+}
+
+const toDateInputValue = (d) => {
+  if (!d) return '';
+  const str = d instanceof Date ? d.toISOString() : String(d);
+  return str.slice(0, 10);
+};
+
+export function openRequestDialog() {
+  const form = query('#request-form');
+  if (form) form.reset();
+  const editIdInput = query('#request-edit-id');
+  if (editIdInput) editIdInput.value = '';
+  const existingDocInput = query('#request-existing-doc');
+  if (existingDocInput) existingDocInput.value = '';
+
+  const title = query('#request-dialog-title');
+  if (title) title.textContent = 'Nueva solicitud';
+  const submitBtn = query('#submit-request-form');
+  if (submitBtn) submitBtn.textContent = 'Enviar';
+
+  const typeSelect = query('#request-type');
+  if (typeSelect) typeSelect.disabled = false;
+
+  const docName = query('#request-document-name');
+  if (docName) {
+    docName.textContent = '';
+    docName.style.display = 'none';
+  }
+  bindDocumentInput();
+  setRequestFormType();
+  const dialog = query('#request-dialog');
+  if (dialog) dialog.showModal();
+}
+
+export function editRequest(button) {
+  const type = button.dataset.requestEditType;
+  const id = button.dataset.requestEditId;
+  const item = requestCache[type]?.find((i) => i.id === id);
+  if (!item) return;
+
+  const form = query('#request-form');
+  if (!form) return;
+  form.reset();
+
+  const editIdInput = query('#request-edit-id');
+  if (editIdInput) editIdInput.value = item.id;
+
+  const existingDocInput = query('#request-existing-doc');
+  if (existingDocInput) existingDocInput.value = item.documentUrl || '';
+
+  const title = query('#request-dialog-title');
+  if (title) title.textContent = 'Editar solicitud';
+  const submitBtn = query('#submit-request-form');
+  if (submitBtn) submitBtn.textContent = 'Guardar cambios';
+
+  const typeMap = {
+    work: 'WORK_PERMISSION',
+    overtime: 'OVERTIME',
+    vacation: 'VACATION',
+    license: 'LICENSE'
+  };
+  const typeSelect = query('#request-type');
+  if (typeSelect) {
+    typeSelect.value = typeMap[type] || 'WORK_PERMISSION';
+    typeSelect.disabled = true;
+  }
+
+  if (form.elements.startDate) form.elements.startDate.value = toDateInputValue(item.startDate);
+  if (form.elements.endDate) form.elements.endDate.value = toDateInputValue(item.endDate);
+  if (form.elements.date) form.elements.date.value = toDateInputValue(item.date);
+  if (form.elements.requestedMinutes) form.elements.requestedMinutes.value = item.requestedMinutes || '';
+  if (form.elements.licenseType) form.elements.licenseType.value = item.type || '';
+  if (form.elements.reason) form.elements.reason.value = item.reason || '';
+
+  const docName = query('#request-document-name');
+  if (docName) {
+    if (item.documentUrl) {
+      docName.innerHTML = `Sustento actual: <a href="${escapeHtml(item.documentUrl)}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;">Ver documento</a> (Seleccione otro si desea cambiarlo)`;
+      docName.style.display = 'block';
+    } else {
+      docName.textContent = '';
+      docName.style.display = 'none';
+    }
+  }
+
+  bindDocumentInput();
   setRequestFormType();
   const dialog = query('#request-dialog');
   if (dialog) dialog.showModal();
@@ -223,11 +327,16 @@ export async function submitRequestForm() {
   const form = query('#request-form');
   if (!form || !form.reportValidity()) return;
   const values = Object.fromEntries(new FormData(form));
+  const editId = form.querySelector('#request-edit-id')?.value;
+  const existingDoc = form.querySelector('#request-existing-doc')?.value;
+  const typeSelect = query('#request-type');
+  const requestType = values.requestType || typeSelect?.value || 'WORK_PERMISSION';
+
   const button = query('#submit-request-form');
   button.disabled = true;
 
   try {
-    let documentUrl = null;
+    let documentUrl = existingDoc || null;
     const docInput = form.querySelector('#request-form-document');
     const file = docInput?.files?.[0];
 
@@ -246,48 +355,58 @@ export async function submitRequestForm() {
       documentUrl = uploaded?.url || null;
     }
 
-    const requestByType = {
+    const typeKeyMap = {
+      WORK_PERMISSION: 'work',
+      OVERTIME: 'overtime',
+      VACATION: 'vacation',
+      LICENSE: 'license'
+    };
+    const key = typeKeyMap[requestType];
+    const definition = requestDefinitions[key];
+
+    const bodyByType = {
       WORK_PERMISSION: {
-        endpoint: '/requests/work-permissions',
-        body: {
-          startDate: values.startDate,
-          endDate: values.endDate,
-          reason: values.reason,
-          documentUrl
-        }
+        startDate: values.startDate,
+        endDate: values.endDate,
+        reason: values.reason,
+        documentUrl
       },
       OVERTIME: {
-        endpoint: '/requests/overtime',
-        body: {
-          date: values.date,
-          requestedMinutes: Number(values.requestedMinutes),
-          reason: values.reason
-        }
+        date: values.date,
+        requestedMinutes: Number(values.requestedMinutes),
+        reason: values.reason
       },
       VACATION: {
-        endpoint: '/requests/vacations',
-        body: {
-          startDate: values.startDate,
-          endDate: values.endDate,
-          reason: values.reason || undefined
-        }
+        startDate: values.startDate,
+        endDate: values.endDate,
+        reason: values.reason || undefined
       },
       LICENSE: {
-        endpoint: '/requests/licenses',
-        body: {
-          startDate: values.startDate,
-          endDate: values.endDate,
-          type: values.licenseType,
-          reason: values.reason || undefined,
-          documentUrl
-        }
+        startDate: values.startDate,
+        endDate: values.endDate,
+        type: values.licenseType,
+        reason: values.reason || undefined,
+        documentUrl
       }
     };
-    const request = requestByType[values.requestType];
-    await api(request.endpoint, { method: 'POST', body: JSON.stringify(request.body) });
+    const body = bodyByType[requestType];
+
+    if (editId) {
+      await api(definition.updateEndpoint(editId), {
+        method: 'PUT',
+        body: JSON.stringify(body)
+      });
+      showToast('Solicitud actualizada correctamente');
+    } else {
+      await api(definition.ownEndpoint, {
+        method: 'POST',
+        body: JSON.stringify(body)
+      });
+      showToast('Solicitud enviada correctamente');
+    }
+
     const dialog = query('#request-dialog');
     if (dialog) dialog.close();
-    showToast('Solicitud enviada correctamente');
     loadRequests();
     if (state.profile) loadProfile();
   } catch (error) {

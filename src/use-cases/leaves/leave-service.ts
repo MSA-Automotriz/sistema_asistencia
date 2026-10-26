@@ -88,6 +88,37 @@ export class LeaveService {
     });
   }
 
+  async updateVacation(
+    userId: string,
+    vacationId: string,
+    input: VacationInput,
+    canManageAll = false
+  ) {
+    const vacation = await prisma.vacation.findUnique({
+      where: { id: vacationId },
+      include: { employee: true }
+    });
+    if (!vacation) throw new AppError(404, 'Solicitud de vacaciones no encontrada');
+    if (!canManageAll) {
+      const employee = await this.employeeForUser(userId);
+      if (vacation.employeeId !== employee.id) {
+        throw new AppError(403, 'No tiene permiso para editar esta solicitud');
+      }
+    }
+    this.ensurePending(vacation.status);
+    this.ensureValidPeriod(input.startDate, input.endDate);
+    await this.ensureNoOverlap('vacation', vacation.employeeId, input.startDate, input.endDate, vacationId);
+    return prisma.vacation.update({
+      where: { id: vacationId },
+      data: {
+        startDate: input.startDate,
+        endDate: input.endDate,
+        reason: input.reason
+      },
+      include: { employee: employeeDetails }
+    });
+  }
+
   async reviewVacation(vacationId: string, reviewerId: string, input: LeaveReviewInput) {
     const vacation = await prisma.vacation.findUnique({ where: { id: vacationId } });
     if (!vacation) throw new AppError(404, 'Solicitud de vacaciones no encontrada');
@@ -137,6 +168,39 @@ export class LeaveService {
     });
   }
 
+  async updateLicense(
+    userId: string,
+    licenseId: string,
+    input: LicenseInput,
+    canManageAll = false
+  ) {
+    const license = await prisma.license.findUnique({
+      where: { id: licenseId },
+      include: { employee: true }
+    });
+    if (!license) throw new AppError(404, 'Solicitud de licencia no encontrada');
+    if (!canManageAll) {
+      const employee = await this.employeeForUser(userId);
+      if (license.employeeId !== employee.id) {
+        throw new AppError(403, 'No tiene permiso para editar esta solicitud');
+      }
+    }
+    this.ensurePending(license.status);
+    this.ensureValidPeriod(input.startDate, input.endDate);
+    await this.ensureNoOverlap('license', license.employeeId, input.startDate, input.endDate, licenseId);
+    return prisma.license.update({
+      where: { id: licenseId },
+      data: {
+        startDate: input.startDate,
+        endDate: input.endDate,
+        type: input.type,
+        reason: input.reason,
+        documentUrl: input.documentUrl !== undefined ? (input.documentUrl ? input.documentUrl.trim() : null) : license.documentUrl
+      },
+      include: { employee: employeeDetails }
+    });
+  }
+
   async reviewLicense(licenseId: string, reviewerId: string, input: LeaveReviewInput) {
     const license = await prisma.license.findUnique({ where: { id: licenseId } });
     if (!license) throw new AppError(404, 'Solicitud de licencia no encontrada');
@@ -167,13 +231,15 @@ export class LeaveService {
     type: 'vacation' | 'license',
     employeeId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    excludeId?: string
   ) {
     const where = {
       employeeId,
       status: { in: [RequestStatus.PENDING, RequestStatus.APPROVED] },
       startDate: { lte: endDate },
-      endDate: { gte: startDate }
+      endDate: { gte: startDate },
+      ...(excludeId ? { id: { not: excludeId } } : {})
     };
     const overlap =
       type === 'vacation'

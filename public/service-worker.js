@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'msa-asistencia-';
-const CACHE_NAME = `${CACHE_PREFIX}v26`;
+const CACHE_NAME = `${CACHE_PREFIX}v30`;
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -155,7 +155,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (request.mode === 'navigate' || NETWORK_FIRST_PATHS.has(url.pathname)) {
+  if (
+    request.mode === 'navigate' ||
+    NETWORK_FIRST_PATHS.has(url.pathname) ||
+    url.pathname.startsWith('/js/') ||
+    url.pathname.startsWith('/css/')
+  ) {
     event.respondWith(
       networkWithCache(request).catch(() =>
         request.mode === 'navigate' ? caches.match('/index.html') : caches.match(request)

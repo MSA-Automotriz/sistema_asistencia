@@ -28,6 +28,20 @@
   border-bottom: 0;
 }
 
+.request-row .row-name {
+  display: block;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 3px;
+}
+
+.request-row .row-meta {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 .request-actions {
   display: flex;
   flex-wrap: wrap;

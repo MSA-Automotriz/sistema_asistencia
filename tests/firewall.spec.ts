@@ -121,6 +121,24 @@ describe('Web Application Firewall (WAF) & Security Middleware', () => {
       expect(response.status).toBe(403);
       expect(response.body.success).toBe(false);
     });
+
+    it('should block double-encoded path traversal sequences', async () => {
+      const response = await request(app)
+        .get('/api/v1/health?file=%252e%252e%252f%252e%252e%252fetc/passwd')
+        .set('User-Agent', 'Mozilla/5.0');
+
+      expect(response.status).toBe(403);
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should block null byte poisoning in parameters', async () => {
+      const response = await request(app)
+        .get('/api/v1/health?file=image.png%00.php')
+        .set('User-Agent', 'Mozilla/5.0');
+
+      expect(response.status).toBe(403);
+      expect(response.body.success).toBe(false);
+    });
   });
 
   describe('5. HTTP Method Filtering', () => {

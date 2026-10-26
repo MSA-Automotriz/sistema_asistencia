@@ -119,6 +119,11 @@
   color: #15803d;
 }
 
+.edit-button {
+  border-color: var(--primary-color, #2563eb);
+  color: var(--primary-color, #2563eb);
+}
+
 .reject-button {
   border-color: var(--danger);
   color: #b91c1c;

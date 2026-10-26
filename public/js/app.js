@@ -52,7 +52,8 @@ import {
   setRequestFormType,
   submitRequestForm,
   reviewRequest,
-  cancelRequest
+  cancelRequest,
+  editRequest
 } from './modules/requests/requests.js';
 import {
   loadOrganization,
@@ -448,6 +449,7 @@ function bindGlobalEvents() {
 
     // Acciones dinámicas de filas y tablas
     if (button.dataset.reviewId) reviewRequest(button);
+    if (button.dataset.requestEditId) editRequest(button);
     if (button.dataset.requestCancelId) cancelRequest(button);
     if (button.dataset.editUserId) openEditUserDialog(button.dataset.editUserId);
     if (button.dataset.userId) setUserStatus(button);

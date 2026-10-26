@@ -1,9 +1,11 @@
 <dialog id="request-dialog" class="dialog">
     <form id="request-form" class="dialog-content" method="dialog">
+      <input type="hidden" id="request-edit-id" name="id" value="" />
+      <input type="hidden" id="request-existing-doc" name="existingDocumentUrl" value="" />
       <div class="dialog-heading">
         <div>
           <p class="eyebrow">Autoservicio</p>
-          <h2>Nueva solicitud</h2>
+          <h2 id="request-dialog-title">Nueva solicitud</h2>
         </div>
         <button class="quiet-button" value="cancel" type="submit" formnovalidate data-dialog-close>Cerrar</button>
       </div>

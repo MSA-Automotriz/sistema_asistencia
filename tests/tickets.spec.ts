@@ -213,6 +213,22 @@ describe('Support Tickets Module (Helpdesk TI)', () => {
 
     expect(permRes.status).toBe(201);
     expect(permRes.body.data.documentUrl).toBe(docUrl);
+
+    // 3. Allows the owner to edit their pending work permission
+    const permId = permRes.body.data.id;
+    const editRes = await request(app)
+      .put(`/api/v1/requests/work-permissions/${permId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        startDate: '2026-11-12T08:00:00.000Z',
+        endDate: '2026-11-12T17:00:00.000Z',
+        reason: 'Cita médica reprogramada para fecha posterior',
+        documentUrl: docUrl
+      });
+
+    expect(editRes.status).toBe(200);
+    expect(editRes.body.success).toBe(true);
+    expect(editRes.body.data.reason).toBe('Cita médica reprogramada para fecha posterior');
   });
 });
 

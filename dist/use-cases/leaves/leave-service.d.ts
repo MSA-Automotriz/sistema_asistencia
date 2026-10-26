@@ -188,6 +188,38 @@ export declare class LeaveService {
         approvedById: string | null;
         reviewNote: string | null;
     }>;
+    updateVacation(userId: string, vacationId: string, input: VacationInput, canManageAll?: boolean): Promise<{
+        employee: {
+            id: string;
+            user: {
+                id: string;
+                email: string;
+                firstName: string;
+                lastName: string;
+            };
+            employeeCode: string;
+            company: {
+                id: string;
+                name: string;
+            };
+            site: {
+                id: string;
+                name: string;
+            } | null;
+        };
+    } & {
+        status: import("@prisma/client").$Enums.RequestStatus;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        employeeId: string;
+        startDate: Date;
+        endDate: Date;
+        reason: string | null;
+        reviewedAt: Date | null;
+        approvedById: string | null;
+        reviewNote: string | null;
+    }>;
     reviewVacation(vacationId: string, reviewerId: string, input: LeaveReviewInput): Promise<{
         employee: {
             id: string;
@@ -289,6 +321,40 @@ export declare class LeaveService {
         reviewNote: string | null;
     })[]>;
     cancelLicense(userId: string, licenseId: string): Promise<{
+        employee: {
+            id: string;
+            user: {
+                id: string;
+                email: string;
+                firstName: string;
+                lastName: string;
+            };
+            employeeCode: string;
+            company: {
+                id: string;
+                name: string;
+            };
+            site: {
+                id: string;
+                name: string;
+            } | null;
+        };
+    } & {
+        type: string;
+        status: import("@prisma/client").$Enums.RequestStatus;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        employeeId: string;
+        startDate: Date;
+        endDate: Date;
+        reason: string | null;
+        documentUrl: string | null;
+        reviewedById: string | null;
+        reviewedAt: Date | null;
+        reviewNote: string | null;
+    }>;
+    updateLicense(userId: string, licenseId: string, input: LicenseInput, canManageAll?: boolean): Promise<{
         employee: {
             id: string;
             user: {

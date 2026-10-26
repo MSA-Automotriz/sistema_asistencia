@@ -85,6 +85,38 @@ export class RequestService {
     });
   }
 
+  async updateWorkPermission(
+    userId: string,
+    requestId: string,
+    input: WorkPermissionInput,
+    canManageAll = false
+  ) {
+    const request = await prisma.workPermission.findUnique({
+      where: { id: requestId },
+      include: { employee: true }
+    });
+    if (!request) throw new AppError(404, 'Solicitud de permiso no encontrada');
+    if (!canManageAll) {
+      const employee = await this.employeeForUser(userId);
+      if (request.employeeId !== employee.id) {
+        throw new AppError(403, 'No tiene permiso para editar esta solicitud');
+      }
+    }
+    if (request.status !== RequestStatus.PENDING)
+      throw new AppError(400, 'Solo puede editar solicitudes pendientes');
+    this.ensureValidPeriod(input.startDate, input.endDate);
+    return prisma.workPermission.update({
+      where: { id: requestId },
+      data: {
+        startDate: input.startDate,
+        endDate: input.endDate,
+        reason: input.reason,
+        documentUrl: input.documentUrl !== undefined ? (input.documentUrl ? input.documentUrl.trim() : null) : request.documentUrl
+      },
+      include: { employee: requestEmployee }
+    });
+  }
+
   async reviewWorkPermission(requestId: string, status: ReviewStatus, reviewedById: string) {
     const request = await prisma.workPermission.findUnique({ where: { id: requestId } });
     if (!request) throw new AppError(404, 'Solicitud de permiso no encontrada');
@@ -130,6 +162,36 @@ export class RequestService {
     return prisma.overtimeRequest.update({
       where: { id: requestId },
       data: { status: RequestStatus.CANCELLED },
+      include: { employee: requestEmployee }
+    });
+  }
+
+  async updateOvertimeRequest(
+    userId: string,
+    requestId: string,
+    input: OvertimeRequestInput,
+    canManageAll = false
+  ) {
+    const request = await prisma.overtimeRequest.findUnique({
+      where: { id: requestId },
+      include: { employee: true }
+    });
+    if (!request) throw new AppError(404, 'Solicitud de horas extra no encontrada');
+    if (!canManageAll) {
+      const employee = await this.employeeForUser(userId);
+      if (request.employeeId !== employee.id) {
+        throw new AppError(403, 'No tiene permiso para editar esta solicitud');
+      }
+    }
+    if (request.status !== RequestStatus.PENDING)
+      throw new AppError(400, 'Solo puede editar solicitudes pendientes');
+    return prisma.overtimeRequest.update({
+      where: { id: requestId },
+      data: {
+        date: input.date,
+        requestedMinutes: input.requestedMinutes,
+        reason: input.reason
+      },
       include: { employee: requestEmployee }
     });
   }

@@ -163,12 +163,22 @@ function renderCalendarGrid(year, month) {
   const isEmployee = isEmployeeRole();
   const filtered = getFilteredEvents();
 
+  const parseCalendarDate = (d) => {
+    if (!d) return null;
+    const str = d instanceof Date ? d.toISOString() : String(d);
+    if (/^\d{4}-\d{2}-\d{2}(T00:00:00(\.000)?Z?)?$/.test(str)) {
+      const [y, m, day] = str.slice(0, 10).split('-').map(Number);
+      return new Date(y, m - 1, day, 12, 0, 0, 0);
+    }
+    return new Date(d);
+  };
+
   const eventsByDate = new Map();
   filtered.forEach((ev) => {
     if (isEmployee && ev.category !== 'BIRTHDAY' && ev.category !== 'HOLIDAY') return;
 
-    const startDate = new Date(ev.start);
-    const endDate = ev.end ? new Date(ev.end) : startDate;
+    const startDate = parseCalendarDate(ev.start);
+    const endDate = ev.end ? parseCalendarDate(ev.end) : startDate;
 
     const current = new Date(startDate);
     current.setHours(0, 0, 0, 0);

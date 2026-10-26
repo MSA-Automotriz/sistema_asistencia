@@ -144,6 +144,30 @@ export declare class RequestService {
         reviewedById: string | null;
         reviewedAt: Date | null;
     }>;
+    updateWorkPermission(userId: string, requestId: string, input: WorkPermissionInput, canManageAll?: boolean): Promise<{
+        employee: {
+            id: string;
+            user: {
+                id: string;
+                email: string;
+                firstName: string;
+                lastName: string;
+            };
+            employeeCode: string;
+        };
+    } & {
+        status: import("@prisma/client").$Enums.RequestStatus;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        employeeId: string;
+        startDate: Date;
+        endDate: Date;
+        reason: string;
+        documentUrl: string | null;
+        reviewedById: string | null;
+        reviewedAt: Date | null;
+    }>;
     reviewWorkPermission(requestId: string, status: ReviewStatus, reviewedById: string): Promise<{
         employee: {
             id: string;
@@ -215,6 +239,29 @@ export declare class RequestService {
         requestedMinutes: number;
     })[]>;
     cancelOvertimeRequest(userId: string, requestId: string): Promise<{
+        employee: {
+            id: string;
+            user: {
+                id: string;
+                email: string;
+                firstName: string;
+                lastName: string;
+            };
+            employeeCode: string;
+        };
+    } & {
+        status: import("@prisma/client").$Enums.RequestStatus;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        date: Date;
+        employeeId: string;
+        reason: string;
+        reviewedById: string | null;
+        reviewedAt: Date | null;
+        requestedMinutes: number;
+    }>;
+    updateOvertimeRequest(userId: string, requestId: string, input: OvertimeRequestInput, canManageAll?: boolean): Promise<{
         employee: {
             id: string;
             user: {

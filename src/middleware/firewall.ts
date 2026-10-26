@@ -34,7 +34,7 @@ const XSS_PATTERNS = [
 // Patrones de Inyección SQL (SQLi)
 const SQLI_PATTERNS = [
   /\bunion\s+(?:all\s+)?select\b/i,
-  /\bselect\b.+\bfrom\b.+\binformation_schema\b/i,
+  /\bselect\b[\s\S]{1,150}\bfrom\b[\s\S]{1,150}\binformation_schema\b/i,
   /\bwaitfor\s+delay\b/i,
   /\bbenchmark\s*\(\s*\d+\s*,\s*.+\)/i,
   /\bsleep\s*\(\s*\d+\s*\)/i,
@@ -43,12 +43,27 @@ const SQLI_PATTERNS = [
   /\/\*![\d\w\s]*\*\//
 ];
 
-// Patrones de Path Traversal / LFI
+// Patrones de Path Traversal / LFI y envenenamiento por byte nulo
 const TRAVERSAL_PATTERNS = [
   /(?:\.\.[/\\]|[/\\]\.\.)/,
   /%2e%2e[%2f%5c]/i,
-  /(?:etc\/passwd|boot\.ini|win\.ini)/i
+  /(?:etc\/passwd|boot\.ini|win\.ini)/i,
+  /\0|%00/
 ];
+
+function safeDecode(str: string): string {
+  let prev = str;
+  for (let i = 0; i < 2; i++) {
+    try {
+      const decoded = decodeURIComponent(prev);
+      if (decoded === prev) break;
+      prev = decoded;
+    } catch {
+      break;
+    }
+  }
+  return prev;
+}
 
 // Campos sensibles que NO deben ser analizados por firmas SQL (ej: contraseñas complejas y hashes)
 const SKIP_BODY_KEYS = new Set([
@@ -65,17 +80,25 @@ function inspectValue(val: unknown, keyName = ''): string | null {
   if (val === null || val === undefined) return null;
 
   if (typeof val === 'string') {
-    // 1. Path traversal check
+    let normalized = val;
+    try {
+      normalized = val.normalize('NFKC');
+    } catch {
+      // Ignorar error si no es normalizable
+    }
+    const decoded = safeDecode(normalized);
+
+    // 1. Path traversal y bytes nulos
     for (const pattern of TRAVERSAL_PATTERNS) {
-      if (pattern.test(val)) return 'Path Traversal detectado';
+      if (pattern.test(normalized) || pattern.test(decoded)) return 'Path Traversal detectado';
     }
     // 2. XSS check
     for (const pattern of XSS_PATTERNS) {
-      if (pattern.test(val)) return 'Carga maliciosa XSS detectada';
+      if (pattern.test(normalized) || pattern.test(decoded)) return 'Carga maliciosa XSS detectada';
     }
     // 3. SQLi check
     for (const pattern of SQLI_PATTERNS) {
-      if (pattern.test(val)) return 'Firma de Inyección SQL detectada';
+      if (pattern.test(normalized) || pattern.test(decoded)) return 'Firma de Inyección SQL detectada';
     }
     return null;
   }
@@ -127,15 +150,11 @@ export const applicationFirewall = (req: Request, res: Response, next: NextFunct
     }
   }
 
-  // 3. Verificación de URL y Query Parameters
-  let decodedUrl = req.originalUrl || req.url || '';
-  try {
-    decodedUrl = decodeURI(decodedUrl);
-  } catch {
-    // Si la URI está mal codificada, se evalúa la original
-  }
+  // 3. Verificación de URL y Path Traversal
+  const rawUrl = req.originalUrl || req.url || '';
+  const decodedUrl = safeDecode(rawUrl);
   for (const pattern of TRAVERSAL_PATTERNS) {
-    if (pattern.test(decodedUrl)) {
+    if (pattern.test(rawUrl) || pattern.test(decodedUrl)) {
       logger.warn('WAF: Path Traversal en URL bloqueado', { url: req.originalUrl, ip: req.ip });
       res.status(403).json({
         success: false,

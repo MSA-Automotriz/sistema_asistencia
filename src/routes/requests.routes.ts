@@ -121,6 +121,25 @@ requestsRouter.delete('/requests/work-permissions/:id', async (request, response
   )
 );
 
+requestsRouter.put(
+  '/requests/work-permissions/:id',
+  validate(workPermissionSchema),
+  async (request, response) => {
+    const canManageAll = Boolean(
+      request.auth?.permissions?.includes('work-permissions.update') ||
+      ['sistemas', 'administrador', 'admin'].includes(String(request.auth?.role ?? '').trim().toLowerCase())
+    );
+    const updated = await requests.updateWorkPermission(
+      request.auth!.sub,
+      String(request.params.id),
+      request.body,
+      canManageAll
+    );
+    auditEvent(request, 'UPDATE', 'WorkPermission', updated.id);
+    return ok(response, 'Solicitud de permiso actualizada correctamente', updated);
+  }
+);
+
 requestsRouter.patch(
   '/work-permissions/:id/review',
   authorize('work-permissions.update'),
@@ -164,6 +183,25 @@ requestsRouter.delete('/requests/overtime/:id', async (request, response) =>
     'Solicitud de horas extra cancelada correctamente',
     await requests.cancelOvertimeRequest(request.auth!.sub, String(request.params.id))
   )
+);
+
+requestsRouter.put(
+  '/requests/overtime/:id',
+  validate(overtimeRequestSchema),
+  async (request, response) => {
+    const canManageAll = Boolean(
+      request.auth?.permissions?.includes('overtime-requests.update') ||
+      ['sistemas', 'administrador', 'admin'].includes(String(request.auth?.role ?? '').trim().toLowerCase())
+    );
+    const updated = await requests.updateOvertimeRequest(
+      request.auth!.sub,
+      String(request.params.id),
+      request.body,
+      canManageAll
+    );
+    auditEvent(request, 'UPDATE', 'OvertimeRequest', updated.id);
+    return ok(response, 'Solicitud de horas extra actualizada correctamente', updated);
+  }
 );
 
 requestsRouter.patch(
@@ -260,6 +298,25 @@ requestsRouter.delete('/requests/vacations/:id', async (request, response) => {
   return ok(response, 'Solicitud de vacaciones cancelada correctamente', vacation);
 });
 
+requestsRouter.put(
+  '/requests/vacations/:id',
+  validate(leavePeriodSchema),
+  async (request, response) => {
+    const canManageAll = Boolean(
+      request.auth?.permissions?.includes('vacations.update') ||
+      ['sistemas', 'administrador', 'admin'].includes(String(request.auth?.role ?? '').trim().toLowerCase())
+    );
+    const vacation = await leaves.updateVacation(
+      request.auth!.sub,
+      String(request.params.id),
+      request.body,
+      canManageAll
+    );
+    auditEvent(request, 'UPDATE', 'Vacation', vacation.id);
+    return ok(response, 'Solicitud de vacaciones actualizada correctamente', vacation);
+  }
+);
+
 requestsRouter.patch(
   '/vacations/:id/review',
   authorize('vacations.update'),
@@ -301,6 +358,25 @@ requestsRouter.delete('/requests/licenses/:id', async (request, response) => {
   auditEvent(request, 'CANCEL', 'License', license.id);
   return ok(response, 'Solicitud de licencia cancelada correctamente', license);
 });
+
+requestsRouter.put(
+  '/requests/licenses/:id',
+  validate(licenseSchema),
+  async (request, response) => {
+    const canManageAll = Boolean(
+      request.auth?.permissions?.includes('licenses.update') ||
+      ['sistemas', 'administrador', 'admin'].includes(String(request.auth?.role ?? '').trim().toLowerCase())
+    );
+    const license = await leaves.updateLicense(
+      request.auth!.sub,
+      String(request.params.id),
+      request.body,
+      canManageAll
+    );
+    auditEvent(request, 'UPDATE', 'License', license.id);
+    return ok(response, 'Solicitud de licencia actualizada correctamente', license);
+  }
+);
 
 requestsRouter.patch(
   '/licenses/:id/review',

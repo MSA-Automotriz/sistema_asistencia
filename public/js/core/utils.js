@@ -10,8 +10,20 @@ export const escapeHtml = (value) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]
   );
 
-export const formatDate = (value, options = { dateStyle: 'medium' }) =>
-  value ? new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', ...options }).format(new Date(value)) : '-';
+export const formatDate = (value, options = { dateStyle: 'medium' }) => {
+  if (!value) return '-';
+  const str = value instanceof Date ? value.toISOString() : String(value);
+  // Si es una fecha de calendario sin hora específica (ej: YYYY-MM-DD o medianoche UTC T00:00:00)
+  if (/^\d{4}-\d{2}-\d{2}(T00:00:00(\.000)?Z?)?$/.test(str)) {
+    const [year, month, day] = str.slice(0, 10).split('-').map(Number);
+    return new Intl.DateTimeFormat('es-PE', { ...options, timeZone: 'UTC' }).format(
+      new Date(Date.UTC(year, month - 1, day))
+    );
+  }
+  return new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', ...options }).format(
+    new Date(value)
+  );
+};
 
 export const formatTime = (value, includeSeconds = false) => {
   if (!value) return '-';

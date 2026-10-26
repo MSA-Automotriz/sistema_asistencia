@@ -375,6 +375,10 @@ export class ReportService {
   }
 
   private date(value: Date) {
+    const iso = value.toISOString();
+    if (iso.endsWith('T00:00:00.000Z')) {
+      return iso.slice(0, 10);
+    }
     return new Intl.DateTimeFormat('en-CA', {
       timeZone: 'America/Lima',
       year: 'numeric',
